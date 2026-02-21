@@ -74,7 +74,7 @@ export default function LandingPage() {
         </div>
 
         <div className="max-w-3xl mx-auto relative">
-          <Image src="/logo.png" alt="Threshold" width={320} height={179} className="h-16 md:h-20 w-auto mb-8" priority />
+          <Image src="/logo.png" alt="Threshold" width={500} height={280} className="h-20 md:h-28 w-auto mb-8" priority />
           <h1 className="font-display text-5xl md:text-7xl font-extrabold mb-6 leading-[0.95] tracking-tight">
             Your network is<br />
             your most powerful<br />

@@ -39,7 +39,7 @@ export default function DashboardPage() {
         {/* Top bar */}
         <div className="max-w-6xl mx-auto px-6 pt-5 pb-3 flex items-center justify-between">
           <Link href="/" className="hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Threshold" width={180} height={100} className="h-10 w-auto" priority />
+            <Image src="/logo.png" alt="Threshold" width={320} height={179} className="h-10 md:h-14 w-auto" priority />
           </Link>
           {user && (
             <div className="flex items-center gap-3">
