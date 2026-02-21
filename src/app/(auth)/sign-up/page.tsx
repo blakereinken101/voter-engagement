@@ -48,7 +48,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-md animate-slide-up">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-16 md:h-20 w-auto mx-auto" priority />
+            <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-48 md:h-64 w-auto mx-auto" priority />
           </Link>
           <p className="text-white/60 text-sm mt-3">Create your volunteer account</p>
         </div>
