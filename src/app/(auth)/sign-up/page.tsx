@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
+import Image from 'next/image'
 import { UserPlus, AlertCircle } from 'lucide-react'
 
 export default function SignUpPage() {
@@ -46,10 +47,10 @@ export default function SignUpPage() {
     <div className="cosmic-bg constellation min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md animate-slide-up">
         <div className="text-center mb-8">
-          <Link href="/" className="font-display font-extrabold text-3xl text-white tracking-tight hover:opacity-80 transition-opacity">
-            Threshold
+          <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
+            <Image src="/logo.png" alt="Threshold" width={220} height={123} className="h-14 w-auto mx-auto" priority />
           </Link>
-          <p className="text-white/60 text-sm mt-2">Create your volunteer account</p>
+          <p className="text-white/60 text-sm mt-3">Create your volunteer account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="glass-card p-8 space-y-5">
