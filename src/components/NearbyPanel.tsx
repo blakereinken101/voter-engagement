@@ -25,6 +25,7 @@ export default function NearbyPanel() {
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: 35.2271, lng: -80.8431 })
 
   const addedNames = new Set(
     state.personEntries.map(p => `${p.firstName.toLowerCase()}-${p.lastName.toLowerCase()}`)
@@ -90,6 +91,9 @@ export default function NearbyPanel() {
       setOffset(nextOffset)
       setTotal(data.total ?? newVoters.length)
       setHasMore(data.hasMore ?? false)
+      if (data.centerLat != null && data.centerLng != null) {
+        setMapCenter({ lat: data.centerLat, lng: data.centerLng })
+      }
       setSearchInfo(
         data.address
           ? `Near "${data.address}"${data.zip ? ` (${data.zip})` : ''}`
@@ -274,8 +278,8 @@ export default function NearbyPanel() {
               voters={results}
               onAddVoter={handleAddVoter}
               isAlreadyAdded={isAlreadyAdded}
-              centerLat={35.2271}
-              centerLng={-80.8431}
+              centerLat={mapCenter.lat}
+              centerLng={mapCenter.lng}
             />
           )}
         </div>

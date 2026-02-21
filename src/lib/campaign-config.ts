@@ -1,3 +1,10 @@
+export interface SurveyQuestionConfig {
+  id: string
+  label: string
+  type: 'select' | 'text'
+  options?: string[]
+}
+
 export interface CampaignConfig {
   id: string
   name: string
@@ -6,6 +13,7 @@ export interface CampaignConfig {
   electionDate?: string
   organizationName?: string
   privacyText?: string
+  surveyQuestions: SurveyQuestionConfig[]
 }
 
 /**
@@ -26,6 +34,26 @@ const campaignConfig: CampaignConfig = {
   electionDate: process.env.ELECTION_DATE || '2026-11-03',
   organizationName: process.env.NEXT_PUBLIC_ORGANIZATION_NAME || 'Threshold',
   privacyText: 'Your data stays on your device. Names you enter are only used to match against public voter records. Each campaign\'s data is isolated — your work here is private to this campaign.',
+  surveyQuestions: [
+    {
+      id: 'top_issue',
+      label: 'Top issue',
+      type: 'select',
+      options: ['Economy', 'Healthcare', 'Education', 'Environment', 'Immigration', 'Housing', 'Crime/Safety', 'Other'],
+    },
+    {
+      id: 'vote_plan',
+      label: 'Plan to vote?',
+      type: 'select',
+      options: ['Yes - Election Day', 'Yes - Early voting', 'Yes - By mail', 'Maybe', 'No'],
+    },
+    {
+      id: 'needs_ride',
+      label: 'Needs ride to polls?',
+      type: 'select',
+      options: ['Yes', 'No', 'Maybe'],
+    },
+  ],
 }
 
 export default campaignConfig

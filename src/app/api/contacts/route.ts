@@ -15,7 +15,7 @@ export async function GET() {
              mr.vote_score, mr.segment, mr.user_confirmed,
              ai.id as ai_id, ai.contacted, ai.contacted_date, ai.outreach_method,
              ai.contact_outcome, ai.follow_up_date, ai.notes,
-             ai.is_volunteer_prospect, ai.recruited_date
+             ai.is_volunteer_prospect, ai.recruited_date, ai.survey_responses
       FROM contacts c
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
@@ -71,6 +71,7 @@ export async function GET() {
           notes: row.notes || undefined,
           isVolunteerProspect: !!row.is_volunteer_prospect,
           recruitedDate: row.recruited_date || undefined,
+          surveyResponses: row.survey_responses ? JSON.parse(row.survey_responses as string) : undefined,
         }
       })
 

@@ -42,6 +42,7 @@ type AppAction =
   | { type: 'UPDATE_ACTION_NOTE'; payload: { personId: string; notes: string } }
   | { type: 'BATCH_MATCH_RESULTS'; payload: MatchResult[] }
   | { type: 'SET_VOLUNTEER_PROSPECT'; payload: { personId: string; isProspect: boolean } }
+  | { type: 'SET_SURVEY_RESPONSES'; payload: { personId: string; responses: Record<string, string> } }
   | { type: 'HYDRATE'; payload: Partial<AppState> }
   | { type: 'RESET' }
 
@@ -253,6 +254,25 @@ function appReducer(state: AppState, action: AppAction): AppState {
         }],
       }
     }
+    case 'SET_SURVEY_RESPONSES': {
+      const existingSR = state.actionPlanState.find(a => a.matchResult.personEntry.id === action.payload.personId)
+      if (existingSR) {
+        return {
+          ...state,
+          actionPlanState: state.actionPlanState.map(item =>
+            item.matchResult.personEntry.id === action.payload.personId
+              ? { ...item, surveyResponses: action.payload.responses }
+              : item
+          ),
+        }
+      }
+      const stubSR = createStubActionItem(action.payload.personId, state.personEntries)
+      if (!stubSR) return state
+      return {
+        ...state,
+        actionPlanState: [...state.actionPlanState, { ...stubSR, surveyResponses: action.payload.responses }],
+      }
+    }
     case 'SET_ERROR':
       return { ...state, error: action.payload }
     case 'HYDRATE':
@@ -281,6 +301,8 @@ interface AppContextValue {
   runMatching: () => Promise<void>
   runMatchingForUnmatched: () => Promise<void>
   setVolunteerProspect: (personId: string, isProspect: boolean) => void
+  setSurveyResponses: (personId: string, responses: Record<string, string>) => void
+  removePerson: (personId: string) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -437,6 +459,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (user) syncToServer(`/api/contacts/${personId}/action`, 'PUT', { isVolunteerProspect: isProspect })
   }, [user])
 
+  const setSurveyResponses = useCallback((personId: string, responses: Record<string, string>) => {
+    dispatch({ type: 'SET_SURVEY_RESPONSES', payload: { personId, responses } })
+    if (user) syncToServer(`/api/contacts/${personId}/action`, 'PUT', { surveyResponses: responses })
+  }, [user])
+
+  const removePerson = useCallback((personId: string) => {
+    dispatch({ type: 'REMOVE_PERSON', payload: personId })
+    if (user) syncToServer(`/api/contacts?contactId=${personId}`, 'DELETE')
+  }, [user])
+
   const runMatching = useCallback(async () => {
     if (!state.selectedState || state.personEntries.length === 0) return
     dispatch({ type: 'SET_LOADING', payload: true })
@@ -516,7 +548,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       state, dispatch, addPerson, confirmMatch, rejectMatch,
-      toggleContacted, setOutreachMethod, setContactOutcome, clearContact, updateNote, runMatching, runMatchingForUnmatched, setVolunteerProspect
+      toggleContacted, setOutreachMethod, setContactOutcome, clearContact, updateNote, runMatching, runMatchingForUnmatched, setVolunteerProspect, setSurveyResponses, removePerson
     }}>
       {children}
     </AppContext.Provider>

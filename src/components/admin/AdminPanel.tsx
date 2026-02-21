@@ -8,7 +8,8 @@ import AdminContacts from './AdminContacts'
 import ActivityTimeline from './ActivityTimeline'
 import ExportPanel from './ExportPanel'
 import Leaderboard from './Leaderboard'
-import { BarChart3, Users, Contact, Activity, Trophy, Download } from 'lucide-react'
+import DataPurge from './DataPurge'
+import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
@@ -18,6 +19,7 @@ const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'activity', label: 'Activity', Icon: Activity },
   { id: 'leaderboard', label: 'Leaderboard', Icon: Trophy },
   { id: 'export', label: 'Export', Icon: Download },
+  { id: 'purge', label: 'Purge', Icon: Trash2 },
 ]
 
 export default function AdminPanel() {
@@ -52,6 +54,7 @@ export default function AdminPanel() {
         {activeTab === 'activity' && <ActivityTimeline />}
         {activeTab === 'leaderboard' && <Leaderboard />}
         {activeTab === 'export' && <ExportPanel />}
+        {activeTab === 'purge' && <DataPurge />}
       </div>
     </div>
   )

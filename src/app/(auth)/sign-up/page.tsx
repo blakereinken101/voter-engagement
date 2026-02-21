@@ -21,13 +21,28 @@ export default function SignUpPage() {
     e.preventDefault()
     setError('')
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
+    if (!name.trim()) {
+      setError('Name is required')
+      return
+    }
+
+    if (!email.trim()) {
+      setError('Email is required')
+      return
+    }
+
+    if (!password) {
+      setError('Password is required')
       return
     }
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
       return
     }
 

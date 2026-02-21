@@ -49,6 +49,10 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
         values.push(new Date().toISOString())
       }
     }
+    if ('surveyResponses' in body) {
+      updates.push(`survey_responses = $${paramIdx++}`)
+      values.push(JSON.stringify(body.surveyResponses))
+    }
 
     if (updates.length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 })

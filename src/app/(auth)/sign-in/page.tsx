@@ -18,6 +18,17 @@ export default function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!email.trim()) {
+      setError('Email is required')
+      return
+    }
+
+    if (!password) {
+      setError('Password is required')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -93,7 +104,7 @@ export default function SignInPage() {
         </form>
 
         <p className="text-center mt-6 text-xs text-white/40">
-          Forgot password? Contact your admin.
+          Forgot password? Contact your campaign admin for a reset.
         </p>
         <p className="text-center mt-3 text-sm text-white/50">
           Don&apos;t have an account?{' '}

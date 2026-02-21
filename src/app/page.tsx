@@ -55,12 +55,6 @@ export default function LandingPage() {
           <div className="flex flex-wrap justify-center gap-4 mt-2">
             <Link href="/dashboard" className="font-bold underline hover:opacity-80 transition-opacity">Continue your plan</Link>
             <Link href="/rolodex" className="font-bold underline hover:opacity-80 transition-opacity">Open rolodex</Link>
-            <button
-              onClick={() => { dispatch({ type: 'RESET' }); }}
-              className="text-sm opacity-60 hover:opacity-100 transition-opacity"
-            >
-              Start over
-            </button>
           </div>
         </div>
       )}

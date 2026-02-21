@@ -8,7 +8,8 @@ import ContactCard from './ContactCard'
 import MatchAllBar from './MatchAllBar'
 import NearbyPanel from './NearbyPanel'
 import ContactsPanel from './ContactsPanel'
-import { Pencil, MapPin, ClipboardList, HelpCircle, MessageCircle, Phone, Coffee, Smartphone, ThumbsUp, ThumbsDown, Mail } from 'lucide-react'
+import { calculatePriority } from '@/lib/contact-priority'
+import { Pencil, MapPin, ClipboardList, HelpCircle, MessageCircle, Phone, Coffee, Smartphone, ThumbsUp, ThumbsDown, Mail, Zap } from 'lucide-react'
 import clsx from 'clsx'
 
 const INTAKE_TABS: { id: IntakeMode; label: string; Icon: typeof Pencil }[] = [
@@ -59,7 +60,7 @@ function ConversationGuide() {
 }
 
 export default function ContactSpreadsheet() {
-  const { state, toggleContacted, setContactOutcome, clearContact, updateNote, confirmMatch, rejectMatch, runMatchingForUnmatched, setVolunteerProspect, dispatch } = useAppContext()
+  const { state, toggleContacted, setContactOutcome, clearContact, updateNote, confirmMatch, rejectMatch, runMatchingForUnmatched, setVolunteerProspect, setSurveyResponses, removePerson } = useAppContext()
 
   const [intakeMode, setIntakeMode] = useState<IntakeMode>('manual')
   const [sortField, setSortField] = useState<SortField>('name')
@@ -134,6 +135,11 @@ export default function ContactSpreadsheet() {
           const bO = b.actionItem?.contactOutcome ? oOrder[b.actionItem.contactOutcome as keyof typeof oOrder] ?? 5 : 5
           return dir * (aO - bO)
         }
+        case 'priority': {
+          const aPriority = a.actionItem ? calculatePriority(a.actionItem) : 50
+          const bPriority = b.actionItem ? calculatePriority(b.actionItem) : 50
+          return dir * (aPriority - bPriority)
+        }
         default:
           return 0
       }
@@ -155,7 +161,7 @@ export default function ContactSpreadsheet() {
   }
 
   function handleRemove(personId: string) {
-    dispatch({ type: 'REMOVE_PERSON', payload: personId })
+    removePerson(personId)
   }
 
   function handleVolunteerRecruit(personId: string) {
@@ -232,6 +238,18 @@ export default function ContactSpreadsheet() {
             <option value="no-answer">No answer</option>
             <option value="opposed">Not interested</option>
           </select>
+          <button
+            onClick={() => { setSortField('priority'); setSortDir('desc') }}
+            className={clsx(
+              'flex items-center gap-1 px-3 py-2 rounded-btn text-xs font-bold transition-all',
+              sortField === 'priority'
+                ? 'bg-vc-purple text-white shadow-glow'
+                : 'glass-input text-white/60 hover:text-white'
+            )}
+          >
+            <Zap className="w-3 h-3" />
+            Priority
+          </button>
           <span className="text-xs text-white/60 font-display tabular-nums ml-auto">
             {sorted.length} of {rows.length}
           </span>
@@ -278,6 +296,7 @@ export default function ContactSpreadsheet() {
                   onConfirmMatch={confirmMatch}
                   onRejectMatch={rejectMatch}
                   onVolunteerRecruit={handleVolunteerRecruit}
+                  onSurveyChange={setSurveyResponses}
                 />
               ))}
             </tbody>
@@ -300,6 +319,7 @@ export default function ContactSpreadsheet() {
               onConfirmMatch={confirmMatch}
               onRejectMatch={rejectMatch}
               onVolunteerRecruit={handleVolunteerRecruit}
+              onSurveyChange={setSurveyResponses}
             />
           ))}
         </div>

@@ -93,6 +93,8 @@ async function initSchema() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      ALTER TABLE action_items ADD COLUMN IF NOT EXISTS survey_responses TEXT;
+
       CREATE INDEX IF NOT EXISTS idx_contacts_user_id ON contacts(user_id);
       CREATE INDEX IF NOT EXISTS idx_match_results_contact_id ON match_results(contact_id);
       CREATE INDEX IF NOT EXISTS idx_action_items_contact_id ON action_items(contact_id);

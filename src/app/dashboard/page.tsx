@@ -6,6 +6,10 @@ import ContactSpreadsheet from '@/components/ContactSpreadsheet'
 import AdminPanel from '@/components/admin/AdminPanel'
 import { generateVoteBuilderCSV, downloadCSV } from '@/lib/votebuilder-export'
 import ConversionStats from '@/components/ConversionStats'
+import VolunteerLeaderboard from '@/components/VolunteerLeaderboard'
+import SocialShareBar from '@/components/SocialShareBar'
+import VoterRegistrationLinks from '@/components/VoterRegistrationLinks'
+import PushNotificationToggle from '@/components/PushNotificationToggle'
 import campaignConfig from '@/lib/campaign-config'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -136,10 +140,16 @@ export default function DashboardPage() {
         )}
       </header>
 
-      {/* Personal stats */}
+      {/* Personal stats + leaderboard */}
       {!isAdminMode && totalPeople > 0 && (
-        <div className="max-w-6xl mx-auto w-full px-4 md:px-8 pt-4">
+        <div className="max-w-6xl mx-auto w-full px-4 md:px-8 pt-4 space-y-3">
           <ConversionStats />
+          <VolunteerLeaderboard />
+          <div className="grid md:grid-cols-3 gap-3">
+            <SocialShareBar />
+            <VoterRegistrationLinks />
+            <PushNotificationToggle />
+          </div>
         </div>
       )}
 

@@ -155,6 +155,16 @@ export default function InlineAddRow() {
         </button>
       </div>
 
+      {Object.keys(errors).some(k => errors[k as keyof typeof errors]) && (
+        <p className="text-vc-coral text-xs mt-1.5 font-medium">
+          {errors.firstName && !errors.lastName && !errors.city && !errors.age ? 'First name is required' :
+           !errors.firstName && errors.lastName && !errors.city && !errors.age ? 'Last name is required' :
+           !errors.firstName && !errors.lastName && errors.city && !errors.age ? 'City is required' :
+           !errors.firstName && !errors.lastName && !errors.city && errors.age ? 'Age is required (18–120)' :
+           'Please fill in all required fields: first name, last name, city, and age'}
+        </p>
+      )}
+
       {showMore && (
         <div className="flex gap-2 items-center flex-wrap mt-2 animate-fade-in">
           <input

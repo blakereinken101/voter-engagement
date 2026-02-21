@@ -4,7 +4,9 @@ import { SpreadsheetRow, OutreachMethod, ContactOutcome, SafeVoterRecord } from 
 import { CATEGORIES } from '@/lib/wizard-config'
 import { generateSmsLinkForContact } from '@/lib/sms-templates'
 import { useAuth } from '@/context/AuthContext'
-import { MessageCircle, Phone, Coffee, ThumbsUp, HelpCircle, ThumbsDown, Mail, PhoneOff, Smartphone, X, UserPlus, Star } from 'lucide-react'
+import campaignConfig from '@/lib/campaign-config'
+import { calculatePriority, getPriorityLabel } from '@/lib/contact-priority'
+import { MessageCircle, Phone, Coffee, ThumbsUp, HelpCircle, ThumbsDown, Mail, PhoneOff, Smartphone, X, UserPlus, Star, ClipboardList, Zap } from 'lucide-react'
 import clsx from 'clsx'
 
 const OUTREACH_LABELS: Record<OutreachMethod, { label: string; Icon: typeof MessageCircle; tip: string }> = {
@@ -31,11 +33,12 @@ interface Props {
   onConfirmMatch: (personId: string, voterRecord: SafeVoterRecord) => void
   onRejectMatch: (personId: string) => void
   onVolunteerRecruit: (personId: string) => void
+  onSurveyChange: (personId: string, responses: Record<string, string>) => void
 }
 
 export default function ContactCard({
   row, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
-  onRemove, onConfirmMatch, onRejectMatch, onVolunteerRecruit,
+  onRemove, onConfirmMatch, onRejectMatch, onVolunteerRecruit, onSurveyChange,
 }: Props) {
   const { person, matchResult, actionItem } = row
   const { user } = useAuth()
@@ -93,6 +96,16 @@ export default function ContactCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {actionItem && (() => {
+            const priority = calculatePriority(actionItem)
+            const { label, color } = getPriorityLabel(priority)
+            return (
+              <span className={clsx('text-[10px] font-bold flex items-center gap-0.5', color)}>
+                <Zap className="w-3 h-3" />
+                {label}
+              </span>
+            )
+          })()}
           {voteScore !== undefined && (
             <span className={clsx('font-display font-bold text-lg', segmentColor)}>
               {Math.round(voteScore * 100)}%
@@ -252,6 +265,49 @@ export default function ContactCard({
                 <Icon className="w-3 h-3" />
                 {label}
               </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Survey questions — show after outcome is recorded */}
+      {contacted && contactOutcome && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && campaignConfig.surveyQuestions.length > 0 && (
+        <div className="mb-3 space-y-2">
+          <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider flex items-center gap-1">
+            <ClipboardList className="w-3 h-3" />
+            Quick survey
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {campaignConfig.surveyQuestions.map(q => (
+              <div key={q.id} className="flex-1 min-w-[120px]">
+                <label className="text-[10px] text-white/50 block mb-0.5">{q.label}</label>
+                {q.type === 'select' && q.options ? (
+                  <select
+                    value={actionItem?.surveyResponses?.[q.id] ?? ''}
+                    onChange={e => {
+                      const updated = { ...(actionItem?.surveyResponses || {}), [q.id]: e.target.value }
+                      onSurveyChange(person.id, updated)
+                    }}
+                    className="glass-input w-full px-2 py-1.5 rounded-btn text-[10px]"
+                  >
+                    <option value="">—</option>
+                    {q.options.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={actionItem?.surveyResponses?.[q.id] ?? ''}
+                    onChange={e => {
+                      const updated = { ...(actionItem?.surveyResponses || {}), [q.id]: e.target.value }
+                      onSurveyChange(person.id, updated)
+                    }}
+                    className="glass-input w-full px-2 py-1.5 rounded-btn text-[10px]"
+                    placeholder={q.label}
+                  />
+                )}
+              </div>
             ))}
           </div>
         </div>

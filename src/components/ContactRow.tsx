@@ -5,6 +5,7 @@ import { CATEGORIES } from '@/lib/wizard-config'
 import { getVoteHistoryDetail } from '@/lib/voter-segments'
 import { getRelationshipTip } from '@/lib/scripts'
 import { generateSmsLinkForContact } from '@/lib/sms-templates'
+import campaignConfig from '@/lib/campaign-config'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 import {
@@ -67,11 +68,12 @@ interface Props {
   onConfirmMatch: (personId: string, voterRecord: SafeVoterRecord) => void
   onRejectMatch: (personId: string) => void
   onVolunteerRecruit: (personId: string) => void
+  onSurveyChange: (personId: string, responses: Record<string, string>) => void
 }
 
 export default function ContactRow({
   row, index, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
-  onRemove, onConfirmMatch, onRejectMatch, onVolunteerRecruit,
+  onRemove, onConfirmMatch, onRejectMatch, onVolunteerRecruit, onSurveyChange,
 }: Props) {
   const { person, matchResult, actionItem } = row
   const { user } = useAuth()
@@ -375,6 +377,46 @@ export default function ContactRow({
                   <p className="text-white/60">{bestMatch.city}, {bestMatch.state} {bestMatch.zip}</p>
                   {bestMatch.birth_year && <p className="text-white/60">Born {bestMatch.birth_year}</p>}
                   <p className="text-white/60">Party: {bestMatch.party_affiliation}</p>
+                </div>
+              )}
+
+              {/* Survey questions */}
+              {contacted && contactOutcome && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && campaignConfig.surveyQuestions.length > 0 && (
+                <div>
+                  <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Survey</p>
+                  <div className="space-y-1.5">
+                    {campaignConfig.surveyQuestions.map(q => (
+                      <div key={q.id}>
+                        <label className="text-[10px] text-white/50 block mb-0.5">{q.label}</label>
+                        {q.type === 'select' && q.options ? (
+                          <select
+                            value={actionItem?.surveyResponses?.[q.id] ?? ''}
+                            onChange={e => {
+                              const updated = { ...(actionItem?.surveyResponses || {}), [q.id]: e.target.value }
+                              onSurveyChange(person.id, updated)
+                            }}
+                            className="glass-input w-full px-2 py-1 rounded text-[10px]"
+                          >
+                            <option value="">—</option>
+                            {q.options.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={actionItem?.surveyResponses?.[q.id] ?? ''}
+                            onChange={e => {
+                              const updated = { ...(actionItem?.surveyResponses || {}), [q.id]: e.target.value }
+                              onSurveyChange(person.id, updated)
+                            }}
+                            className="glass-input w-full px-2 py-1 rounded text-[10px]"
+                            placeholder={q.label}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

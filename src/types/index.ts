@@ -147,6 +147,21 @@ export interface ActionPlanItem {
   notes?: string
   isVolunteerProspect?: boolean
   recruitedDate?: string
+  surveyResponses?: Record<string, string>
+}
+
+// =============================================
+// SURVEY TYPES
+// =============================================
+
+export type SurveyQuestionType = 'select' | 'text'
+
+export interface SurveyQuestion {
+  id: string
+  label: string
+  type: SurveyQuestionType
+  options?: string[]  // for 'select' type
+  required?: boolean
 }
 
 // =============================================
@@ -239,7 +254,7 @@ export interface SpreadsheetRow {
   actionItem?: ActionPlanItem
 }
 
-export type SortField = 'name' | 'category' | 'matchStatus' | 'voteScore' | 'outcome' | 'contacted'
+export type SortField = 'name' | 'category' | 'matchStatus' | 'voteScore' | 'outcome' | 'contacted' | 'priority'
 export type SortDirection = 'asc' | 'desc'
 export type SegmentFilter = 'all' | VoterSegment | 'unmatched'
 export type OutcomeFilter = 'all' | 'not-contacted' | ContactOutcome
@@ -310,4 +325,4 @@ export interface ActivityLogEntry {
   createdAt: string
 }
 
-export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard'
+export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge'

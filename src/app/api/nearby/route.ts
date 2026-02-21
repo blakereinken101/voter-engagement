@@ -198,6 +198,8 @@ export async function POST(request: NextRequest) {
       hasMore: safeOffset + safeLimit < total,
       address: address.trim().slice(0, 200),
       zip: searchZip || undefined,
+      centerLat: searchGeo?.lat,
+      centerLng: searchGeo?.lng,
     })
   }
 
@@ -251,5 +253,7 @@ export async function POST(request: NextRequest) {
     total,
     hasMore: safeOffset + safeLimit < total,
     zip: cleanZip,
+    centerLat: zipGeo?.lat,
+    centerLng: zipGeo?.lng,
   })
 }
