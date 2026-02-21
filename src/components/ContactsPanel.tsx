@@ -279,7 +279,7 @@ export default function ContactsPanel() {
     <div className="p-4 space-y-4">
       {/* Import methods */}
       <div className="space-y-3">
-        {/* Contact Picker (Android Chrome + iOS w/ flag) */}
+        {/* Contact Picker (Android Chrome) */}
         {hasContactPicker && (
           <button
             onClick={handlePickContacts}
@@ -288,20 +288,20 @@ export default function ContactsPanel() {
             <span className="text-2xl">📱</span>
             <div>
               <p className="text-sm font-bold text-vc-purple-light">Pick from Contacts</p>
-              <p className="text-[10px] text-white/50">Select contacts from your phone</p>
+              <p className="text-[10px] text-white/50">Select multiple contacts from your phone</p>
             </div>
           </button>
         )}
 
-        {/* VCF File Import */}
+        {/* VCF File Import — primary option for iPhone */}
         <button
           onClick={() => fileInputRef.current?.click()}
           className="w-full flex items-center gap-3 px-4 py-3 glass-card border-dashed border-white/15 hover:border-white/25 transition-all text-left"
         >
-          <span className="text-2xl">📎</span>
+          <span className="text-2xl">📇</span>
           <div>
-            <p className="text-sm font-bold text-vc-purple-light">Import .vcf File</p>
-            <p className="text-[10px] text-white/50">Import contacts from a vCard file</p>
+            <p className="text-sm font-bold text-vc-purple-light">Import Contacts File</p>
+            <p className="text-[10px] text-white/50">Upload a .vcf file from your phone or computer</p>
           </div>
         </button>
         <input
@@ -311,6 +311,19 @@ export default function ContactsPanel() {
           onChange={handleVcfFileSelect}
           className="hidden"
         />
+
+        {/* iPhone help — show when Contact Picker API is not available */}
+        {!hasContactPicker && (
+          <div className="glass-card p-3 text-xs text-white/60 leading-relaxed">
+            <p className="font-bold text-white/80 mb-1">iPhone users: How to export your contacts</p>
+            <ol className="list-decimal list-inside space-y-0.5">
+              <li>Open <span className="font-bold text-white/80">Settings</span> &rarr; <span className="font-bold text-white/80">Contacts</span></li>
+              <li>Tap <span className="font-bold text-white/80">Export</span> (or use an app like &quot;Export Contacts&quot;)</li>
+              <li>Save or share the .vcf file</li>
+              <li>Upload it here using the button above</li>
+            </ol>
+          </div>
+        )}
 
         {/* Spreadsheet / Bulk Import */}
         <button

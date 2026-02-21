@@ -39,7 +39,7 @@ export default function DashboardPage() {
         {/* Top bar */}
         <div className="max-w-6xl mx-auto px-6 pt-5 pb-3 flex items-center justify-between">
           <Link href="/" className="hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Threshold" width={640} height={358} className="h-24 md:h-32 w-auto" priority />
+            <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-12 md:h-16 w-auto" priority />
           </Link>
           {user && (
             <div className="flex items-center gap-3">
@@ -62,7 +62,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Nav bar */}
-        <div className="max-w-6xl mx-auto px-6 pb-4 flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-6 pb-4 flex flex-wrap items-center gap-2 md:gap-3">
           {user?.role === 'admin' && (
             <button
               onClick={() => setIsAdminMode(!isAdminMode)}
@@ -103,9 +103,9 @@ export default function DashboardPage() {
             </button>
           )}
 
-          {/* Stats — pushed right */}
+          {/* Stats — pushed right, hidden on small screens */}
           {!isAdminMode && totalPeople > 0 && (
-            <div className="flex flex-wrap items-center gap-4 text-sm ml-auto font-display tabular-nums">
+            <div className="hidden md:flex flex-wrap items-center gap-4 text-sm ml-auto font-display tabular-nums">
               <span className="flex items-center gap-1.5 text-white/70">
                 <Users className="w-4 h-4" />
                 <span className="text-white font-bold">{totalPeople}</span>
