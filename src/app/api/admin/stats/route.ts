@@ -205,9 +205,9 @@ export async function GET() {
     // ── Goal tracking ──────────────────────────────────────────────────
 
     const goals = {
-      totalContactsGoal: 500,
-      totalContactedGoal: 250,
-      totalSupportersGoal: 100,
+      totalContactsGoal: parseInt(process.env.GOAL_CONTACTS || '500'),
+      totalContactedGoal: parseInt(process.env.GOAL_CONTACTED || '250'),
+      totalSupportersGoal: parseInt(process.env.GOAL_SUPPORTERS || '100'),
       currentContacts: totalContacts,
       currentContacted: contactedCount,
       currentSupporters: supportersCount,

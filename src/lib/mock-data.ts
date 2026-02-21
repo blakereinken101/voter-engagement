@@ -9,27 +9,35 @@ import path from 'path'
 const voterFileCache = new Map<string, VoterRecord[]>()
 
 function loadRealVoterData(state: string): VoterRecord[] | null {
-  if (state !== 'NC') return null
-
-  // Prefer geocoded file, fall back to original
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
-  const geoPath = path.join(dataDir, 'mecklenburg-voters-geo.json')
-  const origPath = path.join(dataDir, 'mecklenburg-voters.json')
-  const dataPath = fs.existsSync(geoPath) ? geoPath : origPath
 
-  if (!fs.existsSync(dataPath)) {
-    console.warn('[voter-data] Real voter data not found at', origPath)
-    console.warn('[voter-data] Run: node scripts/process-voter-data.js')
+  // Check for a custom voter file name (env var), then geo, then plain
+  const voterFileName = process.env.VOTER_FILE
+  const candidates = voterFileName
+    ? [path.join(dataDir, voterFileName)]
+    : [
+        path.join(dataDir, 'voters-geo.json'),
+        path.join(dataDir, 'voters.json'),
+        // Legacy NC filenames for backward compatibility
+        path.join(dataDir, 'mecklenburg-voters-geo.json'),
+        path.join(dataDir, 'mecklenburg-voters.json'),
+      ]
+
+  const dataPath = candidates.find(p => fs.existsSync(p))
+
+  if (!dataPath) {
+    console.warn(`[voter-data] No voter data file found for ${state} in ${dataDir}`)
+    console.warn('[voter-data] Expected one of:', candidates.map(p => path.basename(p)).join(', '))
     return null
   }
 
-  const hasGeo = dataPath === geoPath
-  console.log(`[voter-data] Loading real Mecklenburg County voter data${hasGeo ? ' (geocoded)' : ''}...`)
+  const isGeo = dataPath.includes('-geo')
+  console.log(`[voter-data] Loading voter data from ${path.basename(dataPath)}${isGeo ? ' (geocoded)' : ''}...`)
   const start = Date.now()
   const raw = fs.readFileSync(dataPath, 'utf-8')
   const data = JSON.parse(raw) as VoterRecord[]
   const elapsed = Date.now() - start
-  console.log(`[voter-data] Loaded ${data.length.toLocaleString()} real voter records in ${elapsed}ms`)
+  console.log(`[voter-data] Loaded ${data.length.toLocaleString()} voter records in ${elapsed}ms`)
   return data
 }
 
@@ -44,7 +52,7 @@ export function getVoterFile(state: string): VoterRecord[] {
     return realData
   }
 
-  // Fall back to mock data for non-NC states
+  // Fall back to mock data if no voter file found
   const mockData = generateMockVoterFile(key, 750)
   voterFileCache.set(key, mockData)
   return mockData

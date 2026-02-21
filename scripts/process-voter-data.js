@@ -2,6 +2,11 @@
 /**
  * Process NC State Board of Elections voter data for Mecklenburg County.
  *
+ * NOTE: This script is NC-specific. For other states, you'll need a similar
+ * script tailored to that state's voter file format. The output format should
+ * match the VoterRecord interface in src/types/index.ts. Save the output as
+ * "voters.json" (or "voters-geo.json" if geocoded) in the data/ directory.
+ *
  * Downloads and processes:
  *   - ncvoter60.zip (voter registration)
  *   - ncvhis60.zip (voter history)

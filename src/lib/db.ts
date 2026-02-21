@@ -103,8 +103,8 @@ async function initSchema() {
 
       await client.query(
         `INSERT INTO users (id, email, password_hash, name, role, campaign_id)
-         VALUES ($1, $2, $3, $4, 'admin', 'demo-2026')`,
-        [id, adminEmail, passwordHash, 'Admin']
+         VALUES ($1, $2, $3, $4, 'admin', $5)`,
+        [id, adminEmail, passwordHash, 'Admin', process.env.CAMPAIGN_ID || 'demo-2026']
       )
 
       console.log(`[db] Seeded admin user: ${adminEmail}`)
