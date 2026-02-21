@@ -314,7 +314,7 @@ export default function ContactRow({
             onChange={e => setLocalNotes(e.target.value)}
             onBlur={() => onNotesChange(person.id, localNotes)}
             placeholder="Notes..."
-            className="glass-input w-full px-2 py-1 rounded text-xs text-white bg-transparent focus:outline-none focus:ring-1 focus:ring-vc-coral"
+            className="glass-input w-full px-2 py-1 rounded text-xs focus:outline-none focus:ring-1 focus:ring-vc-purple/30"
           />
         </td>
       </tr>

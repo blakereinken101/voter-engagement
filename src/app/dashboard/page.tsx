@@ -137,13 +137,13 @@ export default function DashboardPage() {
 
       {/* Personal stats */}
       {!isAdminMode && totalPeople > 0 && (
-        <div className="max-w-6xl mx-auto w-full px-4 pt-4">
+        <div className="max-w-6xl mx-auto w-full px-4 md:px-8 pt-4">
           <ConversionStats />
         </div>
       )}
 
       {/* Main content */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-4">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-4">
         {isAdminMode ? <AdminPanel /> : <ContactSpreadsheet />}
       </main>
 

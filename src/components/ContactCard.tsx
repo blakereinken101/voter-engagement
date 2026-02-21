@@ -65,7 +65,7 @@ export default function ContactCard({
 
   return (
     <div className={clsx(
-      'glass-card p-4',
+      'glass-card p-5',
       contacted && contactOutcome && !isRecontact && 'opacity-50',
       isNew && 'ring-2 ring-vc-teal/30 animate-fade-in'
     )}>
@@ -264,7 +264,7 @@ export default function ContactCard({
         onChange={e => setLocalNotes(e.target.value)}
         onBlur={() => onNotesChange(person.id, localNotes)}
         placeholder="Notes..."
-        className="glass-input w-full px-3 py-2 rounded-btn text-xs text-white bg-transparent focus:outline-none focus:ring-2 focus:ring-vc-purple/30"
+        className="glass-input w-full px-3 py-2 rounded-btn text-xs focus:outline-none focus:ring-2 focus:ring-vc-purple/30"
       />
     </div>
   )

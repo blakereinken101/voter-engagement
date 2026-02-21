@@ -90,13 +90,13 @@ body {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #E2E8F0;
+    color: rgba(255, 255, 255, 0.90);
     border-radius: 10px;
     transition: border-color 200ms ease, box-shadow 200ms ease;
   }
 
   .glass-input::placeholder {
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.40);
   }
 
   .glass-input:focus {

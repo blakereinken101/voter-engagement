@@ -20,7 +20,7 @@ const INTAKE_TABS: { id: IntakeMode; label: string; Icon: typeof Pencil }[] = [
 function ConversationGuide() {
   const [open, setOpen] = useState(false)
   return (
-    <div className="mx-4 mt-1 mb-0">
+    <div className="mx-4 md:mx-6 mt-1 mb-0">
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 text-xs text-vc-purple-light/70 hover:text-vc-purple-light transition-colors group"
@@ -168,7 +168,7 @@ export default function ContactSpreadsheet() {
   return (
     <div className="flex flex-col h-full">
       {/* Intake mode tabs — glass pills */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 md:px-6 pt-4 pb-2">
         <div className="glass-card p-1.5 inline-flex gap-1 mb-3">
           {INTAKE_TABS.map(tab => (
             <button
@@ -199,7 +199,7 @@ export default function ContactSpreadsheet() {
 
       {/* Filters — glass bar */}
       {rows.length > 0 && (
-        <div className="px-4 py-3 flex flex-wrap gap-2 items-center">
+        <div className="px-4 md:px-6 py-3 flex flex-wrap gap-2 items-center">
           <input
             type="text"
             placeholder="Search by name..."
@@ -240,8 +240,8 @@ export default function ContactSpreadsheet() {
 
       {/* Desktop table */}
       {rows.length > 0 && (
-        <div className="hidden md:block flex-1 overflow-auto px-4 pb-20">
-          <table className="w-full text-left border-separate" style={{ borderSpacing: '0 4px' }}>
+        <div className="hidden md:block flex-1 overflow-auto px-4 md:px-6 pb-20">
+          <table className="w-full text-left border-separate" style={{ borderSpacing: '0 6px' }}>
             <thead className="sticky top-0 z-10">
               <tr className="text-[11px] font-bold text-white/50 uppercase tracking-wider">
                 <th className="py-2 px-3 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('name')}>
@@ -287,7 +287,7 @@ export default function ContactSpreadsheet() {
 
       {/* Mobile cards */}
       {rows.length > 0 && (
-        <div className="md:hidden flex-1 overflow-auto px-4 pb-20 space-y-3">
+        <div className="md:hidden flex-1 overflow-auto px-4 pb-20 space-y-4">
           {sorted.map(row => (
             <ContactCard
               key={row.person.id}
