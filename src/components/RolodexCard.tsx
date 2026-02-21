@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import { MessageCircle, Phone, Coffee, ThumbsUp, HelpCircle, ThumbsDown, Mail, PhoneOff, Smartphone } from 'lucide-react'
 import { ActionPlanItem, OutreachMethod, ContactOutcome, VoterSegment } from '@/types'
 import { useAppContext } from '@/context/AppContext'
 import { CONVERSATION_SCRIPTS } from '@/lib/scripts'
@@ -9,24 +10,24 @@ import { generateSmsLinkForContact, getSmsTemplate, fillTemplate } from '@/lib/s
 import ScriptCard from './ScriptCard'
 import clsx from 'clsx'
 
-const OUTREACH_LABELS: Record<OutreachMethod, { label: string; icon: string }> = {
-  text: { label: 'Text', icon: '💬' },
-  call: { label: 'Call', icon: '📞' },
-  'one-on-one': { label: '1:1 meetup', icon: '☕' },
+const OUTREACH_LABELS: Record<OutreachMethod, { label: string; Icon: typeof MessageCircle }> = {
+  text: { label: 'Text', Icon: MessageCircle },
+  call: { label: 'Call', Icon: Phone },
+  'one-on-one': { label: '1:1 meetup', Icon: Coffee },
 }
 
-const OUTCOME_CONFIG: Record<ContactOutcome, { label: string; icon: string; color: string }> = {
-  'supporter':    { label: 'Supporter',       icon: '✊', color: 'bg-rally-green text-white' },
-  'undecided':    { label: 'Undecided',       icon: '🤔', color: 'bg-rally-yellow text-rally-navy' },
-  'opposed':      { label: 'Not interested',  icon: '✋', color: 'bg-gray-200 text-rally-slate' },
-  'left-message': { label: 'Left message',    icon: '📩', color: 'bg-rally-navy/10 text-rally-navy' },
-  'no-answer':    { label: 'No answer',       icon: '📵', color: 'bg-rally-navy/10 text-rally-navy' },
+const OUTCOME_CONFIG: Record<ContactOutcome, { label: string; Icon: typeof MessageCircle; color: string }> = {
+  'supporter':    { label: 'Supporter',       Icon: ThumbsUp,   color: 'bg-vc-teal text-white' },
+  'undecided':    { label: 'Undecided',       Icon: HelpCircle, color: 'bg-vc-gold text-vc-purple' },
+  'opposed':      { label: 'Not interested',  Icon: ThumbsDown, color: 'bg-gray-200 text-vc-slate' },
+  'left-message': { label: 'Left message',    Icon: Mail,       color: 'bg-vc-purple/10 text-vc-purple' },
+  'no-answer':    { label: 'No answer',       Icon: PhoneOff,   color: 'bg-vc-purple/10 text-vc-purple' },
 }
 
 const SEGMENT_LABELS: Record<VoterSegment, { label: string; color: string }> = {
-  'rarely-voter': { label: 'Rarely Votes', color: 'text-rally-red' },
-  'sometimes-voter': { label: 'Sometimes Votes', color: 'text-rally-yellow' },
-  'super-voter': { label: 'Super Voter', color: 'text-rally-green' },
+  'rarely-voter': { label: 'Rarely Votes', color: 'text-vc-coral' },
+  'sometimes-voter': { label: 'Sometimes Votes', color: 'text-vc-gold' },
+  'super-voter': { label: 'Super Voter', color: 'text-vc-teal' },
 }
 
 type CardStep = 'prep' | 'log'
@@ -126,21 +127,21 @@ export default function RolodexCard() {
     <div className="max-w-lg mx-auto px-4 py-6">
       {/* Progress */}
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm font-mono text-rally-slate-light">
-          <span className="text-rally-navy font-bold">{safeIndex + 1}</span> of {sortedItems.length}
+        <p className="text-sm font-display text-vc-gray">
+          <span className="text-vc-purple font-bold">{safeIndex + 1}</span> of {sortedItems.length}
         </p>
-        <p className="text-sm font-mono text-rally-slate-light">
-          <span className="text-rally-green font-bold">{totalDone}</span> done · <span className="text-rally-red font-bold">{totalRemaining}</span> to go
+        <p className="text-sm font-display text-vc-gray">
+          <span className="text-vc-teal font-bold">{totalDone}</span> done · <span className="text-vc-coral font-bold">{totalRemaining}</span> to go
         </p>
       </div>
       <div className="flex items-center gap-3 mb-6">
         <div className="bg-gray-200 rounded-full h-2 flex-1">
           <div
-            className="bg-rally-green h-2 rounded-full transition-all duration-500"
+            className="bg-vc-teal h-2 rounded-full transition-all duration-500"
             style={{ width: `${sortedItems.length > 0 ? ((safeIndex + 1) / sortedItems.length) * 100 : 0}%` }}
           />
         </div>
-        <span className="text-xs font-mono text-rally-slate-light whitespace-nowrap">
+        <span className="text-xs font-display text-vc-gray whitespace-nowrap">
           Card {safeIndex + 1} of {sortedItems.length}
         </span>
       </div>
@@ -149,39 +150,39 @@ export default function RolodexCard() {
       <div className={clsx(
         'bg-white rounded-xl shadow-lg border-l-4 p-6 transition-all',
         status === 'unmatched' ? 'border-l-gray-300' :
-          segment === 'rarely-voter' ? 'border-l-rally-red' :
-            segment === 'sometimes-voter' ? 'border-l-rally-yellow' :
-              segment === 'super-voter' ? 'border-l-rally-green' : 'border-l-gray-300',
+          segment === 'rarely-voter' ? 'border-l-vc-coral' :
+            segment === 'sometimes-voter' ? 'border-l-vc-gold' :
+              segment === 'super-voter' ? 'border-l-vc-teal' : 'border-l-gray-300',
         isFullyDone && 'opacity-50'
       )}>
         {/* Person header */}
         <div className="mb-4">
-          <h2 className="font-display text-2xl font-bold text-rally-navy">
+          <h2 className="font-display text-2xl font-bold text-vc-purple">
             {personEntry.firstName} {personEntry.lastName}
           </h2>
           <div className="flex items-center gap-3 mt-1">
             {bestMatch && (
-              <span className="text-sm text-rally-slate-light">{bestMatch.city}, {bestMatch.state}</span>
+              <span className="text-sm text-vc-gray">{bestMatch.city}, {bestMatch.state}</span>
             )}
             {segment && (
-              <span className={clsx('text-xs font-mono font-bold', SEGMENT_LABELS[segment].color)}>
+              <span className={clsx('text-xs font-display font-bold', SEGMENT_LABELS[segment].color)}>
                 {SEGMENT_LABELS[segment].label}
               </span>
             )}
             {status === 'unmatched' && (
-              <span className="text-xs font-mono text-rally-slate-light">Not in voter file</span>
+              <span className="text-xs font-display text-vc-gray">Not in voter file</span>
             )}
           </div>
           {voteScore !== undefined && (
             <div className="mt-2">
               <span className={clsx(
-                'text-2xl font-bold font-mono',
-                segment === 'super-voter' ? 'text-rally-green' :
-                  segment === 'sometimes-voter' ? 'text-rally-slate' : 'text-rally-red'
+                'text-2xl font-bold font-display',
+                segment === 'super-voter' ? 'text-vc-teal' :
+                  segment === 'sometimes-voter' ? 'text-vc-slate' : 'text-vc-coral'
               )}>
                 {Math.round(voteScore * 100)}%
               </span>
-              <span className="text-xs text-rally-slate-light ml-2">vote rate</span>
+              <span className="text-xs text-vc-gray ml-2">vote rate</span>
             </div>
           )}
         </div>
@@ -194,7 +195,7 @@ export default function RolodexCard() {
                 key={election}
                 className={clsx(
                   'text-[10px] rounded p-1.5 text-center',
-                  voted ? 'bg-rally-green text-white font-bold' : 'bg-gray-100 text-gray-400'
+                  voted ? 'bg-vc-teal text-white font-bold' : 'bg-gray-100 text-gray-400'
                 )}
               >
                 <div>{year}</div>
@@ -205,21 +206,21 @@ export default function RolodexCard() {
         )}
 
         {/* Relationship tip */}
-        <div className="bg-rally-navy/5 rounded-lg p-3 mb-4">
-          <p className="text-xs text-rally-slate leading-relaxed">{relationshipTip}</p>
+        <div className="bg-vc-purple/5 rounded-lg p-3 mb-4">
+          <p className="text-xs text-vc-slate leading-relaxed">{relationshipTip}</p>
         </div>
 
         {/* Re-contact prompt */}
         {isRecontact && step === 'prep' && (
-          <div className="bg-rally-yellow/10 border border-rally-yellow/30 rounded-lg p-4 mb-4">
-            <p className="text-sm font-bold text-rally-navy mb-2">
-              Previously: {OUTCOME_CONFIG[item.contactOutcome!].icon} {OUTCOME_CONFIG[item.contactOutcome!].label}
+          <div className="bg-vc-gold/10 border border-vc-gold/30 rounded-lg p-4 mb-4">
+            <p className="text-sm font-bold text-vc-purple mb-2 flex items-center gap-1.5">
+              Previously: {(() => { const { Icon } = OUTCOME_CONFIG[item.contactOutcome!]; return <Icon className="w-3.5 h-3.5" />; })()} {OUTCOME_CONFIG[item.contactOutcome!].label}
             </p>
             <button
               onClick={() => {
                 clearContact(personEntry.id)
               }}
-              className="text-sm font-bold text-rally-red hover:underline"
+              className="text-sm font-bold text-vc-coral hover:underline"
             >
               Try reaching out again
             </button>
@@ -228,11 +229,11 @@ export default function RolodexCard() {
 
         {/* Already done */}
         {isFullyDone && (
-          <div className="bg-rally-green/10 border border-rally-green/30 rounded-lg p-4 mb-4">
-            <p className="text-sm font-bold text-rally-navy">
-              {OUTCOME_CONFIG[item.contactOutcome!].icon} {OUTCOME_CONFIG[item.contactOutcome!].label}
+          <div className="bg-vc-teal/10 border border-vc-teal/30 rounded-lg p-4 mb-4">
+            <p className="text-sm font-bold text-vc-purple flex items-center gap-1.5">
+              {(() => { const { Icon } = OUTCOME_CONFIG[item.contactOutcome!]; return <Icon className="w-3.5 h-3.5" />; })()} {OUTCOME_CONFIG[item.contactOutcome!].label}
             </p>
-            {item.notes && <p className="text-xs text-rally-slate mt-1">{item.notes}</p>}
+            {item.notes && <p className="text-xs text-vc-slate mt-1">{item.notes}</p>}
           </div>
         )}
 
@@ -242,7 +243,7 @@ export default function RolodexCard() {
             {/* Script */}
             {segment && CONVERSATION_SCRIPTS[segment] && (
               <details className="mb-4">
-                <summary className="text-sm text-rally-navy font-bold cursor-pointer hover:text-rally-red transition-colors">
+                <summary className="text-sm text-vc-purple font-bold cursor-pointer hover:text-vc-coral transition-colors">
                   Conversation guide
                 </summary>
                 <div className="mt-3 relative">
@@ -273,33 +274,33 @@ export default function RolodexCard() {
                       }
                     }}
                     className={clsx(
-                      'w-full py-3 px-4 rounded-lg text-sm font-bold transition-all',
+                      'w-full py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2',
                       personEntry.phone
-                        ? 'bg-rally-green text-white hover:bg-rally-green/90'
+                        ? 'bg-vc-teal text-white hover:bg-vc-teal/90'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     )}
                   >
-                    {personEntry.phone ? '📲 Send Text' : '📲 Send Text (no phone number)'}
+                    <Smartphone className="w-4 h-4" /> {personEntry.phone ? 'Send Text' : 'Send Text (no phone number)'}
                   </button>
                   {personEntry.phone && (
-                    <div className="mt-2 bg-rally-green/5 border border-rally-green/20 rounded-lg p-3">
-                      <p className="text-[10px] font-bold text-rally-slate-light uppercase tracking-wider mb-1">SMS preview</p>
-                      <p className="text-xs text-rally-slate leading-relaxed max-w-prose">{smsPreview}</p>
+                    <div className="mt-2 bg-vc-teal/5 border border-vc-teal/20 rounded-lg p-3">
+                      <p className="text-[10px] font-bold text-vc-gray uppercase tracking-wider mb-1">SMS preview</p>
+                      <p className="text-xs text-vc-slate leading-relaxed max-w-prose">{smsPreview}</p>
                     </div>
                   )}
                 </div>
               )
             })()}
 
-            <p className="text-sm font-bold text-rally-navy mb-3">How will you reach out?</p>
+            <p className="text-sm font-bold text-vc-purple mb-3">How will you reach out?</p>
             <div className="flex gap-2">
-              {(Object.entries(OUTREACH_LABELS) as [OutreachMethod, { label: string; icon: string }][]).map(([method, { label, icon }]) => (
+              {(Object.entries(OUTREACH_LABELS) as [OutreachMethod, { label: string; Icon: typeof MessageCircle }][]).map(([method, { label, Icon }]) => (
                 <button
                   key={method}
                   onClick={() => handleMethodSelect(method)}
-                  className="flex-1 py-3 px-4 rounded-lg text-sm font-bold border-2 border-gray-200 hover:border-rally-navy hover:bg-rally-navy hover:text-white transition-all"
+                  className="flex-1 py-3 px-4 rounded-lg text-sm font-bold border-2 border-gray-200 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center gap-1.5"
                 >
-                  {icon} {label}
+                  <Icon className="w-3.5 h-3.5" /> {label}
                 </button>
               ))}
             </div>
@@ -309,22 +310,22 @@ export default function RolodexCard() {
         {/* STEP 2: Log — outcome + notes */}
         {step === 'log' && (
           <div className="animate-fade-in">
-            <p className="text-sm font-bold text-rally-navy mb-3">
+            <p className="text-sm font-bold text-vc-purple mb-3">
               How did it go with {personEntry.firstName}?
             </p>
             <div className="flex flex-wrap gap-2 mb-4">
-              {(Object.entries(OUTCOME_CONFIG) as [ContactOutcome, typeof OUTCOME_CONFIG[ContactOutcome]][]).map(([outcome, { label, icon, color }]) => (
+              {(Object.entries(OUTCOME_CONFIG) as [ContactOutcome, typeof OUTCOME_CONFIG[ContactOutcome]][]).map(([outcome, { label, Icon, color }]) => (
                 <button
                   key={outcome}
                   onClick={() => setSelectedOutcome(outcome)}
                   className={clsx(
-                    'py-2 px-4 rounded-lg text-sm font-bold border-2 transition-all',
+                    'py-2 px-4 rounded-lg text-sm font-bold border-2 transition-all flex items-center gap-1.5',
                     selectedOutcome === outcome
                       ? `${color} border-transparent`
-                      : 'border-gray-200 hover:border-rally-navy'
+                      : 'border-gray-200 hover:border-vc-purple'
                   )}
                 >
-                  {icon} {label}
+                  <Icon className="w-3.5 h-3.5" /> {label}
                 </button>
               ))}
             </div>
@@ -333,7 +334,7 @@ export default function RolodexCard() {
               value={noteText}
               onChange={e => setNoteText(e.target.value)}
               placeholder="Notes from the conversation..."
-              className="w-full p-3 border border-gray-200 rounded-lg text-sm text-rally-slate focus:outline-none focus:ring-2 focus:ring-rally-red resize-none mb-4"
+              className="w-full p-3 border border-gray-200 rounded-lg text-sm text-vc-slate focus:outline-none focus:ring-2 focus:ring-vc-purple/30 resize-none mb-4"
               rows={3}
             />
 
@@ -343,7 +344,7 @@ export default function RolodexCard() {
               className={clsx(
                 'w-full py-3 rounded-lg text-sm font-bold transition-all',
                 selectedOutcome
-                  ? 'bg-rally-navy text-white hover:bg-rally-navy-light'
+                  ? 'bg-vc-purple text-white hover:bg-vc-purple-light'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               )}
             >
@@ -360,7 +361,7 @@ export default function RolodexCard() {
           disabled={safeIndex === 0}
           className={clsx(
             'px-4 py-2 rounded-lg text-sm font-bold transition-all',
-            safeIndex > 0 ? 'text-rally-navy hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'
+            safeIndex > 0 ? 'text-vc-purple hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'
           )}
         >
           &larr; Back
@@ -368,7 +369,7 @@ export default function RolodexCard() {
 
         <button
           onClick={handleSkip}
-          className="px-4 py-2 rounded-lg text-sm font-bold text-rally-slate-light hover:text-rally-navy hover:bg-gray-100 transition-all"
+          className="px-4 py-2 rounded-lg text-sm font-bold text-vc-gray hover:text-vc-purple hover:bg-gray-100 transition-all"
         >
           Skip &rarr;
         </button>

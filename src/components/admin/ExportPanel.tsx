@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Download } from 'lucide-react'
 
 export default function ExportPanel() {
   const [downloading, setDownloading] = useState(false)
@@ -28,17 +29,20 @@ export default function ExportPanel() {
 
   return (
     <div className="max-w-lg">
-      <div className="bg-white rounded-xl border border-gray-100 p-8 shadow-sm text-center">
-        <div className="text-4xl mb-4">📥</div>
-        <h3 className="font-display font-bold text-xl mb-2">Export All Data</h3>
-        <p className="text-sm text-rally-slate-light mb-6">
+      <div className="glass-card p-8 text-center">
+        <div className="w-14 h-14 rounded-xl bg-vc-purple/10 flex items-center justify-center mx-auto mb-4">
+          <Download className="w-7 h-7 text-vc-purple" />
+        </div>
+        <h3 className="font-display font-bold text-xl mb-2 text-vc-slate">Export All Data</h3>
+        <p className="text-sm text-vc-gray mb-6">
           Download a CSV file containing all contacts, match results, and conversation outcomes across all volunteers.
         </p>
         <button
           onClick={handleExport}
           disabled={downloading}
-          className="bg-rally-navy hover:bg-rally-navy-light text-white font-bold px-8 py-3 rounded-lg transition-all disabled:opacity-50"
+          className="bg-vc-purple hover:bg-vc-purple-light text-white font-bold px-8 py-3 rounded-btn transition-all disabled:opacity-50 flex items-center gap-2 mx-auto"
         >
+          <Download className="w-4 h-4" />
           {downloading ? 'Downloading...' : 'Download CSV'}
         </button>
       </div>

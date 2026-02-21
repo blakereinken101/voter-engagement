@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { UserPlus, LogIn, Plus, Trash2, CheckCircle, XCircle, Phone, FileText, Circle, type LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
 
 // ---------------------------------------------------------------------------
@@ -102,23 +103,24 @@ function formatAction(action: string, details: string | null): string {
   }
 }
 
-const ACTION_ICONS: Record<string, string> = {
-  sign_up: '🎉',
-  sign_in: '🔑',
-  add_contact: '➕',
-  remove_contact: '🗑️',
-  confirm_match: '✅',
-  reject_match: '❌',
-  mark_contacted: '📞',
-  record_outcome: '📝',
+const ACTION_ICONS: Record<string, { Icon: LucideIcon; color: string }> = {
+  sign_up: { Icon: UserPlus, color: 'text-vc-teal' },
+  sign_in: { Icon: LogIn, color: 'text-vc-purple' },
+  add_contact: { Icon: Plus, color: 'text-vc-teal' },
+  remove_contact: { Icon: Trash2, color: 'text-vc-coral' },
+  confirm_match: { Icon: CheckCircle, color: 'text-vc-teal' },
+  reject_match: { Icon: XCircle, color: 'text-vc-coral' },
+  mark_contacted: { Icon: Phone, color: 'text-vc-gold' },
+  record_outcome: { Icon: FileText, color: 'text-vc-purple' },
 }
+const DEFAULT_ACTION_ICON = { Icon: Circle, color: 'text-vc-gray' }
 
 const OUTCOME_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
-  supporter:       { bg: 'bg-rally-green/10', text: 'text-rally-green',       bar: 'bg-rally-green' },
-  undecided:       { bg: 'bg-rally-yellow/10', text: 'text-rally-yellow',     bar: 'bg-rally-yellow' },
-  opposed:         { bg: 'bg-rally-red/10', text: 'text-rally-red',           bar: 'bg-rally-red' },
-  'left-message':  { bg: 'bg-rally-navy/5', text: 'text-rally-navy',         bar: 'bg-rally-navy/60' },
-  'no-answer':     { bg: 'bg-gray-100', text: 'text-rally-slate-light',       bar: 'bg-rally-slate-light/50' },
+  supporter:       { bg: 'bg-vc-teal/10', text: 'text-vc-teal',       bar: 'bg-vc-teal' },
+  undecided:       { bg: 'bg-vc-gold/10', text: 'text-vc-gold',     bar: 'bg-vc-gold' },
+  opposed:         { bg: 'bg-vc-coral/10', text: 'text-vc-coral',           bar: 'bg-vc-coral' },
+  'left-message':  { bg: 'bg-vc-purple/5', text: 'text-vc-purple',         bar: 'bg-vc-purple/60' },
+  'no-answer':     { bg: 'bg-gray-100', text: 'text-vc-gray',       bar: 'bg-vc-gray/50' },
 }
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -214,28 +216,28 @@ function GoalProgress({ goals }: { goals: DashboardStats['goals'] }) {
       label: 'Contacts Added',
       current: goals.currentContacts,
       goal: goals.totalContactsGoal,
-      color: 'bg-rally-navy',
-      trackColor: 'bg-rally-navy/10',
+      color: 'bg-vc-purple',
+      trackColor: 'bg-vc-purple/10',
     },
     {
       label: 'Contacted',
       current: goals.currentContacted,
       goal: goals.totalContactedGoal,
-      color: 'bg-rally-yellow',
-      trackColor: 'bg-rally-yellow/10',
+      color: 'bg-vc-gold',
+      trackColor: 'bg-vc-gold/10',
     },
     {
       label: 'Supporters Won',
       current: goals.currentSupporters,
       goal: goals.totalSupportersGoal,
-      color: 'bg-rally-green',
-      trackColor: 'bg-rally-green/10',
+      color: 'bg-vc-teal',
+      trackColor: 'bg-vc-teal/10',
     },
   ]
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-rally-slate-light mb-5">
+      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-5">
         Goal Progress
       </h2>
       <div className="space-y-5">
@@ -244,10 +246,10 @@ function GoalProgress({ goals }: { goals: DashboardStats['goals'] }) {
           return (
             <div key={row.label}>
               <div className="flex items-baseline justify-between mb-1.5">
-                <span className="text-sm font-medium text-rally-slate">{row.label}</span>
-                <span className="text-xs font-mono text-rally-slate-light">
+                <span className="text-sm font-medium text-vc-slate">{row.label}</span>
+                <span className="text-xs font-display tabular-nums text-vc-gray">
                   {fmtNum(row.current)}/{fmtNum(row.goal)}{' '}
-                  <span className="font-bold text-rally-navy">({percent}%)</span>
+                  <span className="font-bold text-vc-purple">({percent}%)</span>
                 </span>
               </div>
               <div className={clsx('h-3 rounded-full overflow-hidden', row.trackColor)}>
@@ -269,30 +271,30 @@ function MetricsRow({ stats }: { stats: DashboardStats }) {
     {
       label: 'Volunteers',
       value: fmtNum(stats.totalVolunteers),
-      color: 'text-rally-navy',
-      bg: 'bg-rally-navy/5',
-      border: 'border-rally-navy/10',
+      color: 'text-vc-purple',
+      bg: 'bg-vc-purple/5',
+      border: 'border-vc-purple/10',
     },
     {
       label: 'Total Contacts',
       value: fmtNum(stats.totalContacts),
-      color: 'text-rally-navy',
-      bg: 'bg-rally-navy/5',
-      border: 'border-rally-navy/10',
+      color: 'text-vc-purple',
+      bg: 'bg-vc-purple/5',
+      border: 'border-vc-purple/10',
     },
     {
       label: 'Match Rate',
       value: `${Math.round(stats.matchRate * 100)}%`,
-      color: 'text-rally-green',
-      bg: 'bg-rally-green/5',
-      border: 'border-rally-green/10',
+      color: 'text-vc-teal',
+      bg: 'bg-vc-teal/5',
+      border: 'border-vc-teal/10',
     },
     {
       label: 'Contact Rate',
       value: `${Math.round(stats.contactRate * 100)}%`,
-      color: 'text-rally-yellow',
-      bg: 'bg-rally-yellow/10',
-      border: 'border-rally-yellow/20',
+      color: 'text-vc-gold',
+      bg: 'bg-vc-gold/10',
+      border: 'border-vc-gold/20',
     },
   ]
 
@@ -307,7 +309,7 @@ function MetricsRow({ stats }: { stats: DashboardStats }) {
             card.border,
           )}
         >
-          <p className="text-[10px] font-bold uppercase tracking-wider text-rally-slate-light mb-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-vc-gray mb-1">
             {card.label}
           </p>
           <p className={clsx('font-display font-bold text-3xl', card.color)}>
@@ -337,21 +339,21 @@ function ActivityChart({ dailyActivity }: { dailyActivity: DashboardStats['daily
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display font-bold text-sm uppercase tracking-wider text-rally-slate-light">
+        <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray">
           Daily Activity (14 days)
         </h2>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-rally-navy" />
-            <span className="text-[10px] text-rally-slate-light">Added</span>
+            <div className="w-2.5 h-2.5 rounded-sm bg-vc-purple" />
+            <span className="text-[10px] text-vc-gray">Added</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-rally-yellow" />
-            <span className="text-[10px] text-rally-slate-light">Reached</span>
+            <div className="w-2.5 h-2.5 rounded-sm bg-vc-gold" />
+            <span className="text-[10px] text-vc-gray">Reached</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm bg-rally-green" />
-            <span className="text-[10px] text-rally-slate-light">Supporters</span>
+            <div className="w-2.5 h-2.5 rounded-sm bg-vc-teal" />
+            <span className="text-[10px] text-vc-gray">Supporters</span>
           </div>
         </div>
       </div>
@@ -370,7 +372,7 @@ function ActivityChart({ dailyActivity }: { dailyActivity: DashboardStats['daily
               className="flex-1 flex flex-col items-center justify-end h-full group relative"
             >
               {/* Tooltip */}
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-rally-navy text-white text-[10px] px-2 py-1 rounded-md font-mono whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-vc-purple text-white text-[10px] px-2 py-1 rounded-md font-mono whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                 {total} total
               </div>
 
@@ -378,20 +380,20 @@ function ActivityChart({ dailyActivity }: { dailyActivity: DashboardStats['daily
               <div className="w-full flex flex-col justify-end gap-px h-full">
                 {day.supporters_gained > 0 && (
                   <div
-                    className="w-full bg-rally-green rounded-t-sm transition-all duration-500"
+                    className="w-full bg-vc-teal rounded-t-sm transition-all duration-500"
                     style={{ height: `${supportersH}%`, minHeight: day.supporters_gained > 0 ? '2px' : '0' }}
                   />
                 )}
                 {day.contacts_reached > 0 && (
                   <div
-                    className="w-full bg-rally-yellow transition-all duration-500"
+                    className="w-full bg-vc-gold transition-all duration-500"
                     style={{ height: `${reachedH}%`, minHeight: day.contacts_reached > 0 ? '2px' : '0' }}
                   />
                 )}
                 {day.contacts_added > 0 && (
                   <div
                     className={clsx(
-                      'w-full bg-rally-navy transition-all duration-500',
+                      'w-full bg-vc-purple transition-all duration-500',
                       day.contacts_reached === 0 && day.supporters_gained === 0 ? 'rounded-t-sm' : '',
                     )}
                     style={{ height: `${addedH}%`, minHeight: day.contacts_added > 0 ? '2px' : '0' }}
@@ -410,7 +412,7 @@ function ActivityChart({ dailyActivity }: { dailyActivity: DashboardStats['daily
       <div className="flex gap-1.5 sm:gap-2 mt-2">
         {last14.map(day => (
           <div key={day.date} className="flex-1 text-center">
-            <span className="text-[9px] sm:text-[10px] text-rally-slate-light font-medium">
+            <span className="text-[9px] sm:text-[10px] text-vc-gray font-medium">
               {shortDay(day.date)}
             </span>
           </div>
@@ -427,16 +429,16 @@ function VolunteerTable({ volunteers }: { volunteers: DashboardStats['volunteerP
   )
 
   function conversionColor(rate: number): string {
-    if (rate >= 50) return 'text-rally-green font-bold'
-    if (rate >= 25) return 'text-rally-yellow font-bold'
-    if (rate > 0) return 'text-rally-red'
-    return 'text-rally-slate-light'
+    if (rate >= 50) return 'text-vc-teal font-bold'
+    if (rate >= 25) return 'text-vc-gold font-bold'
+    if (rate > 0) return 'text-vc-coral'
+    return 'text-vc-gray'
   }
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="p-6 pb-0">
-        <h2 className="font-display font-bold text-sm uppercase tracking-wider text-rally-slate-light mb-4">
+        <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-4">
           Volunteer Progress
         </h2>
       </div>
@@ -444,25 +446,25 @@ function VolunteerTable({ volunteers }: { volunteers: DashboardStats['volunteerP
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100">
-              <th className="text-left px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-rally-slate-light">
+              <th className="text-left px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
                 Name
               </th>
-              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-rally-slate-light">
+              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
                 Contacts
               </th>
-              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-rally-slate-light">
+              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
                 Contacted
               </th>
-              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-rally-slate-light">
+              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
                 Supporters
               </th>
-              <th className="text-left px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-rally-slate-light min-w-[120px]">
+              <th className="text-left px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray min-w-[120px]">
                 Contact Rate
               </th>
-              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-rally-slate-light">
+              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
                 Conv. Rate
               </th>
-              <th className="text-right px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-rally-slate-light">
+              <th className="text-right px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
                 Last Active
               </th>
             </tr>
@@ -473,35 +475,35 @@ function VolunteerTable({ volunteers }: { volunteers: DashboardStats['volunteerP
               const convPct = v.conversionRate
               return (
                 <tr key={v.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-3 font-medium text-rally-navy whitespace-nowrap">
+                  <td className="px-6 py-3 font-medium text-vc-purple whitespace-nowrap">
                     {v.name}
                   </td>
-                  <td className="px-3 py-3 text-right font-mono text-rally-slate tabular-nums">
+                  <td className="px-3 py-3 text-right font-display text-vc-slate tabular-nums">
                     {v.contacts}
                   </td>
-                  <td className="px-3 py-3 text-right font-mono text-rally-slate tabular-nums">
+                  <td className="px-3 py-3 text-right font-display text-vc-slate tabular-nums">
                     {v.contacted}
                   </td>
-                  <td className="px-3 py-3 text-right font-mono text-rally-navy font-bold tabular-nums">
+                  <td className="px-3 py-3 text-right font-display text-vc-purple font-bold tabular-nums">
                     {v.supporters}
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-rally-navy/70 transition-all duration-500"
+                          className="h-full rounded-full bg-vc-purple/70 transition-all duration-500"
                           style={{ width: `${contactPct}%` }}
                         />
                       </div>
-                      <span className="text-[10px] font-mono text-rally-slate-light w-8 text-right tabular-nums">
+                      <span className="text-[10px] font-display text-vc-gray w-8 text-right tabular-nums">
                         {contactPct}%
                       </span>
                     </div>
                   </td>
-                  <td className={clsx('px-3 py-3 text-right font-mono tabular-nums', conversionColor(v.conversionRate))}>
+                  <td className={clsx('px-3 py-3 text-right font-display tabular-nums', conversionColor(v.conversionRate))}>
                     {convPct}%
                   </td>
-                  <td className="px-6 py-3 text-right text-[11px] text-rally-slate-light whitespace-nowrap">
+                  <td className="px-6 py-3 text-right text-[11px] text-vc-gray whitespace-nowrap">
                     {v.lastActive ? timeAgo(v.lastActive) : 'Never'}
                   </td>
                 </tr>
@@ -510,7 +512,7 @@ function VolunteerTable({ volunteers }: { volunteers: DashboardStats['volunteerP
           </tbody>
         </table>
         {sorted.length === 0 && (
-          <div className="text-center py-8 text-rally-slate-light text-sm">
+          <div className="text-center py-8 text-vc-gray text-sm">
             No volunteer data yet
           </div>
         )}
@@ -532,19 +534,19 @@ function OutreachMethods({ methods }: { methods: Record<string, number> }) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-rally-slate-light mb-4">
+      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-4">
         Outreach Methods
       </h2>
       <div className="space-y-3">
         {entries.map(entry => (
           <div key={entry.key}>
             <div className="flex items-baseline justify-between mb-1">
-              <span className="text-sm font-medium text-rally-slate">{entry.label}</span>
-              <span className="text-xs font-mono text-rally-slate-light tabular-nums">{fmtNum(entry.value)}</span>
+              <span className="text-sm font-medium text-vc-slate">{entry.label}</span>
+              <span className="text-xs font-display text-vc-gray tabular-nums">{fmtNum(entry.value)}</span>
             </div>
             <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
               <div
-                className="h-full rounded-full bg-rally-navy transition-all duration-500"
+                className="h-full rounded-full bg-vc-purple transition-all duration-500"
                 style={{ width: `${pct(entry.value, maxVal)}%` }}
               />
             </div>
@@ -574,7 +576,7 @@ function OutcomeDistribution({ distribution }: { distribution: Record<string, nu
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-rally-slate-light mb-4">
+      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-4">
         Outcome Distribution
       </h2>
 
@@ -599,13 +601,13 @@ function OutcomeDistribution({ distribution }: { distribution: Record<string, nu
         {entries.map(entry => (
           <div key={entry.key} className="flex items-center gap-2">
             <div className={clsx('w-2.5 h-2.5 rounded-full', entry.colors.bar)} />
-            <span className="text-xs text-rally-slate-light">
+            <span className="text-xs text-vc-gray">
               {entry.label}
             </span>
-            <span className="text-xs font-mono font-bold text-rally-slate tabular-nums">
+            <span className="text-xs font-display font-bold text-vc-slate tabular-nums">
               {entry.value}
             </span>
-            <span className="text-[10px] text-rally-slate-light">
+            <span className="text-[10px] text-vc-gray">
               ({pct(entry.value, total)}%)
             </span>
           </div>
@@ -622,7 +624,7 @@ function RecentActivityFeed({ activities }: { activities: DashboardStats['recent
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-rally-slate-light mb-4">
+      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-4">
         Recent Activity
       </h2>
       <div className="relative">
@@ -631,22 +633,22 @@ function RecentActivityFeed({ activities }: { activities: DashboardStats['recent
 
         <div className="space-y-0.5">
           {last10.map((activity, idx) => {
-            const icon = ACTION_ICONS[activity.action] || '•'
+            const { Icon: ActionIcon, color: iconColor } = ACTION_ICONS[activity.action] || DEFAULT_ACTION_ICON
             return (
               <div
                 key={activity.id}
                 className="flex items-start gap-3 py-2 pl-0 relative"
               >
-                <div className="w-[30px] h-[30px] rounded-full bg-gray-50 flex items-center justify-center text-xs flex-shrink-0 z-10 border border-gray-100">
-                  {icon}
+                <div className={clsx('w-[30px] h-[30px] rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 z-10 border border-gray-100', iconColor)}>
+                  <ActionIcon className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <p className="text-sm leading-snug">
-                    <span className="font-medium text-rally-navy">{activity.userName}</span>{' '}
-                    <span className="text-rally-slate-light">{formatAction(activity.action, activity.details)}</span>
+                    <span className="font-medium text-vc-purple">{activity.userName}</span>{' '}
+                    <span className="text-vc-gray">{formatAction(activity.action, activity.details)}</span>
                   </p>
                 </div>
-                <span className="text-[10px] text-rally-slate-light/60 font-mono whitespace-nowrap flex-shrink-0 pt-1">
+                <span className="text-[10px] text-vc-gray/60 font-mono whitespace-nowrap flex-shrink-0 pt-1">
                   {timeAgo(activity.createdAt)}
                 </span>
               </div>
@@ -714,15 +716,15 @@ export default function AdminSummary() {
   // --- Error state ---
   if (error && !stats) {
     return (
-      <div className="bg-rally-red/5 border border-rally-red/20 rounded-xl p-8 text-center animate-fade-in">
+      <div className="bg-vc-coral/5 border border-vc-coral/20 rounded-xl p-8 text-center animate-fade-in">
         <div className="text-3xl mb-3">!</div>
-        <p className="font-display font-bold text-rally-red text-lg mb-1">
+        <p className="font-display font-bold text-vc-coral text-lg mb-1">
           Failed to load dashboard
         </p>
-        <p className="text-sm text-rally-slate-light mb-4">{error}</p>
+        <p className="text-sm text-vc-gray mb-4">{error}</p>
         <button
           onClick={() => fetchStats(true)}
-          className="bg-rally-red text-white font-bold text-sm px-5 py-2 rounded-lg hover:bg-rally-red-light transition-colors"
+          className="bg-vc-coral text-white font-bold text-sm px-5 py-2 rounded-lg hover:bg-vc-coral-light transition-colors"
         >
           Retry
         </button>
@@ -736,22 +738,22 @@ export default function AdminSummary() {
     <div className="space-y-6 animate-fade-in">
       {/* Header with last-updated indicator */}
       <div className="flex items-center justify-between">
-        <h1 className="font-display font-bold text-xl text-rally-navy">
+        <h1 className="font-display font-bold text-xl text-vc-purple">
           Dashboard
         </h1>
         <div className="flex items-center gap-2">
           {error && (
-            <span className="text-[10px] font-medium text-rally-red bg-rally-red/5 px-2 py-0.5 rounded">
+            <span className="text-[10px] font-medium text-vc-coral bg-vc-coral/5 px-2 py-0.5 rounded">
               Update failed
             </span>
           )}
-          <span className="text-[11px] text-rally-slate-light font-mono">
+          <span className="text-[11px] text-vc-gray font-mono">
             Updated {secondsAgo < 5 ? 'just now' : `${secondsAgo}s ago`}
           </span>
           <div
             className={clsx(
               'w-1.5 h-1.5 rounded-full',
-              secondsAgo < 35 ? 'bg-rally-green' : 'bg-rally-yellow',
+              secondsAgo < 35 ? 'bg-vc-teal' : 'bg-vc-gold',
             )}
           />
         </div>

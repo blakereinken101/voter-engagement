@@ -19,10 +19,10 @@ interface SegmentStats {
 }
 
 const SEGMENT_CONFIG: Record<string, { label: string; colorClass: string; barColorClass: string }> = {
-  'super-voter': { label: 'Champions', colorClass: 'text-rally-green', barColorClass: 'bg-rally-green' },
-  'sometimes-voter': { label: 'Need a Nudge', colorClass: 'text-rally-yellow', barColorClass: 'bg-rally-yellow' },
-  'rarely-voter': { label: 'Need You Most', colorClass: 'text-rally-red', barColorClass: 'bg-rally-red' },
-  'unmatched': { label: 'Unmatched', colorClass: 'text-rally-slate-light', barColorClass: 'bg-gray-300' },
+  'super-voter': { label: 'Champions', colorClass: 'text-vc-teal', barColorClass: 'bg-vc-teal' },
+  'sometimes-voter': { label: 'Need a Nudge', colorClass: 'text-vc-gold', barColorClass: 'bg-vc-gold' },
+  'rarely-voter': { label: 'Need You Most', colorClass: 'text-vc-coral', barColorClass: 'bg-vc-coral' },
+  'unmatched': { label: 'Unmatched', colorClass: 'text-vc-gray', barColorClass: 'bg-gray-300' },
 }
 
 const POSITIVE_OUTCOMES: ContactOutcome[] = ['supporter']
@@ -138,17 +138,17 @@ export default function ConversionStats() {
       {/* Collapsible header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-rally-navy/[0.02] transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-vc-purple/[0.02] transition-colors text-left"
       >
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-rally-navy">Your Outreach Stats</span>
+          <span className="text-sm font-bold text-vc-purple">Your Outreach Stats</span>
           {!isExpanded && (
-            <span className="text-xs text-rally-slate-light font-mono">
+            <span className="text-xs text-vc-gray font-display tabular-nums">
               {stats.totalContacted}/{stats.totalPeople} contacted
             </span>
           )}
         </div>
-        <span className="text-rally-slate-light text-xs">
+        <span className="text-vc-gray text-xs">
           {isExpanded ? '\u25B2' : '\u25BC'}
         </span>
       </button>
@@ -158,40 +158,40 @@ export default function ConversionStats() {
           {/* Summary cards row */}
           <div className="grid grid-cols-3 gap-2">
             {/* Contact progress */}
-            <div className="bg-rally-navy/5 rounded-lg p-3 text-center">
-              <div className="font-display text-2xl font-bold text-rally-navy">
+            <div className="bg-vc-purple/5 rounded-lg p-3 text-center">
+              <div className="font-display text-2xl font-bold text-vc-purple">
                 {stats.contactPercent}%
               </div>
-              <p className="text-[10px] text-rally-slate-light mt-0.5 leading-tight">
+              <p className="text-[10px] text-vc-gray mt-0.5 leading-tight">
                 {stats.totalContacted} of {stats.totalPeople} contacted
               </p>
               {/* Mini progress bar */}
               <div className="mt-2 bg-gray-200 rounded-full h-1.5">
                 <div
-                  className="bg-rally-navy h-1.5 rounded-full transition-all duration-500"
+                  className="bg-vc-purple h-1.5 rounded-full transition-all duration-500"
                   style={{ width: `${stats.contactPercent}%` }}
                 />
               </div>
             </div>
 
             {/* Top category */}
-            <div className="bg-rally-navy/5 rounded-lg p-3 text-center">
+            <div className="bg-vc-purple/5 rounded-lg p-3 text-center">
               {stats.topCategory ? (
                 <>
                   <div className={clsx('font-display text-2xl font-bold', stats.topCategory.colorClass)}>
                     {stats.topCategory.conversionRate}%
                   </div>
-                  <p className="text-[10px] text-rally-slate-light mt-0.5 leading-tight">
+                  <p className="text-[10px] text-vc-gray mt-0.5 leading-tight">
                     Top: {stats.topCategory.label}
                   </p>
-                  <p className="text-[8px] text-rally-slate-light mt-0.5 font-mono">
+                  <p className="text-[8px] text-vc-gray mt-0.5">
                     {stats.topCategory.supporters} supporter{stats.topCategory.supporters !== 1 ? 's' : ''}
                   </p>
                 </>
               ) : (
                 <>
-                  <div className="font-display text-2xl font-bold text-rally-slate-light">--</div>
-                  <p className="text-[10px] text-rally-slate-light mt-0.5 leading-tight">
+                  <div className="font-display text-2xl font-bold text-vc-gray">--</div>
+                  <p className="text-[10px] text-vc-gray mt-0.5 leading-tight">
                     No outcomes yet
                   </p>
                 </>
@@ -199,18 +199,18 @@ export default function ConversionStats() {
             </div>
 
             {/* Streak */}
-            <div className="bg-rally-navy/5 rounded-lg p-3 text-center">
-              <div className="font-display text-2xl font-bold text-rally-yellow">
+            <div className="bg-vc-purple/5 rounded-lg p-3 text-center">
+              <div className="font-display text-2xl font-bold text-vc-gold">
                 {stats.streak}
               </div>
-              <p className="text-[10px] text-rally-slate-light mt-0.5 leading-tight">
+              <p className="text-[10px] text-vc-gray mt-0.5 leading-tight">
                 Contact streak
               </p>
               <div className="flex justify-center gap-0.5 mt-1.5">
                 {Array.from({ length: Math.min(stats.streak, 7) }).map((_, i) => (
                   <div
                     key={i}
-                    className="w-2 h-2 rounded-full bg-rally-yellow"
+                    className="w-2 h-2 rounded-full bg-vc-gold"
                   />
                 ))}
                 {stats.streak < 7 && Array.from({ length: 7 - Math.min(stats.streak, 7) }).map((_, i) => (
@@ -225,7 +225,7 @@ export default function ConversionStats() {
 
           {/* Per-segment breakdown */}
           <div className="space-y-2">
-            <p className="text-xs font-bold text-rally-slate-light uppercase tracking-wider">
+            <p className="text-xs font-bold text-vc-gray uppercase tracking-wider">
               By Segment
             </p>
             {stats.segments.map(seg => {
@@ -238,7 +238,7 @@ export default function ConversionStats() {
                     <span className={clsx('text-xs font-bold', seg.colorClass)}>
                       {seg.label}
                     </span>
-                    <span className="text-[10px] text-rally-slate-light font-mono ml-1">
+                    <span className="text-[10px] text-vc-gray font-display tabular-nums ml-1">
                       {seg.contacted}/{seg.total}
                     </span>
                   </div>
@@ -250,7 +250,7 @@ export default function ConversionStats() {
                       style={{ width: `${contactedPct}%` }}
                     />
                     {contactedPct > 12 && (
-                      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white font-mono">
+                      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white">
                         {contactedPct}%
                       </span>
                     )}
@@ -258,7 +258,7 @@ export default function ConversionStats() {
 
                   {/* Conversion rate */}
                   <div className="w-14 text-right shrink-0">
-                    <span className="text-[10px] font-mono text-rally-slate-light">
+                    <span className="text-[10px] font-display tabular-nums text-vc-gray">
                       {seg.contacted > 0 ? `${seg.conversionRate}% conv` : '--'}
                     </span>
                   </div>
@@ -273,17 +273,17 @@ export default function ConversionStats() {
               <OutcomeBadge
                 label="Supporters"
                 count={stats.segments.reduce((sum, s) => sum + s.supporters, 0)}
-                colorClass="bg-rally-green/10 text-rally-green"
+                colorClass="bg-vc-teal/10 text-vc-teal"
               />
               <OutcomeBadge
                 label="Undecided"
                 count={stats.segments.reduce((sum, s) => sum + s.undecided, 0)}
-                colorClass="bg-rally-yellow/10 text-rally-yellow"
+                colorClass="bg-vc-gold/10 text-vc-gold"
               />
               <OutcomeBadge
                 label="Opposed"
                 count={stats.segments.reduce((sum, s) => sum + s.opposed, 0)}
-                colorClass="bg-rally-red/10 text-rally-red"
+                colorClass="bg-vc-coral/10 text-vc-coral"
               />
             </div>
           )}

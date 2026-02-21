@@ -3,7 +3,7 @@ import { BrandConfig } from '@/types'
 /**
  * White-label branding configuration.
  * To customize for a different client, modify this file.
- * For color changes, also update tailwind.config.js rally-* values.
+ * For color changes, also update tailwind.config.js vc-* values.
  */
 const brandConfig: BrandConfig = {
   appName: 'VoteCircle',

@@ -83,11 +83,11 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
     return (
       <div className="flex items-center justify-between bg-white rounded-lg px-4 py-3 border border-gray-200 animate-fade-in">
         <div className="min-w-0 flex-1">
-          <span className="font-bold text-rally-navy">
+          <span className="font-bold text-vc-purple">
             {person?.firstName} {person?.lastName}
           </span>
           {(person?.address || person?.city || person?.age || person?.gender || person?.phone) && (
-            <span className="text-rally-slate-light font-normal text-xs ml-2">
+            <span className="text-vc-gray font-normal text-xs ml-2">
               {[
                 person?.address,
                 person?.city,
@@ -100,8 +100,8 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
           )}
         </div>
         <div className="flex gap-3 flex-shrink-0 ml-2">
-          <button onClick={() => setIsExpanded(true)} className="text-rally-slate-light text-sm hover:text-rally-navy transition-colors">edit</button>
-          <button onClick={handleRemove} className="text-rally-red/50 text-sm hover:text-rally-red transition-colors">remove</button>
+          <button onClick={() => setIsExpanded(true)} className="text-vc-gray text-sm hover:text-vc-purple transition-colors">edit</button>
+          <button onClick={handleRemove} className="text-vc-coral/50 text-sm hover:text-vc-coral transition-colors">remove</button>
         </div>
       </div>
     )
@@ -111,7 +111,7 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
     <form onSubmit={handleSubmit} className={clsx(
       'rounded-lg p-4 animate-fade-in',
       mode === 'add'
-        ? 'bg-rally-navy/5 border-2 border-dashed border-rally-navy/20'
+        ? 'bg-vc-purple/5 border-2 border-dashed border-vc-purple/20'
         : 'bg-white border border-gray-200'
     )}>
       {/* Row 1: Name */}
@@ -123,8 +123,8 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
             value={firstName}
             onChange={e => { setFirstName(e.target.value); setErrors({}) }}
             className={clsx(
-              'w-full p-2.5 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rally-red',
-              errors.firstName ? 'border-rally-red' : 'border-gray-200'
+              'w-full p-2.5 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-vc-coral',
+              errors.firstName ? 'border-vc-coral' : 'border-gray-200'
             )}
             autoFocus={mode === 'add'}
           />
@@ -136,8 +136,8 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
             value={lastName}
             onChange={e => { setLastName(e.target.value); setErrors({}) }}
             className={clsx(
-              'w-full p-2.5 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rally-red',
-              errors.lastName ? 'border-rally-red' : 'border-gray-200'
+              'w-full p-2.5 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-vc-coral',
+              errors.lastName ? 'border-vc-coral' : 'border-gray-200'
             )}
           />
         </div>
@@ -150,7 +150,7 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
           placeholder="Street address (e.g. 1234 Oak St)"
           value={address}
           onChange={e => setAddress(e.target.value)}
-          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rally-red"
+          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral"
         />
       </div>
 
@@ -162,7 +162,7 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
             placeholder="City"
             value={city}
             onChange={e => setCity(e.target.value)}
-            className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rally-red"
+            className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral"
           />
         </div>
         <input
@@ -170,7 +170,7 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
           placeholder="Zip"
           value={zip}
           onChange={e => setZip(e.target.value)}
-          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rally-red"
+          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral"
           maxLength={5}
         />
       </div>
@@ -182,14 +182,14 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
           placeholder="Age"
           value={age}
           onChange={e => setAge(e.target.value)}
-          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rally-red"
+          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral"
           min={18}
           max={120}
         />
         <select
           value={gender}
           onChange={e => setGender(e.target.value as Gender)}
-          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rally-red bg-white"
+          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral bg-white"
         >
           <option value="">Gender (optional)</option>
           <option value="M">Male</option>
@@ -203,12 +203,12 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
             const val = e.target.value
             if (/^[\d\-() ]*$/.test(val)) setPhone(val)
           }}
-          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rally-red"
+          className="w-full p-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral"
           maxLength={15}
         />
         <button
           type="submit"
-          className="col-span-2 bg-rally-navy text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-rally-navy-light transition-colors"
+          className="col-span-2 bg-vc-purple text-white px-4 py-2.5 rounded-lg text-sm font-bold hover:bg-vc-purple-light transition-colors"
         >
           {mode === 'add' ? 'Add Person' : 'Save'}
         </button>
@@ -216,14 +216,14 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
 
       {mode === 'edit' && (
         <div className="flex justify-end mt-2">
-          <button type="button" onClick={() => setIsExpanded(false)} className="px-4 py-2 text-rally-slate-light text-sm hover:text-rally-navy transition-colors">
+          <button type="button" onClick={() => setIsExpanded(false)} className="px-4 py-2 text-vc-gray text-sm hover:text-vc-purple transition-colors">
             Cancel
           </button>
         </div>
       )}
 
       {mode === 'add' && (
-        <p className="text-[11px] text-rally-slate-light mt-2">
+        <p className="text-[11px] text-vc-gray mt-2">
           The more details you provide, the better we can match. Address and age help the most.
         </p>
       )}

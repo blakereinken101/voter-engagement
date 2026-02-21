@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { useRef, useEffect, useState, RefObject } from 'react'
 import { useAppContext } from '@/context/AppContext'
 import { useAuth } from '@/context/AuthContext'
-import brandConfig from '@/lib/brand-config'
 import campaignConfig from '@/lib/campaign-config'
+import { Users, Search, MessageCircle, ArrowRight, Shield } from 'lucide-react'
 
 function useInView(ref: RefObject<HTMLElement | null>, options?: IntersectionObserverInit) {
   const [isInView, setIsInView] = useState(false)
@@ -47,49 +47,46 @@ export default function LandingPage() {
     <main className="min-h-screen flex flex-col">
       {/* Resume banner */}
       {hasExistingData && (
-        <div className="bg-rally-yellow text-rally-navy px-6 py-4 text-center">
+        <div className="bg-gradient-to-r from-vc-purple to-vc-purple-light text-white px-6 py-4 text-center">
           <p className="font-bold">
             Welcome back! You have {state.personEntries.length} people in your circle.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mt-2">
-            <Link href="/dashboard" className="font-bold underline">Continue your plan</Link>
-            <Link href="/rolodex" className="font-bold underline">Open rolodex</Link>
+            <Link href="/dashboard" className="font-bold underline hover:opacity-80 transition-opacity">Continue your plan</Link>
+            <Link href="/rolodex" className="font-bold underline hover:opacity-80 transition-opacity">Open rolodex</Link>
             <button
               onClick={() => { dispatch({ type: 'RESET' }); }}
-              className="text-sm opacity-60 hover:opacity-100"
+              className="text-sm opacity-60 hover:opacity-100 transition-opacity"
             >
               Start over
             </button>
           </div>
-          {state.userId && (
-            <p className="text-rally-navy/30 text-[10px] font-mono mt-2">ID: {state.userId}</p>
-          )}
         </div>
       )}
 
       {/* Hero */}
-      <section className="bg-rally-navy text-white px-6 py-24 relative overflow-hidden">
-        {/* Background texture */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-10 left-10 w-64 h-64 bg-rally-red rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-rally-yellow rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-rally-green rounded-full blur-3xl" />
+      <section className="bg-gradient-to-br from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-28 relative overflow-hidden">
+        {/* Background orbs */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-20 -left-20 w-96 h-96 bg-vc-coral/10 rounded-full blur-3xl animate-float" />
+          <div className="absolute -bottom-20 -right-20 w-[500px] h-[500px] bg-vc-teal/10 rounded-full blur-3xl" style={{ animationDelay: '3s' }} />
         </div>
 
         <div className="max-w-3xl mx-auto relative">
-          <h1 className="font-display text-5xl md:text-7xl font-bold mb-6 leading-[0.95]">
+          <h1 className="font-display text-5xl md:text-7xl font-extrabold mb-6 leading-[0.95] tracking-tight">
             Your network is<br />
-            <span className="text-rally-red">your most powerful</span><br />
-            <span className="text-rally-yellow">vote.</span>
+            your most powerful<br />
+            <span className="text-gradient">vote.</span>
           </h1>
           <p className="text-xl md:text-2xl text-white/60 max-w-xl mb-10 leading-relaxed">
-            The people who trust you are the ones who will listen. Build your list. Find who votes and who does not. Start the right conversations.
+            The people who trust you are the ones who will listen. Build your list. Find who votes and who doesn&apos;t. Start the right conversations.
           </p>
           <Link
             href="/dashboard"
-            className="inline-block bg-rally-red hover:bg-rally-red-light text-white font-bold font-display text-lg px-10 py-4 rounded-lg transition-all shadow-lg shadow-rally-red/30 hover:shadow-rally-red/50"
+            className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
           >
             {user ? 'Continue Your Plan' : 'Build Your Circle'}
+            <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
       </section>
@@ -97,44 +94,38 @@ export default function LandingPage() {
       {/* How it works */}
       <section
         ref={howRef}
-        className={`px-6 py-20 max-w-4xl mx-auto opacity-0 ${howInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 py-24 max-w-4xl mx-auto opacity-0 ${howInView ? 'animate-slide-up' : ''}`}
       >
-        <h2 className="font-display text-3xl font-bold text-rally-navy mb-12 text-center">
+        <h2 className="font-display text-3xl md:text-4xl font-extrabold text-vc-slate mb-16 text-center tracking-tight">
           Three steps. Real impact.
         </h2>
-        <div className="grid md:grid-cols-3 gap-0">
+        <div className="grid md:grid-cols-3 gap-8">
           {[
             {
-              num: '01',
+              icon: Users,
               title: 'Build your list',
               desc: 'Walk through your relationships — family, friends, coworkers, neighbors. We help you think of about 50 people you know.',
-              color: 'text-rally-red',
+              color: 'bg-vc-purple/10 text-vc-purple',
             },
             {
-              num: '02',
+              icon: Search,
               title: 'We find them',
-              desc: 'We match your list against your state\'s public voter file to see who votes consistently and who does not.',
-              color: 'text-rally-yellow',
+              desc: 'We match your list against your state\'s public voter file to see who votes consistently and who doesn\'t.',
+              color: 'bg-vc-teal/10 text-vc-teal',
             },
             {
-              num: '03',
+              icon: MessageCircle,
               title: 'Have the conversation',
-              desc: 'Get a personalized script for each person — recruit your champions, motivate your sometimes voters, and gently engage the rest.',
-              color: 'text-rally-green',
+              desc: 'Get a personalized approach for each person — recruit your champions, motivate your sometimes voters, and gently engage the rest.',
+              color: 'bg-vc-coral/10 text-vc-coral',
             },
-          ].map(({ num, title, desc, color }, idx) => (
-            <div key={num} className="flex items-start">
-              <div className="p-6 flex-1">
-                <div className={`font-mono text-4xl font-bold ${color} mb-3`}>{num}</div>
-                <h3 className="font-display font-bold text-xl text-rally-navy mb-2">{title}</h3>
-                <p className="text-rally-slate-light leading-relaxed">{desc}</p>
+          ].map(({ icon: Icon, title, desc, color }) => (
+            <div key={title} className="glass-card p-8 text-center">
+              <div className={`w-14 h-14 rounded-xl ${color} flex items-center justify-center mx-auto mb-5`}>
+                <Icon className="w-7 h-7" />
               </div>
-              {idx < 2 && (
-                <div className="hidden md:flex items-center pt-10 text-rally-navy/20 text-3xl font-light select-none" aria-hidden="true">
-                  <span className="border-l-2 border-dashed border-rally-navy/15 h-16 mr-1" />
-                  <span>&#8250;</span>
-                </div>
-              )}
+              <h3 className="font-display font-bold text-xl text-vc-slate mb-3">{title}</h3>
+              <p className="text-vc-gray leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
@@ -143,22 +134,22 @@ export default function LandingPage() {
       {/* Why it works */}
       <section
         ref={whyRef}
-        className={`bg-rally-navy text-white px-6 py-16 opacity-0 ${whyInView ? 'animate-slide-up' : ''}`}
+        className={`bg-gradient-to-br from-vc-purple-dark to-vc-purple text-white px-6 py-20 opacity-0 ${whyInView ? 'animate-slide-up' : ''}`}
       >
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="font-display text-3xl font-bold mb-6">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl font-extrabold mb-10 text-center tracking-tight">
             Why this works
           </h2>
           <div className="grid md:grid-cols-2 gap-6 text-left">
             {[
               'A personal ask from someone you trust is 10x more effective than any ad or mailer.',
-              'Most people who skip midterms are not opposed to voting — they just need a nudge.',
-              'You already know who these people are. You just need the data and the script.',
+              'Most people who skip elections aren\'t opposed to voting — they just need a nudge.',
+              'You already know who these people are. You just need the data and the approach.',
               'One person having 50 conversations can move more votes than a $50,000 ad buy.',
             ].map((text, i) => (
-              <div key={i} className="flex gap-3 items-start">
-                <span className="text-rally-red font-bold text-lg mt-0.5">→</span>
-                <p className="text-white/70 leading-relaxed">{text}</p>
+              <div key={i} className="flex gap-4 items-start glass-dark rounded-card p-5">
+                <ArrowRight className="w-5 h-5 text-vc-teal flex-shrink-0 mt-0.5" />
+                <p className="text-white/80 leading-relaxed">{text}</p>
               </div>
             ))}
           </div>
@@ -168,18 +159,17 @@ export default function LandingPage() {
       {/* Privacy / Footer */}
       <section
         ref={privacyRef}
-        className={`px-6 py-12 text-center border-t border-gray-200 bg-gradient-to-b from-transparent to-rally-navy/[0.03] opacity-0 ${privacyInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 py-16 text-center opacity-0 ${privacyInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-md mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <span className="h-px w-8 bg-rally-navy/10" />
-            <span className="text-rally-navy/30 text-xs font-medium uppercase tracking-widest">Privacy</span>
-            <span className="h-px w-8 bg-rally-navy/10" />
+            <Shield className="w-4 h-4 text-vc-gray" />
+            <span className="text-vc-gray text-xs font-semibold uppercase tracking-widest">Privacy</span>
           </div>
-          <p className="text-rally-slate-light text-sm leading-relaxed">
-            {campaignConfig.privacyText || brandConfig.privacyText}
+          <p className="text-vc-gray text-sm leading-relaxed">
+            {campaignConfig.privacyText}
           </p>
-          <p className="text-rally-navy/20 text-[10px] font-mono mt-4">
+          <p className="text-vc-gray/40 text-xs mt-6">
             {campaignConfig.name} | {campaignConfig.state}
           </p>
         </div>

@@ -29,7 +29,7 @@ export default function StateSelector() {
           }
         }}
         defaultValue=""
-        className="w-full p-4 text-lg border-2 border-rally-navy rounded-lg bg-white text-rally-navy font-bold focus:outline-none focus:ring-2 focus:ring-rally-red focus:border-rally-red cursor-pointer"
+        className="w-full p-4 text-lg border-2 border-vc-purple rounded-lg bg-white text-vc-purple font-bold focus:outline-none focus:ring-2 focus:ring-vc-coral focus:border-vc-coral cursor-pointer"
       >
         <option value="" disabled>Pick your state</option>
         {US_STATES.map(([code, name]) => (

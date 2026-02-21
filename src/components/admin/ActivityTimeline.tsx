@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { ActivityLogEntry } from '@/types'
+import { UserPlus, LogIn, Plus, Trash2, CheckCircle, XCircle, Phone, FileText, Circle } from 'lucide-react'
 
-const ACTION_ICONS: Record<string, { icon: string; color: string }> = {
-  sign_up: { icon: '🎉', color: 'bg-rally-green/10 text-rally-green' },
-  sign_in: { icon: '🔑', color: 'bg-gray-100 text-gray-500' },
-  add_contact: { icon: '➕', color: 'bg-rally-green/10 text-rally-green' },
-  remove_contact: { icon: '🗑️', color: 'bg-rally-red/10 text-rally-red' },
-  confirm_match: { icon: '✅', color: 'bg-rally-yellow/10 text-rally-yellow' },
-  reject_match: { icon: '❌', color: 'bg-rally-red/10 text-rally-red' },
-  mark_contacted: { icon: '📞', color: 'bg-rally-navy/5 text-rally-navy' },
-  record_outcome: { icon: '📝', color: 'bg-rally-green/10 text-rally-green' },
+const ACTION_ICONS: Record<string, { Icon: typeof UserPlus; color: string }> = {
+  sign_up: { Icon: UserPlus, color: 'bg-vc-teal/10 text-vc-teal' },
+  sign_in: { Icon: LogIn, color: 'bg-gray-100 text-gray-500' },
+  add_contact: { Icon: Plus, color: 'bg-vc-teal/10 text-vc-teal' },
+  remove_contact: { Icon: Trash2, color: 'bg-vc-coral/10 text-vc-coral' },
+  confirm_match: { Icon: CheckCircle, color: 'bg-vc-gold/10 text-vc-gold' },
+  reject_match: { Icon: XCircle, color: 'bg-vc-coral/10 text-vc-coral' },
+  mark_contacted: { Icon: Phone, color: 'bg-vc-purple/5 text-vc-purple' },
+  record_outcome: { Icon: FileText, color: 'bg-vc-teal/10 text-vc-teal' },
 }
 
 function formatAction(action: string, details: string | null): string {
@@ -51,12 +52,12 @@ export default function ActivityTimeline() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-center py-12 text-rally-slate-light">Loading activity...</div>
+  if (loading) return <div className="text-center py-12 text-vc-gray">Loading activity...</div>
 
   return (
     <div className="max-w-2xl">
       {activities.length === 0 ? (
-        <div className="text-center py-12 text-rally-slate-light">No activity yet</div>
+        <div className="text-center py-12 text-vc-gray">No activity yet</div>
       ) : (
         <div className="relative">
           {/* Timeline line */}
@@ -64,18 +65,19 @@ export default function ActivityTimeline() {
 
           <div className="space-y-1">
             {activities.map(activity => {
-              const ai = ACTION_ICONS[activity.action] || { icon: '•', color: 'bg-gray-100 text-gray-500' }
+              const ai = ACTION_ICONS[activity.action] || { Icon: Circle, color: 'bg-gray-100 text-gray-500' }
+              const IconComp = ai.Icon
               return (
                 <div key={activity.id} className="flex items-start gap-3 py-2.5 pl-1 relative">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm flex-shrink-0 z-10 ${ai.color}`}>
-                    {ai.icon}
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 z-10 ${ai.color}`}>
+                    <IconComp className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0 pt-1.5">
                     <p className="text-sm">
                       <span className="font-medium">{activity.userName}</span>{' '}
-                      <span className="text-rally-slate-light">{formatAction(activity.action, activity.details)}</span>
+                      <span className="text-vc-gray">{formatAction(activity.action, activity.details)}</span>
                     </p>
-                    <p className="text-[10px] text-rally-slate-light/60 font-mono mt-0.5">
+                    <p className="text-[10px] text-vc-gray/60 mt-0.5">
                       {timeAgo(activity.createdAt)}
                     </p>
                   </div>

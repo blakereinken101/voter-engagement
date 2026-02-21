@@ -4,6 +4,40 @@ import { CATEGORIES, IDEAL_PEOPLE_COUNT } from '@/lib/wizard-config'
 import PersonInput from './PersonInput'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
+import {
+  Home,
+  Heart,
+  Users,
+  Star,
+  PartyPopper,
+  Building,
+  Briefcase,
+  Landmark,
+  GraduationCap,
+  Trophy,
+  BookOpen,
+  Coffee,
+  Utensils,
+  Search,
+  type LucideIcon,
+} from 'lucide-react'
+
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  'home': Home,
+  'heart': Heart,
+  'users': Users,
+  'star': Star,
+  'party-popper': PartyPopper,
+  'building': Building,
+  'briefcase': Briefcase,
+  'landmark': Landmark,
+  'graduation-cap': GraduationCap,
+  'trophy': Trophy,
+  'book-open': BookOpen,
+  'coffee': Coffee,
+  'utensils': Utensils,
+  'search': Search,
+}
 
 export default function CategoryWizard() {
   const { state, dispatch, runMatching } = useAppContext()
@@ -36,21 +70,27 @@ export default function CategoryWizard() {
   const meetsMinimum = peopleInCategory.length >= currentConfig.minSuggested
   const totalPeople = state.personEntries.length
 
+  const IconComponent = CATEGORY_ICONS[currentConfig.icon]
+
   return (
     <div className="animate-fade-in">
       {/* Category header */}
       <div className="mb-8">
-        <div className="text-4xl mb-3">{currentConfig.icon}</div>
-        <h2 className="font-display text-3xl text-rally-navy font-bold mb-2 leading-tight">
+        {IconComponent && (
+          <div className="mb-3">
+            <IconComponent className="w-10 h-10 text-vc-purple" strokeWidth={1.5} />
+          </div>
+        )}
+        <h2 className="font-display text-3xl text-vc-purple font-bold mb-2 leading-tight">
           {currentConfig.question}
         </h2>
-        <p className="text-rally-slate-light text-base leading-relaxed">{currentConfig.subtext}</p>
+        <p className="text-vc-gray text-base leading-relaxed">{currentConfig.subtext}</p>
       </div>
 
       {/* Examples */}
       <div className="flex flex-wrap gap-2 mb-6">
         {currentConfig.examples.map((ex, i) => (
-          <span key={i} className="text-xs bg-rally-navy/5 text-rally-slate px-3 py-1.5 rounded-full">
+          <span key={i} className="text-xs bg-vc-purple/5 text-vc-slate px-3 py-1.5 rounded-full">
             {ex}
           </span>
         ))}
@@ -71,12 +111,12 @@ export default function CategoryWizard() {
       {/* Encouragement */}
       <div className="mt-4 text-center">
         {peopleInCategory.length > 0 && !meetsMinimum && (
-          <p className="text-rally-yellow text-sm font-bold animate-slide-up">
+          <p className="text-vc-gold text-sm font-bold animate-slide-up">
             Keep going — try to add {currentConfig.minSuggested - peopleInCategory.length} more
           </p>
         )}
         {meetsMinimum && (
-          <p className="text-rally-green text-sm font-bold animate-slide-up">
+          <p className="text-vc-teal text-sm font-bold animate-slide-up">
             {peopleInCategory.length} added from this group
           </p>
         )}
@@ -91,7 +131,7 @@ export default function CategoryWizard() {
             'px-6 py-3 rounded-lg font-bold text-sm transition-colors',
             currentIndex === 0
               ? 'text-gray-300 cursor-not-allowed'
-              : 'text-rally-navy hover:bg-rally-navy/5'
+              : 'text-vc-purple hover:bg-vc-purple/5'
           )}
         >
           Back
@@ -101,7 +141,7 @@ export default function CategoryWizard() {
           {peopleInCategory.length === 0 && (
             <button
               onClick={handleNext}
-              className="px-4 py-3 text-rally-slate-light text-sm hover:text-rally-navy transition-colors"
+              className="px-4 py-3 text-vc-gray text-sm hover:text-vc-purple transition-colors"
             >
               Skip
             </button>
@@ -112,8 +152,8 @@ export default function CategoryWizard() {
             className={clsx(
               'px-8 py-3 rounded-lg font-bold text-sm text-white transition-all',
               isLastCategory
-                ? 'bg-rally-red hover:bg-rally-red-light shadow-lg shadow-rally-red/25'
-                : 'bg-rally-navy hover:bg-rally-navy-light'
+                ? 'bg-vc-coral hover:bg-vc-coral-light shadow-lg shadow-vc-coral/25'
+                : 'bg-vc-purple hover:bg-vc-purple-light'
             )}
           >
             {isLastCategory ? 'Find My People' : 'Next'}
@@ -123,17 +163,17 @@ export default function CategoryWizard() {
 
       {/* Running total */}
       <div className="text-center mt-4">
-        <span className="font-mono text-sm">
+        <span className="font-display text-sm">
           <span className={clsx(
             'font-bold text-lg',
-            totalPeople >= IDEAL_PEOPLE_COUNT ? 'text-rally-green' :
-              totalPeople >= 30 ? 'text-rally-navy' : 'text-rally-slate-light'
+            totalPeople >= IDEAL_PEOPLE_COUNT ? 'text-vc-teal' :
+              totalPeople >= 30 ? 'text-vc-purple' : 'text-vc-gray'
           )}>
             {totalPeople}
           </span>
-          <span className="text-rally-slate-light"> people in your circle</span>
+          <span className="text-vc-gray"> people in your circle</span>
           {totalPeople < 40 && totalPeople > 0 && (
-            <span className="text-rally-slate-light"> — aim for {IDEAL_PEOPLE_COUNT}!</span>
+            <span className="text-vc-gray"> — aim for {IDEAL_PEOPLE_COUNT}!</span>
           )}
         </span>
       </div>

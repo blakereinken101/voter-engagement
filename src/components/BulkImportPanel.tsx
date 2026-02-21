@@ -243,16 +243,16 @@ export default function BulkImportPanel() {
             className={clsx(
               'w-full flex items-center gap-3 px-4 py-5 border-2 border-dashed rounded-lg transition-all text-left',
               isLoading
-                ? 'bg-rally-navy/5 border-rally-navy/10 cursor-wait'
-                : 'bg-rally-navy/5 border-rally-navy/20 hover:bg-rally-navy/10 hover:border-rally-navy/30 cursor-pointer'
+                ? 'bg-vc-purple/5 border-vc-purple/10 cursor-wait'
+                : 'bg-vc-purple/5 border-vc-purple/20 hover:bg-vc-purple/10 hover:border-vc-purple/30 cursor-pointer'
             )}
           >
             <span className="text-2xl">{isLoading ? '...' : '\u{1F4CA}'}</span>
             <div>
-              <p className="text-sm font-bold text-rally-navy">
+              <p className="text-sm font-bold text-vc-purple">
                 {isLoading ? 'Parsing file...' : 'Import CSV or Excel File'}
               </p>
-              <p className="text-[10px] text-rally-slate-light">
+              <p className="text-[10px] text-vc-gray">
                 Upload .csv, .xlsx, or .xls with contact data
               </p>
             </div>
@@ -269,11 +269,11 @@ export default function BulkImportPanel() {
 
       {/* Error message */}
       {error && (
-        <div className="bg-rally-red/10 text-rally-red px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-between">
+        <div className="bg-vc-coral/10 text-vc-coral px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-between">
           <span>{error}</span>
           <button
             onClick={() => setError(null)}
-            className="text-rally-red hover:text-rally-red-light font-bold ml-2"
+            className="text-vc-coral hover:text-vc-coral-light font-bold ml-2"
           >
             x
           </button>
@@ -282,7 +282,7 @@ export default function BulkImportPanel() {
 
       {/* Success message */}
       {importedCount > 0 && !showPreview && (
-        <div className="bg-rally-green/10 text-rally-green px-4 py-2 rounded-lg text-sm font-bold">
+        <div className="bg-vc-teal/10 text-vc-teal px-4 py-2 rounded-lg text-sm font-bold">
           Imported {importedCount} {importedCount === 1 ? 'contact' : 'contacts'} to your list!
         </div>
       )}
@@ -293,37 +293,37 @@ export default function BulkImportPanel() {
           {/* File info header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-rally-navy">{fileName}</p>
-              <p className="text-[10px] text-rally-slate-light font-mono">
+              <p className="text-sm font-bold text-vc-purple">{fileName}</p>
+              <p className="text-[10px] text-vc-gray font-mono">
                 {rows.length} rows | {headers.length} columns
               </p>
             </div>
             <button
               onClick={handleReset}
-              className="text-xs text-rally-slate-light hover:text-rally-red transition-colors"
+              className="text-xs text-vc-gray hover:text-vc-coral transition-colors"
             >
               Clear
             </button>
           </div>
 
           {/* Column mapping UI */}
-          <div className="bg-rally-navy/5 rounded-lg p-3 space-y-2">
-            <p className="text-xs font-bold text-rally-slate-light uppercase tracking-wider mb-2">
+          <div className="bg-vc-purple/5 rounded-lg p-3 space-y-2">
+            <p className="text-xs font-bold text-vc-gray uppercase tracking-wider mb-2">
               Column Mapping
             </p>
             <div className="grid grid-cols-2 gap-2">
               {PERSON_FIELDS.map(field => (
                 <div key={field.key} className="flex items-center gap-2">
-                  <label className="text-xs text-rally-slate font-medium w-20 shrink-0 text-right">
+                  <label className="text-xs text-vc-slate font-medium w-20 shrink-0 text-right">
                     {field.label}
                   </label>
                   <select
                     value={columnMapping[field.key as keyof ColumnMapping] || ''}
                     onChange={e => handleMappingChange(field.key, e.target.value)}
                     className={clsx(
-                      'flex-1 px-2 py-1 border rounded text-xs bg-white focus:outline-none focus:ring-2 focus:ring-rally-red',
+                      'flex-1 px-2 py-1 border rounded text-xs bg-white focus:outline-none focus:ring-2 focus:ring-vc-coral',
                       columnMapping[field.key as keyof ColumnMapping]
-                        ? 'border-rally-green/40 bg-rally-green-pale/30'
+                        ? 'border-vc-teal/40 bg-vc-teal-pale/30'
                         : 'border-gray-200'
                     )}
                   >
@@ -336,7 +336,7 @@ export default function BulkImportPanel() {
               ))}
             </div>
             {!columnMapping.firstName && (
-              <p className="text-[10px] text-rally-red mt-1">
+              <p className="text-[10px] text-vc-coral mt-1">
                 A First Name (or Name) column is required to import.
               </p>
             )}
@@ -344,20 +344,20 @@ export default function BulkImportPanel() {
 
           {/* Preview table */}
           <div>
-            <p className="text-xs font-bold text-rally-slate-light uppercase tracking-wider mb-1">
+            <p className="text-xs font-bold text-vc-gray uppercase tracking-wider mb-1">
               Preview (first {Math.min(10, rows.length)} rows)
             </p>
             <div className="max-h-[280px] overflow-auto border border-gray-200 rounded-lg">
               <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 bg-white border-b border-gray-200">
-                  <tr className="text-[10px] font-bold text-rally-slate-light uppercase tracking-wider">
+                  <tr className="text-[10px] font-bold text-vc-gray uppercase tracking-wider">
                     {headers.slice(0, 8).map(h => {
                       const mappedTo = Object.entries(columnMapping).find(([, v]) => v === h)
                       return (
                         <th key={h} className="py-2 px-2 whitespace-nowrap">
                           <span>{h}</span>
                           {mappedTo && (
-                            <span className="block text-rally-green font-mono text-[8px] normal-case">
+                            <span className="block text-vc-teal font-mono text-[8px] normal-case">
                               {'\u2192'} {mappedTo[0]}
                             </span>
                           )}
@@ -368,9 +368,9 @@ export default function BulkImportPanel() {
                 </thead>
                 <tbody>
                   {previewRows.map((row, i) => (
-                    <tr key={i} className="border-b border-gray-50 hover:bg-rally-navy/[0.02]">
+                    <tr key={i} className="border-b border-gray-50 hover:bg-vc-purple/[0.02]">
                       {headers.slice(0, 8).map(h => (
-                        <td key={h} className="py-1.5 px-2 text-xs text-rally-slate truncate max-w-[140px]">
+                        <td key={h} className="py-1.5 px-2 text-xs text-vc-slate truncate max-w-[140px]">
                           {row[h] || ''}
                         </td>
                       ))}
@@ -380,7 +380,7 @@ export default function BulkImportPanel() {
               </table>
             </div>
             {rows.length > 10 && (
-              <p className="text-[10px] text-rally-slate-light font-mono mt-1">
+              <p className="text-[10px] text-vc-gray font-mono mt-1">
                 ...and {rows.length - 10} more rows
               </p>
             )}
@@ -388,10 +388,10 @@ export default function BulkImportPanel() {
 
           {/* Import button */}
           <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-            <p className="text-xs text-rally-slate-light font-mono">
+            <p className="text-xs text-vc-gray font-mono">
               {validCount} of {rows.length} rows ready
               {validCount < rows.length && (
-                <span className="text-rally-red"> ({rows.length - validCount} missing required name)</span>
+                <span className="text-vc-coral"> ({rows.length - validCount} missing required name)</span>
               )}
             </p>
             <button
@@ -400,7 +400,7 @@ export default function BulkImportPanel() {
               className={clsx(
                 'px-5 py-2 rounded text-sm font-bold transition-colors',
                 validCount > 0
-                  ? 'bg-rally-red text-white hover:bg-rally-red-light'
+                  ? 'bg-vc-coral text-white hover:bg-vc-coral-light'
                   : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               )}
             >

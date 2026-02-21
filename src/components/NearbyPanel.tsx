@@ -126,7 +126,7 @@ export default function NearbyPanel() {
     <div className="p-4 space-y-4">
       {/* Search bar */}
       <div>
-        <label className="block text-xs font-bold text-rally-slate-light uppercase tracking-wider mb-1.5">
+        <label className="block text-xs font-bold text-vc-gray uppercase tracking-wider mb-1.5">
           Search by address or zip code
         </label>
         <div className="flex gap-2">
@@ -136,32 +136,32 @@ export default function NearbyPanel() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rally-red"
+            className="flex-1 px-3 py-2.5 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-vc-coral"
             maxLength={200}
           />
           <button
             onClick={() => handleSearch()}
             disabled={isLoading}
-            className="bg-rally-navy text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-rally-navy-light transition-colors disabled:opacity-50 whitespace-nowrap"
+            className="bg-vc-purple text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-vc-purple-light transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {isLoading ? 'Searching...' : 'Search Nearby'}
           </button>
         </div>
-        <p className="text-[10px] text-rally-slate-light mt-1">Press Enter to search</p>
+        <p className="text-[10px] text-vc-gray mt-1">Press Enter to search</p>
       </div>
 
       {error && (
-        <p className="text-rally-red text-sm">{error}</p>
+        <p className="text-vc-coral text-sm">{error}</p>
       )}
 
       {searched && !isLoading && results.length === 0 && !error && (
-        <p className="text-rally-slate-light text-sm">No voters found nearby. Try a different address or zip code.</p>
+        <p className="text-vc-gray text-sm">No voters found nearby. Try a different address or zip code.</p>
       )}
 
       {results.length > 0 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-rally-slate-light font-mono">
+            <p className="text-xs text-vc-gray font-mono">
               Showing {results.length} of {total} voters | {searchInfo}
             </p>
             <div className="flex bg-gray-100 rounded-lg p-0.5">
@@ -170,7 +170,7 @@ export default function NearbyPanel() {
                 className={clsx(
                   'px-3 py-1 text-xs font-bold rounded-md transition-colors',
                   viewMode === 'list'
-                    ? 'bg-white text-rally-navy shadow-sm'
+                    ? 'bg-white text-vc-purple shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 )}
               >
@@ -181,7 +181,7 @@ export default function NearbyPanel() {
                 className={clsx(
                   'px-3 py-1 text-xs font-bold rounded-md transition-colors',
                   viewMode === 'map'
-                    ? 'bg-white text-rally-navy shadow-sm'
+                    ? 'bg-white text-vc-purple shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 )}
               >
@@ -195,7 +195,7 @@ export default function NearbyPanel() {
               <div className="max-h-[60vh] overflow-auto border border-gray-200 rounded-lg">
                 <table className="w-full text-left text-sm">
                   <thead className="sticky top-0 bg-white border-b border-gray-200 z-10">
-                    <tr className="text-[10px] font-bold text-rally-slate-light uppercase tracking-wider">
+                    <tr className="text-[10px] font-bold text-vc-gray uppercase tracking-wider">
                       <th className="py-2 px-3">Name</th>
                       <th className="py-2 px-2">Address</th>
                       <th className="py-2 px-2">Party</th>
@@ -208,32 +208,32 @@ export default function NearbyPanel() {
                       const voteScore = calculateVoteScore(voter)
                       const segment = determineSegment(voteScore)
                       const added = isAlreadyAdded(voter)
-                      const segmentColor = segment === 'super-voter' ? 'text-rally-green' :
-                        segment === 'sometimes-voter' ? 'text-rally-yellow' : 'text-rally-red'
+                      const segmentColor = segment === 'super-voter' ? 'text-vc-teal' :
+                        segment === 'sometimes-voter' ? 'text-vc-gold' : 'text-vc-coral'
 
                       return (
                         <tr
                           key={i}
                           className={clsx(
-                            'border-b border-gray-50 hover:bg-rally-navy/[0.02] transition-colors',
+                            'border-b border-gray-50 hover:bg-vc-purple/[0.02] transition-colors',
                             added && 'opacity-40'
                           )}
                         >
                           <td className="py-2 px-3">
-                            <span className="font-bold text-rally-navy">
+                            <span className="font-bold text-vc-purple">
                               {voter.first_name} {voter.last_name}
                             </span>
                             {voter.birth_year && (
-                              <span className="text-rally-slate-light text-xs ml-2">
+                              <span className="text-vc-gray text-xs ml-2">
                                 ({new Date().getFullYear() - parseInt(voter.birth_year)})
                               </span>
                             )}
                           </td>
-                          <td className="py-2 px-2 text-xs text-rally-slate-light max-w-[200px] truncate" title={`${voter.residential_address}, ${voter.city}`}>
+                          <td className="py-2 px-2 text-xs text-vc-gray max-w-[200px] truncate" title={`${voter.residential_address}, ${voter.city}`}>
                             {voter.residential_address}
-                            <span className="text-rally-slate-light/50 ml-1">{voter.city}</span>
+                            <span className="text-vc-gray/50 ml-1">{voter.city}</span>
                           </td>
-                          <td className="py-2 px-2 text-xs text-rally-slate-light">
+                          <td className="py-2 px-2 text-xs text-vc-gray">
                             {voter.party_affiliation}
                           </td>
                           <td className="py-2 px-2 text-center">
@@ -243,11 +243,11 @@ export default function NearbyPanel() {
                           </td>
                           <td className="py-2 px-2">
                             {added ? (
-                              <span className="text-[10px] text-rally-green font-bold">Added</span>
+                              <span className="text-[10px] text-vc-teal font-bold">Added</span>
                             ) : (
                               <button
                                 onClick={() => handleAddVoter(voter)}
-                                className="text-xs bg-rally-navy text-white px-3 py-1.5 rounded-lg font-bold hover:bg-rally-navy-light transition-colors"
+                                className="text-xs bg-vc-purple text-white px-3 py-1.5 rounded-lg font-bold hover:bg-vc-purple-light transition-colors"
                               >
                                 + Add
                               </button>
@@ -263,7 +263,7 @@ export default function NearbyPanel() {
                 <button
                   onClick={() => handleSearch(true)}
                   disabled={isLoading}
-                  className="w-full mt-3 py-2.5 text-sm font-bold text-rally-navy border border-rally-navy rounded-lg hover:bg-rally-navy hover:text-white transition-colors disabled:opacity-50"
+                  className="w-full mt-3 py-2.5 text-sm font-bold text-vc-purple border border-vc-purple rounded-lg hover:bg-vc-purple hover:text-white transition-colors disabled:opacity-50"
                 >
                   {isLoading ? 'Loading...' : 'Load Next 50'}
                 </button>

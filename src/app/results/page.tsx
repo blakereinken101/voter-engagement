@@ -9,8 +9,8 @@ export default function ResultsPage() {
 
   if (state.matchResults.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-rally-cream">
-        <p className="text-rally-slate-light">No results yet. <Link href="/questionnaire" className="text-rally-red font-bold hover:underline">Build your list first</Link>.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-vc-bg">
+        <p className="text-vc-gray">No results yet. <Link href="/questionnaire" className="text-vc-purple font-bold hover:underline">Build your list first</Link>.</p>
       </div>
     )
   }
@@ -18,7 +18,7 @@ export default function ResultsPage() {
   const segmented = segmentResults(state.matchResults)
 
   return (
-    <div className="min-h-screen bg-rally-cream">
+    <div className="min-h-screen bg-vc-bg">
       <ResultsDashboard segmented={segmented} />
     </div>
   )

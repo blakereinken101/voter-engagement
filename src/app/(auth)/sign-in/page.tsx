@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
+import { LogIn, AlertCircle } from 'lucide-react'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -29,29 +30,30 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-rally-cream flex flex-col">
+    <div className="min-h-screen bg-vc-bg flex flex-col">
       {/* Header */}
-      <header className="bg-rally-navy py-6">
+      <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light py-8">
         <div className="max-w-md mx-auto px-4 text-center">
-          <Link href="/" className="font-display font-bold text-2xl text-white hover:text-rally-yellow transition-colors">
+          <Link href="/" className="font-display font-extrabold text-3xl text-white tracking-tight hover:opacity-80 transition-opacity">
             VoteCircle
           </Link>
-          <p className="text-white/50 text-sm mt-1">Sign in to your account</p>
+          <p className="text-white/60 text-sm mt-2">Sign in to your account</p>
         </div>
       </header>
 
       {/* Form */}
       <main className="flex-1 flex items-start justify-center px-4 pt-12">
-        <div className="w-full max-w-md">
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 space-y-5">
+        <div className="w-full max-w-md animate-slide-up">
+          <form onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
             {error && (
-              <div className="bg-rally-red/10 text-rally-red text-sm px-4 py-3 rounded-lg font-medium">
+              <div className="flex items-center gap-2 bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg border border-red-100">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-rally-slate-light mb-1.5">
+              <label className="block text-sm font-semibold text-vc-slate mb-2">
                 Email
               </label>
               <input
@@ -60,12 +62,12 @@ export default function SignInPage() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
-                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-rally-red focus:border-transparent outline-none transition-shadow"
+                className="w-full border border-gray-200 rounded-btn h-11 px-4 text-sm focus:ring-2 focus:ring-vc-purple/30 focus:border-vc-purple outline-none transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-rally-slate-light mb-1.5">
+              <label className="block text-sm font-semibold text-vc-slate mb-2">
                 Password
               </label>
               <input
@@ -74,22 +76,29 @@ export default function SignInPage() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
-                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-rally-red focus:border-transparent outline-none transition-shadow"
+                className="w-full border border-gray-200 rounded-btn h-11 px-4 text-sm focus:ring-2 focus:ring-vc-purple/30 focus:border-vc-purple outline-none transition-all"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-rally-red hover:bg-rally-red-light text-white font-bold py-3.5 rounded-lg shadow-lg shadow-rally-red/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-display text-lg"
+              className="w-full bg-vc-purple hover:bg-vc-purple-light text-white font-bold py-3 rounded-btn shadow-glow hover:shadow-glow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 font-display text-lg flex items-center justify-center gap-2"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (
+                <span className="animate-pulse">Signing in...</span>
+              ) : (
+                <>
+                  <LogIn className="w-5 h-5" />
+                  Sign In
+                </>
+              )}
             </button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-rally-slate-light">
+          <p className="text-center mt-8 text-sm text-vc-gray">
             Don&apos;t have an account?{' '}
-            <Link href="/sign-up" className="text-rally-red font-bold hover:underline">
+            <Link href="/sign-up" className="text-vc-purple font-bold hover:underline">
               Sign up
             </Link>
           </p>

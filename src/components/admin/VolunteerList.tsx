@@ -33,16 +33,16 @@ export default function VolunteerList() {
     return <VolunteerDetail userId={selectedId} onBack={() => setSelectedId(null)} />
   }
 
-  if (loading) return <div className="text-center py-12 text-rally-slate-light">Loading volunteers...</div>
+  if (loading) return <div className="text-center py-12 text-vc-gray">Loading volunteers...</div>
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-rally-navy/[0.03] border-b border-gray-100">
+            <tr className="bg-vc-purple/[0.03] border-b border-gray-100">
               {['Name', 'Email', 'Contacts', 'Matched', 'Contacted', 'Supporters', 'Joined'].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-rally-slate-light">
+                <th key={h} className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
                   {h}
                 </th>
               ))}
@@ -53,22 +53,22 @@ export default function VolunteerList() {
               <tr
                 key={vol.id}
                 onClick={() => setSelectedId(vol.id)}
-                className={`cursor-pointer hover:bg-rally-navy/[0.02] transition-colors ${i % 2 === 0 ? '' : 'bg-rally-navy/[0.01]'}`}
+                className={`cursor-pointer hover:bg-vc-purple/[0.02] transition-colors ${i % 2 === 0 ? '' : 'bg-vc-purple/[0.01]'}`}
               >
                 <td className="px-4 py-3 font-medium">{vol.name}</td>
-                <td className="px-4 py-3 text-rally-slate-light">{vol.email}</td>
-                <td className="px-4 py-3 font-mono">{vol.contact_count}</td>
-                <td className="px-4 py-3 font-mono text-rally-green">{vol.matched_count}</td>
-                <td className="px-4 py-3 font-mono text-rally-yellow">{vol.contacted_count}</td>
-                <td className="px-4 py-3 font-mono text-rally-green">{vol.supporter_count}</td>
-                <td className="px-4 py-3 text-rally-slate-light text-xs">{new Date(vol.created_at).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-vc-gray">{vol.email}</td>
+                <td className="px-4 py-3 font-display tabular-nums">{vol.contact_count}</td>
+                <td className="px-4 py-3 font-mono text-vc-teal">{vol.matched_count}</td>
+                <td className="px-4 py-3 font-mono text-vc-gold">{vol.contacted_count}</td>
+                <td className="px-4 py-3 font-mono text-vc-teal">{vol.supporter_count}</td>
+                <td className="px-4 py-3 text-vc-gray text-xs">{new Date(vol.created_at).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {volunteers.length === 0 && (
-        <div className="text-center py-12 text-rally-slate-light">No volunteers yet</div>
+        <div className="text-center py-12 text-vc-gray">No volunteers yet</div>
       )}
     </div>
   )

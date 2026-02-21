@@ -116,7 +116,7 @@ function MapInner({ voters, onAddVoter, isAlreadyAdded, centerLat, centerLng }: 
             >
               <Popup>
                 <div className="text-sm min-w-[200px]">
-                  <p className="font-bold text-rally-navy text-base">
+                  <p className="font-bold text-vc-purple text-base">
                     {voter.first_name} {voter.last_name}
                     {age && <span className="text-gray-400 text-xs ml-1">({age})</span>}
                   </p>
@@ -152,7 +152,7 @@ function MapInner({ voters, onAddVoter, isAlreadyAdded, centerLat, centerLng }: 
                     ) : (
                       <button
                         onClick={() => onAddVoter(voter)}
-                        className="text-xs bg-rally-navy text-white px-3 py-1 rounded font-bold hover:bg-rally-navy-light transition-colors w-full"
+                        className="text-xs bg-vc-purple text-white px-3 py-1 rounded font-bold hover:bg-vc-purple-light transition-colors w-full"
                       >
                         + Add to Contacts
                       </button>
