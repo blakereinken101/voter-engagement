@@ -30,6 +30,7 @@ export default function InlineAddRow() {
   const [lastName, setLastName] = useState('')
   const [city, setCity] = useState('')
   const [age, setAge] = useState('')
+  const [phone, setPhone] = useState('203-219-0005')
   const [category, setCategory] = useState<RelationshipCategory>('who-did-we-miss')
   const [showMore, setShowMore] = useState(false)
   const [address, setAddress] = useState('')
@@ -61,6 +62,7 @@ export default function InlineAddRow() {
       city: sanitizeText(city),
       age: ageNum,
       ageRange: ageToRange(ageNum),
+      phone: phone.trim() || '203-219-0005',
       address: address.trim() ? sanitizeText(address) : undefined,
       zip: zip.trim() ? sanitizeNumeric(zip).slice(0, 5) : undefined,
       gender: (gender || undefined) as Gender | undefined,
@@ -71,6 +73,7 @@ export default function InlineAddRow() {
     setLastName('')
     setCity('')
     setAge('')
+    setPhone('203-219-0005')
     setAddress('')
     setZip('')
     setGender('')
@@ -154,6 +157,14 @@ export default function InlineAddRow() {
 
       {showMore && (
         <div className="flex gap-2 items-center flex-wrap mt-2 animate-fade-in">
+          <input
+            type="tel"
+            placeholder="Phone"
+            value={phone}
+            onChange={e => { if (/^[\d\-() ]*$/.test(e.target.value)) setPhone(e.target.value) }}
+            className="glass-input px-3 py-2 rounded-btn text-sm w-36"
+            maxLength={15}
+          />
           <input
             type="text"
             placeholder="Address"

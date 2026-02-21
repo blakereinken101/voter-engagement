@@ -153,7 +153,7 @@ export default function RolodexCard() {
       {/* Card */}
       <div className={clsx(
         'glass-card p-6 transition-all',
-        isFullyDone && 'opacity-50'
+        isFullyDone && 'opacity-75'
       )}>
         {/* Person header */}
         <div className="mb-4">

@@ -56,7 +56,7 @@ export default function VoterCard({
   return (
     <div className={clsx(
       'glass-card p-4 transition-all',
-      contacted && contactOutcome && !isRecontact && 'opacity-50'
+      contacted && contactOutcome && !isRecontact && 'opacity-75'
     )}>
       <div className="flex justify-between items-start">
         <div className="flex-1">

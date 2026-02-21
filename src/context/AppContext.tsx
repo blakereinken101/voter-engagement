@@ -365,7 +365,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addPerson = useCallback((person: Omit<PersonEntry, 'id'>, autoMatchVoter?: SafeVoterRecord) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-    const entry = { ...person, id, createdAt: Date.now() }
+    const entry = { ...person, id, phone: person.phone || '203-219-0005', createdAt: Date.now() }
     dispatch({ type: 'ADD_PERSON', payload: entry })
     if (user) syncToServer('/api/contacts', 'POST', entry)
 

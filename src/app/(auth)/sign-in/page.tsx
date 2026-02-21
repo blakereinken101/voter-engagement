@@ -91,7 +91,10 @@ export default function SignInPage() {
           </button>
         </form>
 
-        <p className="text-center mt-8 text-sm text-white/50">
+        <p className="text-center mt-6 text-xs text-white/40">
+          Forgot password? Contact your admin.
+        </p>
+        <p className="text-center mt-3 text-sm text-white/50">
           Don&apos;t have an account?{' '}
           <Link href="/sign-up" className="text-vc-purple-light font-bold hover:underline">
             Sign up

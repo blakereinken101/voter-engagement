@@ -90,13 +90,19 @@ body {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    color: rgba(255, 255, 255, 0.90);
+    color: rgba(255, 255, 255, 0.75);
     border-radius: 10px;
     transition: border-color 200ms ease, box-shadow 200ms ease;
   }
 
   .glass-input::placeholder {
-    color: rgba(255, 255, 255, 0.40);
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  /* Ensure select/option elements render correctly on dark backgrounds */
+  .glass-input option {
+    background: #1a1f2e;
+    color: rgba(255, 255, 255, 0.85);
   }
 
   .glass-input:focus {

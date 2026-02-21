@@ -66,7 +66,7 @@ export default function ContactCard({
   return (
     <div className={clsx(
       'glass-card p-5',
-      contacted && contactOutcome && !isRecontact && 'opacity-50',
+      contacted && contactOutcome && !isRecontact && 'opacity-75',
       isNew && 'ring-2 ring-vc-teal/30 animate-fade-in'
     )}>
       {/* Header */}

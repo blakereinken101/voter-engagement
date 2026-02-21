@@ -101,7 +101,7 @@ export default function ContactRow({
     <>
       <tr className={clsx(
         'glass-row transition-all duration-200',
-        contacted && contactOutcome && !isRecontact && 'opacity-50',
+        contacted && contactOutcome && !isRecontact && 'opacity-75',
         isNew && 'bg-vc-teal/[0.06] animate-fade-in'
       )}>
         {/* Name */}

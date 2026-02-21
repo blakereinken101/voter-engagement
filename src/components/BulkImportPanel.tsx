@@ -249,10 +249,10 @@ export default function BulkImportPanel() {
           >
             <span className="text-2xl">{isLoading ? '...' : '\u{1F4CA}'}</span>
             <div>
-              <p className="text-sm font-bold text-vc-purple">
+              <p className="text-sm font-bold text-vc-purple-light">
                 {isLoading ? 'Parsing file...' : 'Import CSV or Excel File'}
               </p>
-              <p className="text-[10px] text-vc-gray">
+              <p className="text-[10px] text-white/50">
                 Upload .csv, .xlsx, or .xls with contact data
               </p>
             </div>
@@ -293,38 +293,38 @@ export default function BulkImportPanel() {
           {/* File info header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-vc-purple">{fileName}</p>
-              <p className="text-[10px] text-vc-gray font-mono">
+              <p className="text-sm font-bold text-vc-purple-light">{fileName}</p>
+              <p className="text-[10px] text-white/50 font-display tabular-nums">
                 {rows.length} rows | {headers.length} columns
               </p>
             </div>
             <button
               onClick={handleReset}
-              className="text-xs text-vc-gray hover:text-vc-coral transition-colors"
+              className="text-xs text-white/40 hover:text-vc-coral transition-colors"
             >
               Clear
             </button>
           </div>
 
           {/* Column mapping UI */}
-          <div className="bg-vc-purple/5 rounded-lg p-3 space-y-2">
-            <p className="text-xs font-bold text-vc-gray uppercase tracking-wider mb-2">
+          <div className="glass-card p-3 space-y-2">
+            <p className="text-xs font-bold text-white/50 uppercase tracking-wider mb-2">
               Column Mapping
             </p>
             <div className="grid grid-cols-2 gap-2">
               {PERSON_FIELDS.map(field => (
                 <div key={field.key} className="flex items-center gap-2">
-                  <label className="text-xs text-vc-slate font-medium w-20 shrink-0 text-right">
+                  <label className="text-xs text-white/70 font-medium w-20 shrink-0 text-right">
                     {field.label}
                   </label>
                   <select
                     value={columnMapping[field.key as keyof ColumnMapping] || ''}
                     onChange={e => handleMappingChange(field.key, e.target.value)}
                     className={clsx(
-                      'flex-1 px-2 py-1 border rounded text-xs bg-white focus:outline-none focus:ring-2 focus:ring-vc-coral',
+                      'glass-input flex-1 px-2 py-1 rounded text-xs focus:outline-none focus:ring-2 focus:ring-vc-purple/30',
                       columnMapping[field.key as keyof ColumnMapping]
-                        ? 'border-vc-teal/40 bg-vc-teal-pale/30'
-                        : 'border-gray-200'
+                        ? 'border-vc-teal/40'
+                        : 'border-white/15'
                     )}
                   >
                     <option value="">-- skip --</option>
@@ -344,13 +344,13 @@ export default function BulkImportPanel() {
 
           {/* Preview table */}
           <div>
-            <p className="text-xs font-bold text-vc-gray uppercase tracking-wider mb-1">
+            <p className="text-xs font-bold text-white/50 uppercase tracking-wider mb-1">
               Preview (first {Math.min(10, rows.length)} rows)
             </p>
-            <div className="max-h-[280px] overflow-auto border border-gray-200 rounded-lg">
+            <div className="max-h-[280px] overflow-auto border border-white/10 rounded-lg">
               <table className="w-full text-left text-sm">
-                <thead className="sticky top-0 bg-white border-b border-gray-200">
-                  <tr className="text-[10px] font-bold text-vc-gray uppercase tracking-wider">
+                <thead className="sticky top-0 glass-dark border-b border-white/10">
+                  <tr className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
                     {headers.slice(0, 8).map(h => {
                       const mappedTo = Object.entries(columnMapping).find(([, v]) => v === h)
                       return (
@@ -368,9 +368,9 @@ export default function BulkImportPanel() {
                 </thead>
                 <tbody>
                   {previewRows.map((row, i) => (
-                    <tr key={i} className="border-b border-gray-50 hover:bg-vc-purple/[0.02]">
+                    <tr key={i} className="border-b border-white/5 hover:bg-white/5">
                       {headers.slice(0, 8).map(h => (
-                        <td key={h} className="py-1.5 px-2 text-xs text-vc-slate truncate max-w-[140px]">
+                        <td key={h} className="py-1.5 px-2 text-xs text-white/60 truncate max-w-[140px]">
                           {row[h] || ''}
                         </td>
                       ))}
@@ -380,15 +380,15 @@ export default function BulkImportPanel() {
               </table>
             </div>
             {rows.length > 10 && (
-              <p className="text-[10px] text-vc-gray font-mono mt-1">
+              <p className="text-[10px] text-white/40 font-display mt-1">
                 ...and {rows.length - 10} more rows
               </p>
             )}
           </div>
 
           {/* Import button */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-            <p className="text-xs text-vc-gray font-mono">
+          <div className="flex items-center justify-between pt-2 border-t border-white/10">
+            <p className="text-xs text-white/50 font-display tabular-nums">
               {validCount} of {rows.length} rows ready
               {validCount < rows.length && (
                 <span className="text-vc-coral"> ({rows.length - validCount} missing required name)</span>
@@ -398,10 +398,10 @@ export default function BulkImportPanel() {
               onClick={handleImport}
               disabled={validCount === 0}
               className={clsx(
-                'px-5 py-2 rounded text-sm font-bold transition-colors',
+                'px-5 py-2 rounded-btn text-sm font-bold transition-colors',
                 validCount > 0
-                  ? 'bg-vc-coral text-white hover:bg-vc-coral-light'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'bg-vc-purple text-white hover:bg-vc-purple-light shadow-glow'
+                  : 'bg-white/10 text-white/30 cursor-not-allowed'
               )}
             >
               Import {validCount} {validCount === 1 ? 'Contact' : 'Contacts'}

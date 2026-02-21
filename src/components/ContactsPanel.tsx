@@ -283,12 +283,12 @@ export default function ContactsPanel() {
         {hasContactPicker && (
           <button
             onClick={handlePickContacts}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-vc-purple/5 border-2 border-dashed border-vc-purple/20 rounded-lg hover:bg-vc-purple/10 hover:border-vc-purple/30 transition-all text-left"
+            className="w-full flex items-center gap-3 px-4 py-3 glass-card border-dashed border-white/15 hover:border-white/25 transition-all text-left"
           >
             <span className="text-2xl">📱</span>
             <div>
-              <p className="text-sm font-bold text-vc-purple">Pick from Contacts</p>
-              <p className="text-[10px] text-vc-gray">Select contacts from your phone</p>
+              <p className="text-sm font-bold text-vc-purple-light">Pick from Contacts</p>
+              <p className="text-[10px] text-white/50">Select contacts from your phone</p>
             </div>
           </button>
         )}
@@ -296,12 +296,12 @@ export default function ContactsPanel() {
         {/* VCF File Import */}
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-vc-purple/5 border-2 border-dashed border-vc-purple/20 rounded-lg hover:bg-vc-purple/10 hover:border-vc-purple/30 transition-all text-left"
+          className="w-full flex items-center gap-3 px-4 py-3 glass-card border-dashed border-white/15 hover:border-white/25 transition-all text-left"
         >
           <span className="text-2xl">📎</span>
           <div>
-            <p className="text-sm font-bold text-vc-purple">Import .vcf File</p>
-            <p className="text-[10px] text-vc-gray">Import contacts from a vCard file</p>
+            <p className="text-sm font-bold text-vc-purple-light">Import .vcf File</p>
+            <p className="text-[10px] text-white/50">Import contacts from a vCard file</p>
           </div>
         </button>
         <input
@@ -315,12 +315,12 @@ export default function ContactsPanel() {
         {/* Spreadsheet / Bulk Import */}
         <button
           onClick={() => setShowBulkImport(prev => !prev)}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-vc-purple/5 border-2 border-dashed border-vc-purple/20 rounded-lg hover:bg-vc-purple/10 hover:border-vc-purple/30 transition-all text-left"
+          className="w-full flex items-center gap-3 px-4 py-3 glass-card border-dashed border-white/15 hover:border-white/25 transition-all text-left"
         >
-          <BarChart3 className="w-6 h-6 text-vc-purple" />
+          <BarChart3 className="w-6 h-6 text-vc-purple-light" />
           <div>
-            <p className="text-sm font-bold text-vc-purple">Import Spreadsheet</p>
-            <p className="text-[10px] text-vc-gray">Import from CSV or Excel files</p>
+            <p className="text-sm font-bold text-vc-purple-light">Import Spreadsheet</p>
+            <p className="text-[10px] text-white/50">Import from CSV or Excel files</p>
           </div>
         </button>
 
@@ -328,24 +328,24 @@ export default function ContactsPanel() {
 
         {/* Status message */}
         {pickerStatus && (
-          <p className="text-xs text-vc-gray font-mono px-1">{pickerStatus}</p>
+          <p className="text-xs text-white/50 font-display px-1">{pickerStatus}</p>
         )}
       </div>
 
       {/* Paste area */}
       <div>
-        <label className="block text-xs font-bold text-vc-gray uppercase tracking-wider mb-1">
+        <label className="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">
           Or paste contacts (one per line)
         </label>
         <textarea
           value={rawText}
           onChange={e => setRawText(e.target.value)}
           placeholder={"John Smith, Raleigh, 34\nJane Doe, Durham, 28\nBob Jones, Charlotte, 45"}
-          className="w-full px-3 py-2 border border-gray-200 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-vc-coral min-h-[100px] resize-y"
+          className="glass-input w-full px-3 py-2 rounded-btn text-sm font-mono min-h-[100px] resize-y focus:outline-none focus:ring-2 focus:ring-vc-purple/30"
           maxLength={5000}
         />
         <div className="flex items-center justify-between mt-2">
-          <p className="text-[10px] text-vc-gray">
+          <p className="text-[10px] text-white/50">
             Format: Name, City, Age (one per line)
           </p>
           <button
@@ -369,7 +369,7 @@ export default function ContactsPanel() {
       {showParsed && parsed.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-vc-gray font-mono">
+            <p className="text-xs text-white/50 font-display">
               {readyCount} ready to add{needsEdit > 0 ? ` | ${needsEdit} need city/age` : ''}
             </p>
             {readyCount > 0 && (
@@ -382,10 +382,10 @@ export default function ContactsPanel() {
             )}
           </div>
 
-          <div className="max-h-[350px] overflow-auto border border-gray-200 rounded-lg">
+          <div className="max-h-[350px] overflow-auto border border-white/10 rounded-lg">
             <table className="w-full text-left text-sm">
-              <thead className="sticky top-0 bg-white border-b border-gray-200">
-                <tr className="text-[10px] font-bold text-vc-gray uppercase tracking-wider">
+              <thead className="sticky top-0 glass-dark border-b border-white/10">
+                <tr className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
                   <th className="py-2 px-3">First</th>
                   <th className="py-2 px-2">Last</th>
                   <th className="py-2 px-2">City *</th>
@@ -400,13 +400,13 @@ export default function ContactsPanel() {
                   const canAdd = contact.valid && contact.city && contact.age
 
                   return (
-                    <tr key={i} className="border-b border-gray-50">
+                    <tr key={i} className="border-b border-white/5">
                       <td className="py-1.5 px-3">
                         <input
                           type="text"
                           value={contact.firstName}
                           onChange={e => handleUpdateField(i, 'firstName', e.target.value)}
-                          className="w-full px-1 py-0.5 border border-transparent hover:border-gray-200 focus:border-vc-coral rounded text-xs focus:outline-none"
+                          className="w-full px-1 py-0.5 border border-transparent hover:border-white/20 focus:border-vc-purple/50 rounded text-xs text-white/75 bg-transparent focus:outline-none"
                           maxLength={50}
                         />
                       </td>
@@ -415,7 +415,7 @@ export default function ContactsPanel() {
                           type="text"
                           value={contact.lastName}
                           onChange={e => handleUpdateField(i, 'lastName', e.target.value)}
-                          className="w-full px-1 py-0.5 border border-transparent hover:border-gray-200 focus:border-vc-coral rounded text-xs focus:outline-none"
+                          className="w-full px-1 py-0.5 border border-transparent hover:border-white/20 focus:border-vc-purple/50 rounded text-xs text-white/75 bg-transparent focus:outline-none"
                           maxLength={50}
                         />
                       </td>
@@ -427,7 +427,7 @@ export default function ContactsPanel() {
                           placeholder="Required"
                           className={clsx(
                             'w-full px-1 py-0.5 border rounded text-xs focus:outline-none focus:border-vc-coral',
-                            missingCity ? 'border-vc-coral/50 bg-vc-coral/5' : 'border-transparent hover:border-gray-200'
+                            missingCity ? 'border-vc-coral/50 bg-vc-coral/10' : 'border-transparent hover:border-white/20'
                           )}
                           maxLength={50}
                         />
@@ -440,7 +440,7 @@ export default function ContactsPanel() {
                           placeholder="Req"
                           className={clsx(
                             'w-16 px-1 py-0.5 border rounded text-xs focus:outline-none focus:border-vc-coral',
-                            missingAge ? 'border-vc-coral/50 bg-vc-coral/5' : 'border-transparent hover:border-gray-200'
+                            missingAge ? 'border-vc-coral/50 bg-vc-coral/10' : 'border-transparent hover:border-white/20'
                           )}
                           min={18}
                           max={120}
