@@ -126,6 +126,8 @@ export default function RolodexCard() {
 
   const isRecontact = item.contacted && (item.contactOutcome === 'left-message' || item.contactOutcome === 'no-answer')
   const isFullyDone = item.contacted && item.contactOutcome && !isRecontact
+  // If contacted but no outcome recorded (e.g. user selected method then skipped), show log step
+  const needsOutcome = item.contacted && !item.contactOutcome
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
@@ -233,6 +235,37 @@ export default function RolodexCard() {
               {(() => { const { Icon } = OUTCOME_CONFIG[item.contactOutcome!]; return <Icon className="w-3.5 h-3.5" />; })()} {OUTCOME_CONFIG[item.contactOutcome!].label}
             </p>
             {item.notes && <p className="text-xs text-white/60 mt-1">{item.notes}</p>}
+          </div>
+        )}
+
+        {/* Contacted but outcome not recorded — show log step */}
+        {needsOutcome && step === 'prep' && (
+          <div className="animate-fade-in">
+            <div className="bg-vc-gold/10 border border-vc-gold/20 rounded-lg p-3 mb-4">
+              <p className="text-xs text-vc-gold">
+                You marked {personEntry.firstName} as contacted but didn&apos;t record an outcome. How did it go?
+              </p>
+            </div>
+            <p className="text-sm font-bold text-white mb-3">
+              How did it go with {personEntry.firstName}?
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {(Object.entries(OUTCOME_CONFIG) as [ContactOutcome, typeof OUTCOME_CONFIG[ContactOutcome]][]).map(([outcome, { label, Icon, color }]) => (
+                <button
+                  key={outcome}
+                  onClick={() => {
+                    setContactOutcome(personEntry.id, outcome)
+                    advanceToNext()
+                  }}
+                  className={clsx(
+                    'py-2 px-4 rounded-btn text-sm font-bold border transition-all flex items-center gap-1.5',
+                    'border-white/15 text-white/60 hover:border-vc-purple hover:bg-vc-purple hover:text-white'
+                  )}
+                >
+                  <Icon className="w-3.5 h-3.5" /> {label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

@@ -71,7 +71,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'UPDATE_PERSON':
       return { ...state, personEntries: state.personEntries.map(p => p.id === action.payload.id ? action.payload : p) }
     case 'REMOVE_PERSON':
-      return { ...state, personEntries: state.personEntries.filter(p => p.id !== action.payload) }
+      return {
+        ...state,
+        personEntries: state.personEntries.filter(p => p.id !== action.payload),
+        matchResults: state.matchResults.filter(r => r.personEntry.id !== action.payload),
+        actionPlanState: state.actionPlanState.filter(a => a.matchResult.personEntry.id !== action.payload),
+      }
     case 'SET_CATEGORY_INDEX':
       return { ...state, currentCategoryIndex: action.payload }
     case 'SET_MATCH_RESULTS': {
