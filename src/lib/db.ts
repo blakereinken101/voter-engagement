@@ -1,9 +1,16 @@
 import { Pool } from 'pg'
 import { hashSync } from 'bcryptjs'
 
+// Railway internal connections (*.railway.internal) don't use SSL.
+// Only enable SSL for external connections.
+const dbUrl = process.env.DATABASE_URL || ''
+const useSSL = dbUrl.includes('.railway.internal') ? false
+  : process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false }
+  : false
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  connectionString: dbUrl || undefined,
+  ssl: useSSL,
   max: 10,
   idleTimeoutMillis: 30000,
 })
