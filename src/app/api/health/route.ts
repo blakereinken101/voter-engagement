@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 
 export async function GET() {
-  const dataDir = path.join(process.cwd(), 'data')
+  const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
   const dbPath = path.join(dataDir, 'votecircle.db')
   const voterPath = path.join(dataDir, 'mecklenburg-voters-geo.json')
   const voterFallback = path.join(dataDir, 'mecklenburg-voters.json')

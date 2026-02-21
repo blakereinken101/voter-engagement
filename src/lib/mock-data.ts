@@ -12,8 +12,9 @@ function loadRealVoterData(state: string): VoterRecord[] | null {
   if (state !== 'NC') return null
 
   // Prefer geocoded file, fall back to original
-  const geoPath = path.join(process.cwd(), 'data', 'mecklenburg-voters-geo.json')
-  const origPath = path.join(process.cwd(), 'data', 'mecklenburg-voters.json')
+  const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
+  const geoPath = path.join(dataDir, 'mecklenburg-voters-geo.json')
+  const origPath = path.join(dataDir, 'mecklenburg-voters.json')
   const dataPath = fs.existsSync(geoPath) ? geoPath : origPath
 
   if (!fs.existsSync(dataPath)) {

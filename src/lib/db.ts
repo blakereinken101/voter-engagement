@@ -2,7 +2,8 @@ import Database from 'better-sqlite3'
 import path from 'path'
 import { hashSync } from 'bcryptjs'
 
-const DB_PATH = path.join(process.cwd(), 'data', 'votecircle.db')
+const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data')
+const DB_PATH = path.join(DATA_DIR, 'votecircle.db')
 
 let _db: Database.Database | null = null
 
