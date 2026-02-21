@@ -55,21 +55,21 @@ export default function AdminContacts() {
           placeholder="Search contacts..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
-          className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm w-64 focus:ring-2 focus:ring-vc-coral focus:border-transparent outline-none"
+          className="glass-input px-4 py-2.5 text-sm w-64"
         />
-        <span className="text-xs text-vc-gray font-display tabular-nums whitespace-nowrap">{total} total contacts</span>
+        <span className="text-xs text-white/50 font-display tabular-nums whitespace-nowrap">{total} total contacts</span>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-vc-gray">Loading contacts...</div>
+        <div className="text-center py-12 text-white/50">Loading contacts...</div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="glass-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-vc-purple/[0.03] border-b border-gray-100">
+                <tr className="border-b border-white/10">
                   {['Volunteer', 'Contact', 'Category', 'City', 'Match', 'Segment', 'Outcome', 'Created'].map(h => (
-                    <th key={h} className="text-left px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
+                    <th key={h} className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider text-white/40">
                       {h}
                     </th>
                   ))}
@@ -77,30 +77,30 @@ export default function AdminContacts() {
               </thead>
               <tbody>
                 {contacts.map((c, i) => (
-                  <tr key={c.id} className={i % 2 === 0 ? '' : 'bg-vc-purple/[0.01]'}>
-                    <td className="px-3 py-2.5 text-xs text-vc-gray">{c.volunteer_name}</td>
-                    <td className="px-3 py-2.5 font-medium">{c.first_name} {c.last_name}</td>
-                    <td className="px-3 py-2.5 text-xs">{c.category}</td>
-                    <td className="px-3 py-2.5 text-xs">{c.city || '-'}</td>
+                  <tr key={c.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
+                    <td className="px-3 py-2.5 text-xs text-white/50">{c.volunteer_name}</td>
+                    <td className="px-3 py-2.5 font-medium text-white">{c.first_name} {c.last_name}</td>
+                    <td className="px-3 py-2.5 text-xs text-white/60">{c.category}</td>
+                    <td className="px-3 py-2.5 text-xs text-white/60">{c.city || '-'}</td>
                     <td className="px-3 py-2.5">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                         c.match_status === 'confirmed' ? 'bg-vc-teal/10 text-vc-teal' :
                         c.match_status === 'ambiguous' ? 'bg-vc-gold/20 text-vc-gold' :
-                        'bg-gray-100 text-gray-400'
+                        'bg-white/10 text-white/40'
                       }`}>{c.match_status || 'pending'}</span>
                     </td>
-                    <td className="px-3 py-2.5 text-xs">{c.segment || '-'}</td>
+                    <td className="px-3 py-2.5 text-xs text-white/60">{c.segment || '-'}</td>
                     <td className="px-3 py-2.5">
                       {c.contact_outcome && (
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                           c.contact_outcome === 'supporter' ? 'bg-vc-teal/10 text-vc-teal' :
                           c.contact_outcome === 'undecided' ? 'bg-vc-gold/20 text-vc-gold' :
                           c.contact_outcome === 'opposed' ? 'bg-vc-coral/10 text-vc-coral' :
-                          'bg-gray-100 text-gray-500'
+                          'bg-white/10 text-white/50'
                         }`}>{c.contact_outcome}</span>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 text-xs text-vc-gray">
+                    <td className="px-3 py-2.5 text-xs text-white/50">
                       {new Date(c.created_at).toLocaleDateString()}
                     </td>
                   </tr>
@@ -111,21 +111,21 @@ export default function AdminContacts() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 py-3 border-t border-gray-100">
+            <div className="flex items-center justify-center gap-3 py-3 border-t border-white/10">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-vc-purple/5 transition-colors"
+                className="px-3 py-1.5 text-xs rounded-btn border border-white/15 text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
               >
                 ← Prev
               </button>
-              <span className="text-xs text-vc-gray font-display tabular-nums">
+              <span className="text-xs text-white/50 font-display tabular-nums">
                 Page {page} of {totalPages}
               </span>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1.5 text-xs rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-vc-purple/5 transition-colors"
+                className="px-3 py-1.5 text-xs rounded-btn border border-white/15 text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
               >
                 Next →
               </button>

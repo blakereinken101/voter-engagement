@@ -44,7 +44,7 @@ export default function LandingPage() {
   const privacyInView = useInView(privacyRef)
 
   return (
-    <main className="min-h-screen flex flex-col bg-vc-bg">
+    <main className="min-h-screen flex flex-col cosmic-bg constellation">
       {/* Resume banner */}
       {hasExistingData && (
         <div className="bg-gradient-to-r from-vc-purple to-vc-purple-light text-white px-6 py-4 text-center">
@@ -65,10 +65,10 @@ export default function LandingPage() {
       )}
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-28 relative overflow-hidden">
+      <section className="text-white px-6 py-28 relative overflow-hidden">
         {/* Background orbs */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -left-20 w-96 h-96 bg-vc-coral/10 rounded-full blur-3xl animate-float" />
+          <div className="absolute -top-20 -left-20 w-96 h-96 bg-vc-purple/20 rounded-full blur-3xl animate-float" />
           <div className="absolute -bottom-20 -right-20 w-[500px] h-[500px] bg-vc-teal/10 rounded-full blur-3xl" style={{ animationDelay: '3s' }} />
         </div>
 
@@ -124,8 +124,8 @@ export default function LandingPage() {
               <div className={`w-14 h-14 rounded-xl ${color} flex items-center justify-center mx-auto mb-5`}>
                 <Icon className="w-7 h-7" />
               </div>
-              <h3 className="font-display font-bold text-xl text-vc-slate mb-3">{title}</h3>
-              <p className="text-vc-gray leading-relaxed">{desc}</p>
+              <h3 className="font-display font-bold text-xl text-white mb-3">{title}</h3>
+              <p className="text-white/70 leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>
@@ -134,7 +134,7 @@ export default function LandingPage() {
       {/* Why it works */}
       <section
         ref={whyRef}
-        className={`bg-gradient-to-br from-vc-purple-dark to-vc-purple text-white px-6 py-20 opacity-0 ${whyInView ? 'animate-slide-up' : ''}`}
+        className={`text-white px-6 py-20 opacity-0 ${whyInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-3xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl font-extrabold mb-10 text-center tracking-tight">

@@ -33,8 +33,8 @@ export default function ExportPanel() {
         <div className="w-14 h-14 rounded-xl bg-vc-purple/10 flex items-center justify-center mx-auto mb-4">
           <Download className="w-7 h-7 text-vc-purple" />
         </div>
-        <h3 className="font-display font-bold text-xl mb-2 text-vc-slate">Export All Data</h3>
-        <p className="text-sm text-vc-gray mb-6">
+        <h3 className="font-display font-bold text-xl mb-2 text-white">Export All Data</h3>
+        <p className="text-sm text-white/50 mb-6">
           Download a CSV file containing all contacts, match results, and conversation outcomes across all volunteers.
         </p>
         <button

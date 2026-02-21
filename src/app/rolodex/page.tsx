@@ -9,7 +9,7 @@ export default function RolodexPage() {
 
   if (state.actionPlanState.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-vc-bg">
+      <div className="min-h-screen flex flex-col items-center justify-center cosmic-bg constellation">
         <p className="text-white/50">
           No action plan yet.{' '}
           <Link href="/dashboard" className="text-vc-purple-light font-bold hover:underline">
@@ -21,7 +21,7 @@ export default function RolodexPage() {
   }
 
   return (
-    <div className="min-h-screen bg-vc-bg text-white">
+    <div className="min-h-screen cosmic-bg constellation text-white">
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-4">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <h1 className="font-display text-xl font-extrabold tracking-tight">Rolodex</h1>

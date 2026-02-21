@@ -23,33 +23,33 @@ function ConversationGuide() {
     <div className="mx-4 mt-1 mb-0">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-xs text-vc-purple/70 hover:text-vc-purple transition-colors group"
+        className="flex items-center gap-2 text-xs text-vc-purple-light/70 hover:text-vc-purple-light transition-colors group"
       >
-        <span className="bg-vc-purple/10 rounded-full w-5 h-5 flex items-center justify-center group-hover:bg-vc-purple/20 transition-colors">
+        <span className="bg-vc-purple/20 rounded-full w-5 h-5 flex items-center justify-center group-hover:bg-vc-purple/30 transition-colors">
           <HelpCircle className="w-3 h-3" />
         </span>
         <span className="font-medium">{open ? 'Hide conversation tips' : 'How do I talk to people about voting?'}</span>
       </button>
       {open && (
-        <div className="mt-2 bg-vc-purple/[0.03] rounded-card p-4 text-xs text-vc-slate leading-relaxed animate-fade-in border border-vc-purple/10">
-          <p className="font-bold text-vc-slate text-sm mb-2">Quick Conversation Guide</p>
+        <div className="mt-2 glass-card p-4 text-xs text-white/80 leading-relaxed animate-fade-in">
+          <p className="font-bold text-white text-sm mb-2">Quick Conversation Guide</p>
           <div className="space-y-2">
-            <p><span className="font-bold">Start casual:</span> {'"Hey, I\'ve been thinking about the election and wanted to see where you\'re at."'}</p>
-            <p><span className="font-bold">Listen first:</span> Ask what issues matter to them before sharing your perspective.</p>
-            <p><span className="font-bold">Share why it matters to you:</span> Personal stories are more persuasive than facts and figures.</p>
-            <p><span className="font-bold">Make a specific ask:</span> {'"Would you be willing to vote on November 5th?"'} is better than {'"You should vote."'}</p>
+            <p><span className="font-bold text-white">Start casual:</span> {'"Hey, I\'ve been thinking about the election and wanted to see where you\'re at."'}</p>
+            <p><span className="font-bold text-white">Listen first:</span> Ask what issues matter to them before sharing your perspective.</p>
+            <p><span className="font-bold text-white">Share why it matters to you:</span> Personal stories are more persuasive than facts and figures.</p>
+            <p><span className="font-bold text-white">Make a specific ask:</span> {'"Would you be willing to vote on November 5th?"'} is better than {'"You should vote."'}</p>
           </div>
-          <div className="mt-3 pt-3 border-t border-vc-purple/10">
-            <p className="font-bold text-vc-slate mb-1">Icon Guide:</p>
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <p className="font-bold text-white mb-1">Icon Guide:</p>
             <div className="grid grid-cols-2 gap-1.5">
-              <span className="flex items-center gap-1.5"><MessageCircle className="w-3 h-3 text-vc-purple" /> <b>Text</b> — Send a text</span>
-              <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-vc-purple" /> <b>Call</b> — Give them a call</span>
-              <span className="flex items-center gap-1.5"><Coffee className="w-3 h-3 text-vc-purple" /> <b>1:1</b> — Meet in person</span>
-              <span className="flex items-center gap-1.5"><Smartphone className="w-3 h-3 text-vc-purple" /> <b>SMS</b> — Auto-compose text</span>
+              <span className="flex items-center gap-1.5"><MessageCircle className="w-3 h-3 text-vc-purple-light" /> <b>Text</b> — Send a text</span>
+              <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-vc-purple-light" /> <b>Call</b> — Give them a call</span>
+              <span className="flex items-center gap-1.5"><Coffee className="w-3 h-3 text-vc-purple-light" /> <b>1:1</b> — Meet in person</span>
+              <span className="flex items-center gap-1.5"><Smartphone className="w-3 h-3 text-vc-purple-light" /> <b>SMS</b> — Auto-compose text</span>
               <span className="flex items-center gap-1.5"><ThumbsUp className="w-3 h-3 text-vc-teal" /> <b>Supporter</b> — They will vote</span>
               <span className="flex items-center gap-1.5"><HelpCircle className="w-3 h-3 text-vc-gold" /> <b>Undecided</b> — Needs follow-up</span>
-              <span className="flex items-center gap-1.5"><ThumbsDown className="w-3 h-3 text-vc-gray" /> <b>Opposed</b> — Not interested</span>
-              <span className="flex items-center gap-1.5"><Mail className="w-3 h-3 text-vc-purple" /> <b>Left msg</b> — Try again later</span>
+              <span className="flex items-center gap-1.5"><ThumbsDown className="w-3 h-3 text-white/40" /> <b>Opposed</b> — Not interested</span>
+              <span className="flex items-center gap-1.5"><Mail className="w-3 h-3 text-vc-purple-light" /> <b>Left msg</b> — Try again later</span>
             </div>
           </div>
         </div>
@@ -167,18 +167,18 @@ export default function ContactSpreadsheet() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Intake mode tabs */}
+      {/* Intake mode tabs — glass pills */}
       <div className="px-4 pt-4 pb-2">
-        <div className="flex gap-1 mb-3">
+        <div className="glass-card p-1.5 inline-flex gap-1 mb-3">
           {INTAKE_TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setIntakeMode(tab.id)}
               className={clsx(
-                'px-4 py-2 rounded-t-lg text-sm font-bold transition-all border-b-2',
+                'px-5 py-2.5 rounded-btn text-sm font-bold transition-all flex items-center gap-1.5',
                 intakeMode === tab.id
-                  ? 'bg-white text-vc-purple border-vc-coral shadow-sm'
-                  : 'bg-transparent text-vc-gray border-transparent hover:text-vc-purple hover:bg-white/50'
+                  ? 'bg-vc-purple text-white shadow-glow'
+                  : 'text-white/50 hover:text-white hover:bg-white/10'
               )}
             >
               <tab.Icon className="w-4 h-4" /> {tab.label}
@@ -197,21 +197,21 @@ export default function ContactSpreadsheet() {
         <ConversationGuide />
       )}
 
-      {/* Filters */}
+      {/* Filters — glass bar */}
       {rows.length > 0 && (
-        <div className="px-4 py-3 flex flex-wrap gap-2 items-center border-t border-gray-200">
+        <div className="px-4 py-3 flex flex-wrap gap-2 items-center">
           <input
             type="text"
             placeholder="Search by name..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral w-48"
+            className="glass-input px-3 py-2 rounded-btn text-sm w-48"
             maxLength={100}
           />
           <select
             value={segmentFilter}
             onChange={e => setSegmentFilter(e.target.value as SegmentFilter)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-vc-coral"
+            className="glass-input px-3 py-2 rounded-btn text-sm"
           >
             <option value="all">All segments</option>
             <option value="super-voter">Super Voters</option>
@@ -222,7 +222,7 @@ export default function ContactSpreadsheet() {
           <select
             value={outcomeFilter}
             onChange={e => setOutcomeFilter(e.target.value as OutcomeFilter)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-vc-coral"
+            className="glass-input px-3 py-2 rounded-btn text-sm"
           >
             <option value="all">All outcomes</option>
             <option value="not-contacted">Not contacted</option>
@@ -232,7 +232,7 @@ export default function ContactSpreadsheet() {
             <option value="no-answer">No answer</option>
             <option value="opposed">Not interested</option>
           </select>
-          <span className="text-xs text-vc-gray font-display tabular-nums ml-auto">
+          <span className="text-xs text-white/40 font-display tabular-nums ml-auto">
             {sorted.length} of {rows.length}
           </span>
         </div>
@@ -241,24 +241,24 @@ export default function ContactSpreadsheet() {
       {/* Desktop table */}
       {rows.length > 0 && (
         <div className="hidden md:block flex-1 overflow-auto px-4 pb-20">
-          <table className="w-full text-left">
-            <thead className="sticky top-0 bg-vc-bg z-10">
-              <tr className="border-b-2 border-gray-200 text-[10px] font-bold text-vc-gray uppercase tracking-wider">
-                <th className="py-2 px-3 cursor-pointer hover:text-vc-purple transition-colors" onClick={() => handleSort('name')}>
+          <table className="w-full text-left border-separate" style={{ borderSpacing: '0 4px' }}>
+            <thead className="sticky top-0 z-10">
+              <tr className="text-[11px] font-bold text-white/40 uppercase tracking-wider">
+                <th className="py-2 px-3 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('name')}>
                   Name{sortIndicator('name')}
                 </th>
-                <th className="py-2 px-2 cursor-pointer hover:text-vc-purple transition-colors" onClick={() => handleSort('category')}>
+                <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('category')}>
                   Cat{sortIndicator('category')}
                 </th>
                 <th className="py-2 px-2">City</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-vc-purple transition-colors" onClick={() => handleSort('matchStatus')}>
+                <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('matchStatus')}>
                   Match{sortIndicator('matchStatus')}
                 </th>
-                <th className="py-2 px-2 cursor-pointer hover:text-vc-purple transition-colors text-center" onClick={() => handleSort('voteScore')}>
+                <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors text-center" onClick={() => handleSort('voteScore')}>
                   Vote %{sortIndicator('voteScore')}
                 </th>
                 <th className="py-2 px-2">Outreach</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-vc-purple transition-colors" onClick={() => handleSort('outcome')}>
+                <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('outcome')}>
                   Outcome{sortIndicator('outcome')}
                 </th>
                 <th className="py-2 px-2">Notes</th>
@@ -308,7 +308,7 @@ export default function ContactSpreadsheet() {
       {/* Empty state */}
       {rows.length === 0 && (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-vc-gray text-sm">
+          <p className="text-white/40 text-sm font-medium">
             Add your first contact above to get started.
           </p>
         </div>

@@ -79,7 +79,7 @@ export default function InlineAddRow() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-vc-purple/5 border-2 border-dashed border-vc-purple/20 rounded-lg p-3">
+    <form onSubmit={handleSubmit} className="glass-card p-3">
       <div className="flex gap-2 items-center flex-wrap">
         <input
           ref={firstNameRef}
@@ -88,8 +88,8 @@ export default function InlineAddRow() {
           value={firstName}
           onChange={e => { setFirstName(e.target.value); setErrors(prev => ({ ...prev, firstName: false })) }}
           className={clsx(
-            'px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-vc-coral w-32',
-            errors.firstName ? 'border-vc-coral' : 'border-gray-200'
+            'glass-input px-3 py-2 rounded-btn text-sm font-medium w-32',
+            errors.firstName && 'border-vc-coral/60'
           )}
           autoFocus
           maxLength={50}
@@ -100,8 +100,8 @@ export default function InlineAddRow() {
           value={lastName}
           onChange={e => { setLastName(e.target.value); setErrors(prev => ({ ...prev, lastName: false })) }}
           className={clsx(
-            'px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-vc-coral w-32',
-            errors.lastName ? 'border-vc-coral' : 'border-gray-200'
+            'glass-input px-3 py-2 rounded-btn text-sm font-medium w-32',
+            errors.lastName && 'border-vc-coral/60'
           )}
           maxLength={50}
         />
@@ -111,8 +111,8 @@ export default function InlineAddRow() {
           value={city}
           onChange={e => { setCity(e.target.value); setErrors(prev => ({ ...prev, city: false })) }}
           className={clsx(
-            'px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-vc-coral w-28',
-            errors.city ? 'border-vc-coral' : 'border-gray-200'
+            'glass-input px-3 py-2 rounded-btn text-sm font-medium w-28',
+            errors.city && 'border-vc-coral/60'
           )}
           maxLength={50}
         />
@@ -122,8 +122,8 @@ export default function InlineAddRow() {
           value={age}
           onChange={e => { setAge(e.target.value); setErrors(prev => ({ ...prev, age: false })) }}
           className={clsx(
-            'px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-vc-coral w-24',
-            errors.age ? 'border-vc-coral' : 'border-gray-200'
+            'glass-input px-3 py-2 rounded-btn text-sm font-medium w-24',
+            errors.age && 'border-vc-coral/60'
           )}
           min={18}
           max={120}
@@ -131,7 +131,7 @@ export default function InlineAddRow() {
         <select
           value={category}
           onChange={e => setCategory(e.target.value as RelationshipCategory)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-vc-coral"
+          className="glass-input px-3 py-2 rounded-btn text-sm"
         >
           {CATEGORIES.map(c => (
             <option key={c.id} value={c.id}>{c.id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
@@ -139,14 +139,14 @@ export default function InlineAddRow() {
         </select>
         <button
           type="submit"
-          className="bg-vc-purple text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-vc-purple-light transition-colors"
+          className="bg-vc-purple text-white px-5 py-2 rounded-btn text-sm font-bold hover:bg-vc-purple-light transition-colors shadow-glow"
         >
           + Add
         </button>
         <button
           type="button"
           onClick={() => setShowMore(!showMore)}
-          className="text-xs text-vc-gray hover:text-vc-purple transition-colors py-2"
+          className="text-xs text-white/40 hover:text-white/70 transition-colors py-2"
         >
           {showMore ? '- less' : '+ more'}
         </button>
@@ -159,7 +159,7 @@ export default function InlineAddRow() {
             placeholder="Address"
             value={address}
             onChange={e => setAddress(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral w-48"
+            className="glass-input px-3 py-2 rounded-btn text-sm w-48"
             maxLength={100}
           />
           <input
@@ -167,13 +167,13 @@ export default function InlineAddRow() {
             placeholder="Zip"
             value={zip}
             onChange={e => setZip(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-vc-coral w-20"
+            className="glass-input px-3 py-2 rounded-btn text-sm w-20"
             maxLength={5}
           />
           <select
             value={gender}
             onChange={e => setGender(e.target.value as Gender)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-vc-coral"
+            className="glass-input px-3 py-2 rounded-btn text-sm"
           >
             <option value="">Gender</option>
             <option value="M">Male</option>

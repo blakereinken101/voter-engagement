@@ -33,16 +33,16 @@ export default function VolunteerList() {
     return <VolunteerDetail userId={selectedId} onBack={() => setSelectedId(null)} />
   }
 
-  if (loading) return <div className="text-center py-12 text-vc-gray">Loading volunteers...</div>
+  if (loading) return <div className="text-center py-12 text-white/50">Loading volunteers...</div>
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+    <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-vc-purple/[0.03] border-b border-gray-100">
+            <tr className="border-b border-white/10">
               {['Name', 'Email', 'Contacts', 'Matched', 'Contacted', 'Supporters', 'Joined'].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
+                <th key={h} className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-white/40">
                   {h}
                 </th>
               ))}
@@ -53,22 +53,22 @@ export default function VolunteerList() {
               <tr
                 key={vol.id}
                 onClick={() => setSelectedId(vol.id)}
-                className={`cursor-pointer hover:bg-vc-purple/[0.02] transition-colors ${i % 2 === 0 ? '' : 'bg-vc-purple/[0.01]'}`}
+                className={`cursor-pointer border-b border-white/5 hover:bg-white/5 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}
               >
-                <td className="px-4 py-3 font-medium">{vol.name}</td>
-                <td className="px-4 py-3 text-vc-gray">{vol.email}</td>
-                <td className="px-4 py-3 font-display tabular-nums">{vol.contact_count}</td>
+                <td className="px-4 py-3 font-medium text-white">{vol.name}</td>
+                <td className="px-4 py-3 text-white/50">{vol.email}</td>
+                <td className="px-4 py-3 font-display tabular-nums text-white">{vol.contact_count}</td>
                 <td className="px-4 py-3 font-display tabular-nums text-vc-teal">{vol.matched_count}</td>
                 <td className="px-4 py-3 font-display tabular-nums text-vc-gold">{vol.contacted_count}</td>
                 <td className="px-4 py-3 font-display tabular-nums text-vc-teal">{vol.supporter_count}</td>
-                <td className="px-4 py-3 text-vc-gray text-xs">{new Date(vol.created_at).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-white/50 text-xs">{new Date(vol.created_at).toLocaleDateString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {volunteers.length === 0 && (
-        <div className="text-center py-12 text-vc-gray">No volunteers yet</div>
+        <div className="text-center py-12 text-white/50">No volunteers yet</div>
       )}
     </div>
   )

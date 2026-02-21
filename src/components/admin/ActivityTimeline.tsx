@@ -6,7 +6,7 @@ import { UserPlus, LogIn, Plus, Trash2, CheckCircle, XCircle, Phone, FileText, C
 
 const ACTION_ICONS: Record<string, { Icon: typeof UserPlus; color: string }> = {
   sign_up: { Icon: UserPlus, color: 'bg-vc-teal/10 text-vc-teal' },
-  sign_in: { Icon: LogIn, color: 'bg-gray-100 text-gray-500' },
+  sign_in: { Icon: LogIn, color: 'bg-white/10 text-white/50' },
   add_contact: { Icon: Plus, color: 'bg-vc-teal/10 text-vc-teal' },
   remove_contact: { Icon: Trash2, color: 'bg-vc-coral/10 text-vc-coral' },
   confirm_match: { Icon: CheckCircle, color: 'bg-vc-gold/10 text-vc-gold' },
@@ -52,20 +52,20 @@ export default function ActivityTimeline() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-center py-12 text-vc-gray">Loading activity...</div>
+  if (loading) return <div className="text-center py-12 text-white/50">Loading activity...</div>
 
   return (
     <div className="max-w-2xl">
       {activities.length === 0 ? (
-        <div className="text-center py-12 text-vc-gray">No activity yet</div>
+        <div className="text-center py-12 text-white/50">No activity yet</div>
       ) : (
         <div className="relative">
           {/* Timeline line */}
-          <div className="absolute left-5 top-0 bottom-0 w-px bg-gray-200" />
+          <div className="absolute left-5 top-0 bottom-0 w-px bg-white/10" />
 
           <div className="space-y-1">
             {activities.map(activity => {
-              const ai = ACTION_ICONS[activity.action] || { Icon: Circle, color: 'bg-gray-100 text-gray-500' }
+              const ai = ACTION_ICONS[activity.action] || { Icon: Circle, color: 'bg-white/10 text-white/50' }
               const IconComp = ai.Icon
               return (
                 <div key={activity.id} className="flex items-start gap-3 py-2.5 pl-1 relative">
@@ -74,10 +74,10 @@ export default function ActivityTimeline() {
                   </div>
                   <div className="flex-1 min-w-0 pt-1.5">
                     <p className="text-sm">
-                      <span className="font-medium">{activity.userName}</span>{' '}
-                      <span className="text-vc-gray">{formatAction(activity.action, activity.details)}</span>
+                      <span className="font-medium text-vc-purple-light">{activity.userName}</span>{' '}
+                      <span className="text-white/50">{formatAction(activity.action, activity.details)}</span>
                     </p>
-                    <p className="text-[10px] text-vc-gray/60 mt-0.5">
+                    <p className="text-[10px] text-white/30 mt-0.5">
                       {timeAgo(activity.createdAt)}
                     </p>
                   </div>

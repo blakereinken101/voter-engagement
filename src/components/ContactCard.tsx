@@ -16,9 +16,9 @@ const OUTREACH_LABELS: Record<OutreachMethod, { label: string; Icon: typeof Mess
 const OUTCOME_CONFIG: Record<ContactOutcome, { label: string; Icon: typeof ThumbsUp; color: string; tip: string }> = {
   'supporter': { label: 'Supporter', Icon: ThumbsUp, color: 'bg-vc-teal text-white', tip: 'They\'re on board!' },
   'undecided': { label: 'Undecided', Icon: HelpCircle, color: 'bg-vc-gold text-white', tip: 'Not sure yet' },
-  'opposed': { label: 'Opposed', Icon: ThumbsDown, color: 'bg-gray-200 text-vc-slate', tip: 'Not interested' },
-  'left-message': { label: 'Left msg', Icon: Mail, color: 'bg-vc-purple/10 text-vc-purple', tip: 'Left a voicemail' },
-  'no-answer': { label: 'No answer', Icon: PhoneOff, color: 'bg-vc-purple/10 text-vc-purple', tip: 'Didn\'t pick up' },
+  'opposed': { label: 'Opposed', Icon: ThumbsDown, color: 'bg-white/10 text-white/60', tip: 'Not interested' },
+  'left-message': { label: 'Left msg', Icon: Mail, color: 'bg-vc-purple/10 text-vc-purple-light', tip: 'Left a voicemail' },
+  'no-answer': { label: 'No answer', Icon: PhoneOff, color: 'bg-vc-purple/10 text-vc-purple-light', tip: 'Didn\'t pick up' },
 }
 
 interface Props {
@@ -61,7 +61,7 @@ export default function ContactCard({
 
   const segmentColor = segment === 'super-voter' ? 'text-vc-teal' :
     segment === 'sometimes-voter' ? 'text-vc-gold' :
-    segment === 'rarely-voter' ? 'text-vc-coral' : 'text-vc-gray'
+    segment === 'rarely-voter' ? 'text-vc-coral' : 'text-white/40'
 
   return (
     <div className={clsx(
@@ -74,7 +74,7 @@ export default function ContactCard({
         <div>
           <div className="flex items-center gap-2">
             <div className={clsx('w-2 h-2 rounded-full', segmentDot)} />
-            <h3 className="font-bold text-vc-slate text-sm">
+            <h3 className="font-bold text-white text-base">
               {person.firstName} {person.lastName}
             </h3>
             {isNew && (
@@ -84,11 +84,11 @@ export default function ContactCard({
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 ml-4">
-            <span className="text-[10px] bg-vc-purple/5 text-vc-gray px-2 py-0.5 rounded-full capitalize">
+            <span className="text-[10px] bg-white/10 text-white/50 px-2 py-0.5 rounded-full capitalize">
               {catConfig?.id.replace(/-/g, ' ')}
             </span>
             {bestMatch?.city && (
-              <span className="text-xs text-vc-gray">{bestMatch.city}</span>
+              <span className="text-xs text-white/50">{bestMatch.city}</span>
             )}
           </div>
         </div>
@@ -110,13 +110,13 @@ export default function ContactCard({
       {/* Match status */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         {!matchResult && (
-          <span className="text-[10px] text-vc-gray bg-gray-100 px-2 py-0.5 rounded-full">Not matched yet</span>
+          <span className="text-[10px] text-white/40 bg-white/10 px-2 py-0.5 rounded-full">Not matched yet</span>
         )}
         {status === 'confirmed' && (
           <span className="text-[10px] font-bold text-vc-teal bg-vc-teal/10 px-2 py-0.5 rounded-full">Matched</span>
         )}
         {status === 'unmatched' && (
-          <span className="text-[10px] font-bold text-vc-gray bg-gray-100 px-2 py-0.5 rounded-full">No match</span>
+          <span className="text-[10px] font-bold text-white/40 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
         )}
         {status === 'ambiguous' && (
           <div className="relative">
@@ -127,20 +127,20 @@ export default function ContactCard({
               Pick match
             </button>
             {showCandidates && matchResult?.candidates && (
-              <div className="absolute z-20 top-full mt-1 left-0 bg-white rounded-card shadow-lifted border border-gray-200 p-2 min-w-[280px]">
+              <div className="absolute z-20 top-full mt-1 left-0 glass-card bg-vc-surface p-2 min-w-[280px]">
                 {matchResult.candidates.map((c, i) => {
                   const age = c.voterRecord.birth_year ? new Date().getFullYear() - parseInt(c.voterRecord.birth_year) : null
                   return (
                     <button
                       key={i}
                       onClick={() => { onConfirmMatch(person.id, c.voterRecord); setShowCandidates(false) }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-vc-purple/5 rounded transition-colors"
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 rounded transition-colors"
                     >
                       <div className="flex items-baseline justify-between">
-                        <span className="font-bold">{c.voterRecord.first_name} {c.voterRecord.last_name}</span>
-                        <span className="text-vc-gray ml-2">{Math.round(c.score * 100)}%</span>
+                        <span className="font-bold text-white">{c.voterRecord.first_name} {c.voterRecord.last_name}</span>
+                        <span className="text-white/40 ml-2">{Math.round(c.score * 100)}%</span>
                       </div>
-                      <div className="text-vc-gray mt-0.5">
+                      <div className="text-white/40 mt-0.5">
                         {c.voterRecord.residential_address}, {c.voterRecord.city}
                         {age && <span className="ml-1">&middot; Age {age}</span>}
                       </div>
@@ -196,7 +196,7 @@ export default function ContactCard({
               <button
                 key={method}
                 onClick={() => onToggleContacted(person.id, method)}
-                className="flex-1 py-2 rounded-btn text-xs font-bold border border-gray-200 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 rounded-btn text-xs font-bold border border-white/15 text-white/60 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center gap-1.5"
                 title={tip}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -211,7 +211,7 @@ export default function ContactCard({
                 window.open(smsLink, '_blank')
                 onToggleContacted(person.id, 'text')
               }}
-              className="w-full py-2 rounded-btn text-xs font-bold bg-vc-teal/10 text-vc-teal border border-vc-teal/30 hover:bg-vc-teal hover:text-white transition-all flex items-center justify-center gap-1.5"
+              className="w-full py-2 rounded-btn text-xs font-bold bg-vc-teal/15 text-vc-teal border border-vc-teal/30 hover:bg-vc-teal hover:text-white transition-all flex items-center justify-center gap-1.5"
             >
               <Smartphone className="w-3.5 h-3.5" />
               Send Text
@@ -220,7 +220,7 @@ export default function ContactCard({
             <button
               disabled
               title="Add phone to text"
-              className="w-full py-2 rounded-btn text-xs font-bold bg-gray-50 text-gray-300 border border-gray-200 cursor-not-allowed flex items-center justify-center gap-1.5"
+              className="w-full py-2 rounded-btn text-xs font-bold bg-white/5 text-white/20 border border-white/10 cursor-not-allowed flex items-center justify-center gap-1.5"
             >
               <Smartphone className="w-3.5 h-3.5" />
               Send Text
@@ -231,7 +231,7 @@ export default function ContactCard({
 
       {/* Outreach method used */}
       {contacted && outreachMethod && (
-        <p className="text-[10px] text-vc-gray mb-2 flex items-center gap-1">
+        <p className="text-[10px] text-white/40 mb-2 flex items-center gap-1">
           Via {(() => { const MIcon = OUTREACH_LABELS[outreachMethod].Icon; return <MIcon className="w-3 h-3" /> })()}
           {OUTREACH_LABELS[outreachMethod].label}
         </p>
@@ -240,13 +240,13 @@ export default function ContactCard({
       {/* Outcome selector */}
       {contacted && !contactOutcome && (
         <div className="mb-3">
-          <p className="text-[10px] font-bold text-vc-gray uppercase tracking-wider mb-1.5">How did it go?</p>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1.5">How did it go?</p>
           <div className="flex flex-wrap gap-1.5">
             {(Object.entries(OUTCOME_CONFIG) as [ContactOutcome, typeof OUTCOME_CONFIG[ContactOutcome]][]).map(([outcome, { label, Icon, tip }]) => (
               <button
                 key={outcome}
                 onClick={() => onOutcomeSelect(person.id, outcome)}
-                className="py-1.5 px-2.5 rounded-btn text-[10px] font-bold border border-gray-200 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center gap-1"
+                className="py-1.5 px-2.5 rounded-btn text-[10px] font-bold border border-white/15 text-white/60 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center gap-1"
                 title={tip}
               >
                 <Icon className="w-3 h-3" />
@@ -264,7 +264,7 @@ export default function ContactCard({
         onChange={e => setLocalNotes(e.target.value)}
         onBlur={() => onNotesChange(person.id, localNotes)}
         placeholder="Notes..."
-        className="w-full px-3 py-2 border border-gray-200 rounded-btn text-xs text-vc-slate focus:outline-none focus:ring-2 focus:ring-vc-purple/30"
+        className="glass-input w-full px-3 py-2 rounded-btn text-xs text-white bg-transparent focus:outline-none focus:ring-2 focus:ring-vc-purple/30"
       />
     </div>
   )

@@ -34,8 +34,8 @@ export default function AdminPanel() {
             className={clsx(
               'flex items-center gap-1.5 px-4 py-2.5 rounded-btn text-sm font-medium transition-all',
               activeTab === tab.id
-                ? 'bg-vc-purple text-white shadow-sm'
-                : 'text-vc-gray hover:bg-vc-purple/5'
+                ? 'bg-vc-purple text-white shadow-glow'
+                : 'text-white/60 hover:bg-white/10'
             )}
           >
             <tab.Icon className="w-4 h-4" />

@@ -51,9 +51,9 @@ const OUTREACH_LABELS: Record<OutreachMethod, { label: string; Icon: typeof Mess
 const OUTCOME_CONFIG: Record<ContactOutcome, { label: string; Icon: typeof MessageCircle; color: string; tip: string }> = {
   'supporter': { label: 'Supporter', Icon: ThumbsUp, color: 'bg-vc-teal text-white', tip: 'They\'re on board and will vote!' },
   'undecided': { label: 'Undecided', Icon: HelpCircle, color: 'bg-vc-gold text-vc-purple', tip: 'Not sure yet — follow up closer to election day' },
-  'opposed': { label: 'Opposed', Icon: ThumbsDown, color: 'bg-gray-200 text-vc-slate', tip: 'Not interested — no need to push further' },
-  'left-message': { label: 'Left msg', Icon: Mail, color: 'bg-vc-purple/10 text-vc-purple', tip: 'Left a voicemail or message — try again later' },
-  'no-answer': { label: 'No answer', Icon: PhoneOff, color: 'bg-vc-purple/10 text-vc-purple', tip: 'Didn\'t pick up — try a different time or method' },
+  'opposed': { label: 'Opposed', Icon: ThumbsDown, color: 'bg-white/10 text-white/60', tip: 'Not interested — no need to push further' },
+  'left-message': { label: 'Left msg', Icon: Mail, color: 'bg-vc-purple/10 text-vc-purple-light', tip: 'Left a voicemail or message — try again later' },
+  'no-answer': { label: 'No answer', Icon: PhoneOff, color: 'bg-vc-purple/10 text-vc-purple-light', tip: 'Didn\'t pick up — try a different time or method' },
 }
 
 interface Props {
@@ -95,13 +95,12 @@ export default function ContactRow({
 
   const segmentColor = segment === 'super-voter' ? 'text-vc-teal' :
     segment === 'sometimes-voter' ? 'text-vc-gold' :
-    segment === 'rarely-voter' ? 'text-vc-coral' : 'text-vc-gray'
+    segment === 'rarely-voter' ? 'text-vc-coral' : 'text-white/40'
 
   return (
     <>
       <tr className={clsx(
-        'border-b border-gray-100 hover:bg-vc-purple/[0.02] transition-all duration-200',
-        index % 2 === 1 && 'bg-vc-purple/[0.015]',
+        'glass-row transition-all duration-200',
         contacted && contactOutcome && !isRecontact && 'opacity-50',
         isNew && 'bg-vc-teal/[0.06] animate-fade-in'
       )}>
@@ -112,7 +111,7 @@ export default function ContactRow({
               onClick={() => setExpanded(!expanded)}
               className="text-left"
             >
-              <span className="font-bold text-vc-purple text-sm">
+              <span className="font-bold text-white text-base">
                 {person.firstName} {person.lastName}
               </span>
             </button>
@@ -123,7 +122,7 @@ export default function ContactRow({
             )}
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-vc-gray text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+              className="text-white/40 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
             >
               {expanded ? '▾' : '▸'}
             </button>
@@ -139,26 +138,26 @@ export default function ContactRow({
 
         {/* Category */}
         <td className="py-2.5 px-2">
-          <span className="text-xs bg-vc-purple/5 text-vc-slate px-2 py-0.5 rounded-full whitespace-nowrap inline-flex items-center gap-1">
+          <span className="text-xs bg-white/10 text-white/80 px-2 py-0.5 rounded-full whitespace-nowrap inline-flex items-center gap-1">
             {catConfig?.icon && CATEGORY_ICONS[catConfig.icon] && (() => { const CatIcon = CATEGORY_ICONS[catConfig.icon]; return <CatIcon className="w-3 h-3" /> })()}
           </span>
         </td>
 
         {/* City */}
-        <td className="py-2.5 px-2 text-xs text-vc-gray">
+        <td className="py-2.5 px-2 text-xs text-white/50">
           {bestMatch?.city || person.city || '—'}
         </td>
 
         {/* Match Status */}
         <td className="py-2.5 px-2">
           {!matchResult && (
-            <span className="text-xs text-vc-gray">—</span>
+            <span className="text-xs text-white/40">—</span>
           )}
           {status === 'confirmed' && (
             <span className="text-[10px] font-bold text-vc-teal bg-vc-teal/10 px-2 py-0.5 rounded-full">Matched</span>
           )}
           {status === 'unmatched' && (
-            <span className="text-[10px] font-bold text-vc-gray bg-gray-100 px-2 py-0.5 rounded-full">No match</span>
+            <span className="text-[10px] font-bold text-white/40 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
           )}
           {status === 'ambiguous' && (
             <div className="relative">
@@ -169,20 +168,20 @@ export default function ContactRow({
                 Pick ▾
               </button>
               {showCandidates && matchResult?.candidates && (
-                <div className="absolute z-20 top-full mt-1 left-0 bg-white rounded-lg shadow-lg border border-gray-200 p-2 min-w-[280px]">
+                <div className="absolute z-20 top-full mt-1 left-0 glass-card rounded-lg shadow-lg border border-white/15 p-2 min-w-[280px]">
                   {matchResult.candidates.map((c, i) => {
                     const age = c.voterRecord.birth_year ? new Date().getFullYear() - parseInt(c.voterRecord.birth_year) : null
                     return (
                       <button
                         key={i}
                         onClick={() => { onConfirmMatch(person.id, c.voterRecord); setShowCandidates(false) }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-vc-purple/5 rounded transition-colors"
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-white/10 rounded transition-colors"
                       >
                         <div className="flex items-baseline justify-between">
-                          <span className="font-bold">{c.voterRecord.first_name} {c.voterRecord.last_name}</span>
-                          <span className="text-vc-gray font-display tabular-nums ml-2">{Math.round(c.score * 100)}%</span>
+                          <span className="font-bold text-white">{c.voterRecord.first_name} {c.voterRecord.last_name}</span>
+                          <span className="text-white/40 font-display tabular-nums ml-2">{Math.round(c.score * 100)}%</span>
                         </div>
-                        <div className="text-vc-gray mt-0.5">
+                        <div className="text-white/40 mt-0.5">
                           {c.voterRecord.residential_address}, {c.voterRecord.city}
                           {age && <span className="ml-1">&middot; Age {age}</span>}
                         </div>
@@ -208,7 +207,7 @@ export default function ContactRow({
               {Math.round(voteScore * 100)}%
             </span>
           ) : (
-            <span className="text-xs text-vc-gray">—</span>
+            <span className="text-xs text-white/40">—</span>
           )}
         </td>
 
@@ -220,7 +219,7 @@ export default function ContactRow({
                 <button
                   key={method}
                   onClick={() => onToggleContacted(person.id, method)}
-                  className="w-7 h-7 rounded text-xs border border-gray-200 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center"
+                  className="w-7 h-7 rounded text-xs border bg-white/10 border-white/15 text-white/60 hover:bg-vc-purple hover:text-white hover:border-vc-purple transition-all flex items-center justify-center"
                   title={tip}
                 >
                   <Icon className="w-3 h-3" />
@@ -243,8 +242,8 @@ export default function ContactRow({
                 className={clsx(
                   'w-7 h-7 rounded text-xs border transition-all flex items-center justify-center',
                   person.phone
-                    ? 'border-gray-200 hover:border-vc-purple hover:bg-vc-purple hover:text-white cursor-pointer'
-                    : 'border-gray-100 text-gray-300 cursor-not-allowed'
+                    ? 'bg-white/10 border-white/15 text-white/60 hover:bg-vc-purple hover:text-white hover:border-vc-purple cursor-pointer'
+                    : 'border-white/10 text-white/20 cursor-not-allowed'
                 )}
                 title={person.phone ? 'Send SMS with template' : 'No phone number'}
               >
@@ -252,7 +251,7 @@ export default function ContactRow({
               </button>
             </div>
           ) : (
-            <span className="text-xs text-vc-gray">
+            <span className="text-xs text-white/40">
               {outreachMethod && (() => { const OutreachIcon = OUTREACH_LABELS[outreachMethod].Icon; return <OutreachIcon className="w-3 h-3 inline" /> })()}
             </span>
           )}
@@ -266,7 +265,7 @@ export default function ContactRow({
                 <button
                   key={outcome}
                   onClick={() => onOutcomeSelect(person.id, outcome)}
-                  className="w-6 h-6 rounded text-xs border border-gray-200 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center"
+                  className="w-6 h-6 rounded text-xs border bg-white/10 border-white/15 text-white/60 hover:bg-vc-purple hover:text-white hover:border-vc-purple transition-all flex items-center justify-center"
                   title={tip}
                 >
                   <Icon className="w-3 h-3" />
@@ -291,7 +290,7 @@ export default function ContactRow({
               {contactOutcome === 'supporter' && !actionItem?.isVolunteerProspect && (
                 <button
                   onClick={() => onVolunteerRecruit(person.id)}
-                  className="text-[10px] text-vc-purple hover:underline font-bold ml-1"
+                  className="text-[10px] text-vc-purple-light hover:underline font-bold ml-1"
                   title="Recruit as volunteer"
                 >
                   Recruit
@@ -304,7 +303,7 @@ export default function ContactRow({
               )}
             </div>
           )}
-          {!contacted && <span className="text-xs text-vc-gray">—</span>}
+          {!contacted && <span className="text-xs text-white/40">—</span>}
         </td>
 
         {/* Notes */}
@@ -315,24 +314,24 @@ export default function ContactRow({
             onChange={e => setLocalNotes(e.target.value)}
             onBlur={() => onNotesChange(person.id, localNotes)}
             placeholder="Notes..."
-            className="w-full px-2 py-1 border border-transparent hover:border-gray-200 focus:border-vc-coral rounded text-xs text-vc-slate focus:outline-none focus:ring-1 focus:ring-vc-coral bg-transparent"
+            className="glass-input w-full px-2 py-1 rounded text-xs text-white bg-transparent focus:outline-none focus:ring-1 focus:ring-vc-coral"
           />
         </td>
       </tr>
 
       {/* Expanded details */}
       {expanded && (
-        <tr className="border-b border-gray-100 bg-vc-purple/[0.02] transition-all duration-200">
+        <tr className="border-b border-white/15 glass transition-all duration-200">
           <td colSpan={8} className="px-3 py-3">
             <div className="flex flex-wrap gap-6 text-xs animate-fade-in">
               {/* Person details */}
               <div className="space-y-1">
-                <p className="font-bold text-vc-purple text-[10px] uppercase tracking-wider">Details</p>
-                {person.address && <p className="text-vc-gray">{person.address}</p>}
-                {person.city && <p className="text-vc-gray">{person.city}{person.zip ? `, ${person.zip}` : ''}</p>}
-                {person.age && <p className="text-vc-gray">Age {person.age}</p>}
-                {person.gender && <p className="text-vc-gray">{person.gender === 'M' ? 'Male' : 'Female'}</p>}
-                <p className="text-vc-gray flex items-center gap-1">
+                <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider">Details</p>
+                {person.address && <p className="text-white/40">{person.address}</p>}
+                {person.city && <p className="text-white/40">{person.city}{person.zip ? `, ${person.zip}` : ''}</p>}
+                {person.age && <p className="text-white/40">Age {person.age}</p>}
+                {person.gender && <p className="text-white/40">{person.gender === 'M' ? 'Male' : 'Female'}</p>}
+                <p className="text-white/40 flex items-center gap-1">
                   {catConfig?.icon && CATEGORY_ICONS[catConfig.icon] && (() => { const CatIcon = CATEGORY_ICONS[catConfig.icon]; return <CatIcon className="w-3 h-3" /> })()}
                   {catConfig?.id.replace(/-/g, ' ')}
                 </p>
@@ -341,14 +340,14 @@ export default function ContactRow({
               {/* Vote history */}
               {voteHistory.length > 0 && (
                 <div>
-                  <p className="font-bold text-vc-purple text-[10px] uppercase tracking-wider mb-1">Vote History</p>
+                  <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Vote History</p>
                   <div className="grid grid-cols-6 gap-1">
                     {voteHistory.map(({ election, year, type, voted }) => (
                       <div
                         key={election}
                         className={clsx(
                           'text-[9px] rounded p-1 text-center',
-                          voted ? 'bg-vc-teal text-white font-bold' : 'bg-gray-100 text-gray-400'
+                          voted ? 'bg-vc-teal text-white font-bold' : 'bg-white/10 text-white/40'
                         )}
                       >
                         <div>{year}</div>
@@ -362,20 +361,20 @@ export default function ContactRow({
               {/* Relationship tip */}
               {relationshipTip && (
                 <div className="max-w-xs">
-                  <p className="font-bold text-vc-purple text-[10px] uppercase tracking-wider mb-1">Tip</p>
-                  <p className="text-vc-gray leading-relaxed">{relationshipTip}</p>
+                  <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Tip</p>
+                  <p className="text-white/40 leading-relaxed">{relationshipTip}</p>
                 </div>
               )}
 
               {/* Voter match details */}
               {bestMatch && (
                 <div>
-                  <p className="font-bold text-vc-purple text-[10px] uppercase tracking-wider mb-1">Voter Record</p>
-                  <p className="text-vc-gray">{bestMatch.first_name} {bestMatch.last_name}</p>
-                  <p className="text-vc-gray">{bestMatch.residential_address}</p>
-                  <p className="text-vc-gray">{bestMatch.city}, {bestMatch.state} {bestMatch.zip}</p>
-                  {bestMatch.birth_year && <p className="text-vc-gray">Born {bestMatch.birth_year}</p>}
-                  <p className="text-vc-gray">Party: {bestMatch.party_affiliation}</p>
+                  <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Voter Record</p>
+                  <p className="text-white/40">{bestMatch.first_name} {bestMatch.last_name}</p>
+                  <p className="text-white/40">{bestMatch.residential_address}</p>
+                  <p className="text-white/40">{bestMatch.city}, {bestMatch.state} {bestMatch.zip}</p>
+                  {bestMatch.birth_year && <p className="text-white/40">Born {bestMatch.birth_year}</p>}
+                  <p className="text-white/40">Party: {bestMatch.party_affiliation}</p>
                 </div>
               )}
             </div>

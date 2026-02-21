@@ -17,9 +17,9 @@ export default function MatchingPage() {
 
   if (state.isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-vc-purple-dark via-vc-purple to-vc-purple-light">
+      <div className="min-h-screen flex flex-col items-center justify-center cosmic-bg constellation">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-vc-teal border-t-transparent rounded-full animate-spin mx-auto mb-6" />
+          <div className="w-16 h-16 border-4 border-vc-purple border-t-transparent rounded-full animate-spin mx-auto mb-6" />
           <h2 className="font-display text-2xl text-white font-bold mb-3">Searching the voter file...</h2>
           <p className="text-white/40 text-sm">{state.personEntries.length} people to match</p>
         </div>
@@ -29,10 +29,10 @@ export default function MatchingPage() {
 
   if (state.error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-vc-bg text-white">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 cosmic-bg constellation text-white">
         <div className="glass-card p-8 max-w-md text-center">
-          <h2 className="font-display text-xl font-bold text-vc-coral mb-3">Something went wrong</h2>
-          <p className="text-vc-gray mb-6">{state.error}</p>
+          <h2 className="font-display text-xl font-bold text-red-300 mb-3">Something went wrong</h2>
+          <p className="text-white/70 mb-6">{state.error}</p>
           <button
             onClick={() => runMatching()}
             className="bg-vc-purple text-white px-6 py-3 rounded-btn font-bold hover:bg-vc-purple-light transition-colors"
@@ -58,7 +58,7 @@ export default function MatchingPage() {
 
   // No results yet and not loading — redirect to questionnaire
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-vc-bg text-white">
+    <div className="min-h-screen flex flex-col items-center justify-center cosmic-bg constellation text-white">
       <p className="text-white/50">No people to match. <Link href="/questionnaire" className="text-vc-purple-light font-bold hover:underline">Go build your list</Link>.</p>
     </div>
   )

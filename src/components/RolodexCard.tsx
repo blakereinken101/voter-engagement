@@ -18,10 +18,10 @@ const OUTREACH_LABELS: Record<OutreachMethod, { label: string; Icon: typeof Mess
 
 const OUTCOME_CONFIG: Record<ContactOutcome, { label: string; Icon: typeof MessageCircle; color: string }> = {
   'supporter':    { label: 'Supporter',       Icon: ThumbsUp,   color: 'bg-vc-teal text-white' },
-  'undecided':    { label: 'Undecided',       Icon: HelpCircle, color: 'bg-vc-gold text-vc-purple' },
-  'opposed':      { label: 'Not interested',  Icon: ThumbsDown, color: 'bg-gray-200 text-vc-slate' },
-  'left-message': { label: 'Left message',    Icon: Mail,       color: 'bg-vc-purple/10 text-vc-purple' },
-  'no-answer':    { label: 'No answer',       Icon: PhoneOff,   color: 'bg-vc-purple/10 text-vc-purple' },
+  'undecided':    { label: 'Undecided',       Icon: HelpCircle, color: 'bg-vc-gold text-white' },
+  'opposed':      { label: 'Not interested',  Icon: ThumbsDown, color: 'bg-white/10 text-white/60' },
+  'left-message': { label: 'Left message',    Icon: Mail,       color: 'bg-vc-purple/10 text-vc-purple-light' },
+  'no-answer':    { label: 'No answer',       Icon: PhoneOff,   color: 'bg-vc-purple/10 text-vc-purple-light' },
 }
 
 const SEGMENT_LABELS: Record<VoterSegment, { label: string; color: string }> = {
@@ -40,17 +40,14 @@ function sortForRolodex(items: ActionPlanItem[]): ActionPlanItem[] {
   }
 
   return [...items].sort((a, b) => {
-    // Uncontacted first
     if (!a.contacted && b.contacted) return -1
     if (a.contacted && !b.contacted) return 1
 
-    // Among contacted: re-contact candidates before completed
     const aRecontact = a.contactOutcome === 'left-message' || a.contactOutcome === 'no-answer'
     const bRecontact = b.contactOutcome === 'left-message' || b.contactOutcome === 'no-answer'
     if (aRecontact && !bRecontact) return -1
     if (!aRecontact && bRecontact) return 1
 
-    // By segment priority
     const aOrder = a.matchResult.segment ? segmentOrder[a.matchResult.segment] ?? 3 : 3
     const bOrder = b.matchResult.segment ? segmentOrder[b.matchResult.segment] ?? 3 : 3
     return aOrder - bOrder
@@ -78,6 +75,14 @@ export default function RolodexCard() {
 
   const totalRemaining = sortedItems.filter(i => !i.contacted || i.contactOutcome === 'left-message' || i.contactOutcome === 'no-answer').length
   const totalDone = sortedItems.filter(i => i.contacted && i.contactOutcome && i.contactOutcome !== 'left-message' && i.contactOutcome !== 'no-answer').length
+
+  const segmentDot = segment === 'super-voter' ? 'bg-vc-teal' :
+    segment === 'sometimes-voter' ? 'bg-vc-gold' :
+    segment === 'rarely-voter' ? 'bg-vc-coral' : 'bg-white/20'
+
+  const segmentColor = segment === 'super-voter' ? 'text-vc-teal' :
+    segment === 'sometimes-voter' ? 'text-vc-gold' :
+    segment === 'rarely-voter' ? 'text-vc-coral' : 'text-white/40'
 
   function handleMethodSelect(method: OutreachMethod) {
     setSelectedMethod(method)
@@ -119,7 +124,6 @@ export default function RolodexCard() {
     }
   }
 
-  // If this person was already contacted but needs re-contact, show re-contact prompt
   const isRecontact = item.contacted && (item.contactOutcome === 'left-message' || item.contactOutcome === 'no-answer')
   const isFullyDone = item.contacted && item.contactOutcome && !isRecontact
 
@@ -127,42 +131,41 @@ export default function RolodexCard() {
     <div className="max-w-lg mx-auto px-4 py-6">
       {/* Progress */}
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm font-display text-vc-gray">
-          <span className="text-vc-purple font-bold">{safeIndex + 1}</span> of {sortedItems.length}
+        <p className="text-sm font-display text-white/50">
+          <span className="text-vc-purple-light font-bold">{safeIndex + 1}</span> of {sortedItems.length}
         </p>
-        <p className="text-sm font-display text-vc-gray">
+        <p className="text-sm font-display text-white/50">
           <span className="text-vc-teal font-bold">{totalDone}</span> done · <span className="text-vc-coral font-bold">{totalRemaining}</span> to go
         </p>
       </div>
       <div className="flex items-center gap-3 mb-6">
-        <div className="bg-gray-200 rounded-full h-2 flex-1">
+        <div className="bg-white/10 rounded-full h-2 flex-1">
           <div
             className="bg-vc-teal h-2 rounded-full transition-all duration-500"
             style={{ width: `${sortedItems.length > 0 ? ((safeIndex + 1) / sortedItems.length) * 100 : 0}%` }}
           />
         </div>
-        <span className="text-xs font-display text-vc-gray whitespace-nowrap">
+        <span className="text-xs font-display text-white/40 whitespace-nowrap">
           Card {safeIndex + 1} of {sortedItems.length}
         </span>
       </div>
 
       {/* Card */}
       <div className={clsx(
-        'bg-white rounded-xl shadow-lg border-l-4 p-6 transition-all',
-        status === 'unmatched' ? 'border-l-gray-300' :
-          segment === 'rarely-voter' ? 'border-l-vc-coral' :
-            segment === 'sometimes-voter' ? 'border-l-vc-gold' :
-              segment === 'super-voter' ? 'border-l-vc-teal' : 'border-l-gray-300',
+        'glass-card p-6 transition-all',
         isFullyDone && 'opacity-50'
       )}>
         {/* Person header */}
         <div className="mb-4">
-          <h2 className="font-display text-2xl font-bold text-vc-purple">
-            {personEntry.firstName} {personEntry.lastName}
-          </h2>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className={clsx('w-2.5 h-2.5 rounded-full', segmentDot)} />
+            <h2 className="font-display text-2xl font-bold text-white">
+              {personEntry.firstName} {personEntry.lastName}
+            </h2>
+          </div>
+          <div className="flex items-center gap-3 mt-1 ml-5">
             {bestMatch && (
-              <span className="text-sm text-vc-gray">{bestMatch.city}, {bestMatch.state}</span>
+              <span className="text-sm text-white/50">{bestMatch.city}, {bestMatch.state}</span>
             )}
             {segment && (
               <span className={clsx('text-xs font-display font-bold', SEGMENT_LABELS[segment].color)}>
@@ -170,19 +173,15 @@ export default function RolodexCard() {
               </span>
             )}
             {status === 'unmatched' && (
-              <span className="text-xs font-display text-vc-gray">Not in voter file</span>
+              <span className="text-xs font-display text-white/40">Not in voter file</span>
             )}
           </div>
           {voteScore !== undefined && (
-            <div className="mt-2">
-              <span className={clsx(
-                'text-2xl font-bold font-display',
-                segment === 'super-voter' ? 'text-vc-teal' :
-                  segment === 'sometimes-voter' ? 'text-vc-slate' : 'text-vc-coral'
-              )}>
+            <div className="mt-2 ml-5">
+              <span className={clsx('text-2xl font-bold font-display', segmentColor)}>
                 {Math.round(voteScore * 100)}%
               </span>
-              <span className="text-xs text-vc-gray ml-2">vote rate</span>
+              <span className="text-xs text-white/40 ml-2">vote rate</span>
             </div>
           )}
         </div>
@@ -195,7 +194,7 @@ export default function RolodexCard() {
                 key={election}
                 className={clsx(
                   'text-[10px] rounded p-1.5 text-center',
-                  voted ? 'bg-vc-teal text-white font-bold' : 'bg-gray-100 text-gray-400'
+                  voted ? 'bg-vc-teal text-white font-bold' : 'bg-white/10 text-white/40'
                 )}
               >
                 <div>{year}</div>
@@ -206,14 +205,14 @@ export default function RolodexCard() {
         )}
 
         {/* Relationship tip */}
-        <div className="bg-vc-purple/5 rounded-lg p-3 mb-4">
-          <p className="text-xs text-vc-slate leading-relaxed">{relationshipTip}</p>
+        <div className="glass rounded-lg p-3 mb-4">
+          <p className="text-xs text-white/80 leading-relaxed">{relationshipTip}</p>
         </div>
 
         {/* Re-contact prompt */}
         {isRecontact && step === 'prep' && (
           <div className="bg-vc-gold/10 border border-vc-gold/30 rounded-lg p-4 mb-4">
-            <p className="text-sm font-bold text-vc-purple mb-2 flex items-center gap-1.5">
+            <p className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
               Previously: {(() => { const { Icon } = OUTCOME_CONFIG[item.contactOutcome!]; return <Icon className="w-3.5 h-3.5" />; })()} {OUTCOME_CONFIG[item.contactOutcome!].label}
             </p>
             <button
@@ -230,20 +229,19 @@ export default function RolodexCard() {
         {/* Already done */}
         {isFullyDone && (
           <div className="bg-vc-teal/10 border border-vc-teal/30 rounded-lg p-4 mb-4">
-            <p className="text-sm font-bold text-vc-purple flex items-center gap-1.5">
+            <p className="text-sm font-bold text-white flex items-center gap-1.5">
               {(() => { const { Icon } = OUTCOME_CONFIG[item.contactOutcome!]; return <Icon className="w-3.5 h-3.5" />; })()} {OUTCOME_CONFIG[item.contactOutcome!].label}
             </p>
-            {item.notes && <p className="text-xs text-vc-slate mt-1">{item.notes}</p>}
+            {item.notes && <p className="text-xs text-white/60 mt-1">{item.notes}</p>}
           </div>
         )}
 
-        {/* STEP 1: Prep — conversation script + pick outreach method */}
+        {/* STEP 1: Prep */}
         {step === 'prep' && !isFullyDone && !item.contacted && (
           <>
-            {/* Script */}
             {segment && CONVERSATION_SCRIPTS[segment] && (
               <details className="mb-4">
-                <summary className="text-sm text-vc-purple font-bold cursor-pointer hover:text-vc-coral transition-colors">
+                <summary className="text-sm text-vc-purple-light font-bold cursor-pointer hover:text-vc-coral transition-colors">
                   Conversation guide
                 </summary>
                 <div className="mt-3 relative">
@@ -252,7 +250,7 @@ export default function RolodexCard() {
                       <ScriptCard script={CONVERSATION_SCRIPTS[segment]} personName={personEntry.firstName} />
                     </div>
                   </div>
-                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent" />
+                  <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-vc-surface to-transparent" />
                 </div>
               </details>
             )}
@@ -274,31 +272,31 @@ export default function RolodexCard() {
                       }
                     }}
                     className={clsx(
-                      'w-full py-3 px-4 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2',
+                      'w-full py-3 px-4 rounded-btn text-sm font-bold transition-all flex items-center justify-center gap-2',
                       personEntry.phone
-                        ? 'bg-vc-teal text-white hover:bg-vc-teal/90'
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        ? 'bg-vc-teal/15 text-vc-teal border border-vc-teal/30 hover:bg-vc-teal hover:text-white'
+                        : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/10'
                     )}
                   >
                     <Smartphone className="w-4 h-4" /> {personEntry.phone ? 'Send Text' : 'Send Text (no phone number)'}
                   </button>
                   {personEntry.phone && (
-                    <div className="mt-2 bg-vc-teal/5 border border-vc-teal/20 rounded-lg p-3">
-                      <p className="text-[10px] font-bold text-vc-gray uppercase tracking-wider mb-1">SMS preview</p>
-                      <p className="text-xs text-vc-slate leading-relaxed max-w-prose">{smsPreview}</p>
+                    <div className="mt-2 glass rounded-lg p-3">
+                      <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">SMS preview</p>
+                      <p className="text-xs text-white/70 leading-relaxed max-w-prose">{smsPreview}</p>
                     </div>
                   )}
                 </div>
               )
             })()}
 
-            <p className="text-sm font-bold text-vc-purple mb-3">How will you reach out?</p>
+            <p className="text-sm font-bold text-white mb-3">How will you reach out?</p>
             <div className="flex gap-2">
               {(Object.entries(OUTREACH_LABELS) as [OutreachMethod, { label: string; Icon: typeof MessageCircle }][]).map(([method, { label, Icon }]) => (
                 <button
                   key={method}
                   onClick={() => handleMethodSelect(method)}
-                  className="flex-1 py-3 px-4 rounded-lg text-sm font-bold border-2 border-gray-200 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 py-3 px-4 rounded-btn text-sm font-bold border border-white/15 text-white/60 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center gap-1.5"
                 >
                   <Icon className="w-3.5 h-3.5" /> {label}
                 </button>
@@ -307,10 +305,10 @@ export default function RolodexCard() {
           </>
         )}
 
-        {/* STEP 2: Log — outcome + notes */}
+        {/* STEP 2: Log */}
         {step === 'log' && (
           <div className="animate-fade-in">
-            <p className="text-sm font-bold text-vc-purple mb-3">
+            <p className="text-sm font-bold text-white mb-3">
               How did it go with {personEntry.firstName}?
             </p>
             <div className="flex flex-wrap gap-2 mb-4">
@@ -319,10 +317,10 @@ export default function RolodexCard() {
                   key={outcome}
                   onClick={() => setSelectedOutcome(outcome)}
                   className={clsx(
-                    'py-2 px-4 rounded-lg text-sm font-bold border-2 transition-all flex items-center gap-1.5',
+                    'py-2 px-4 rounded-btn text-sm font-bold border transition-all flex items-center gap-1.5',
                     selectedOutcome === outcome
                       ? `${color} border-transparent`
-                      : 'border-gray-200 hover:border-vc-purple'
+                      : 'border-white/15 text-white/60 hover:border-vc-purple'
                   )}
                 >
                   <Icon className="w-3.5 h-3.5" /> {label}
@@ -334,7 +332,7 @@ export default function RolodexCard() {
               value={noteText}
               onChange={e => setNoteText(e.target.value)}
               placeholder="Notes from the conversation..."
-              className="w-full p-3 border border-gray-200 rounded-lg text-sm text-vc-slate focus:outline-none focus:ring-2 focus:ring-vc-purple/30 resize-none mb-4"
+              className="glass-input w-full p-3 rounded-btn text-sm focus:outline-none focus:ring-2 focus:ring-vc-purple/30 resize-none mb-4"
               rows={3}
             />
 
@@ -342,10 +340,10 @@ export default function RolodexCard() {
               onClick={handleSaveAndNext}
               disabled={!selectedOutcome}
               className={clsx(
-                'w-full py-3 rounded-lg text-sm font-bold transition-all',
+                'w-full py-3 rounded-btn text-sm font-bold transition-all',
                 selectedOutcome
-                  ? 'bg-vc-purple text-white hover:bg-vc-purple-light'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'bg-vc-purple text-white hover:bg-vc-purple-light shadow-glow'
+                  : 'bg-white/10 text-white/20 cursor-not-allowed'
               )}
             >
               Save & Next
@@ -360,8 +358,8 @@ export default function RolodexCard() {
           onClick={handleBack}
           disabled={safeIndex === 0}
           className={clsx(
-            'px-4 py-2 rounded-lg text-sm font-bold transition-all',
-            safeIndex > 0 ? 'text-vc-purple hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'
+            'px-4 py-2 rounded-btn text-sm font-bold transition-all',
+            safeIndex > 0 ? 'text-vc-purple-light hover:bg-white/10' : 'text-white/20 cursor-not-allowed'
           )}
         >
           &larr; Back
@@ -369,7 +367,7 @@ export default function RolodexCard() {
 
         <button
           onClick={handleSkip}
-          className="px-4 py-2 rounded-lg text-sm font-bold text-vc-gray hover:text-vc-purple hover:bg-gray-100 transition-all"
+          className="px-4 py-2 rounded-btn text-sm font-bold text-white/40 hover:text-white hover:bg-white/10 transition-all"
         >
           Skip &rarr;
         </button>

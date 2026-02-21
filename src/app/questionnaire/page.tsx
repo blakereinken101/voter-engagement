@@ -12,7 +12,7 @@ export default function QuestionnairePage() {
 
   if (!state.selectedState) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-vc-bg">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 cosmic-bg constellation">
         <Link href="/" className="font-display font-extrabold text-vc-purple-light text-lg mb-12 hover:opacity-80 transition-opacity">
           VoteCircle
         </Link>
@@ -28,7 +28,7 @@ export default function QuestionnairePage() {
   }
 
   return (
-    <div className="min-h-screen bg-vc-bg text-white">
+    <div className="min-h-screen cosmic-bg constellation text-white">
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-4 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between mb-3">
           <Link href="/" className="font-display font-extrabold text-white text-sm hover:opacity-80 transition-opacity">
@@ -42,7 +42,7 @@ export default function QuestionnairePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-8">
-        <div className="card-elevated p-6 md:p-8 text-vc-slate">
+        <div className="glass-card p-6 md:p-8 text-white">
           <CategoryWizard />
         </div>
       </main>

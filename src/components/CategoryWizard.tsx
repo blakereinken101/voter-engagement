@@ -78,19 +78,19 @@ export default function CategoryWizard() {
       <div className="mb-8">
         {IconComponent && (
           <div className="mb-3">
-            <IconComponent className="w-10 h-10 text-vc-purple" strokeWidth={1.5} />
+            <IconComponent className="w-10 h-10 text-vc-purple-light" strokeWidth={1.5} />
           </div>
         )}
-        <h2 className="font-display text-3xl text-vc-purple font-bold mb-2 leading-tight">
+        <h2 className="font-display text-3xl text-white font-bold mb-2 leading-tight">
           {currentConfig.question}
         </h2>
-        <p className="text-vc-gray text-base leading-relaxed">{currentConfig.subtext}</p>
+        <p className="text-white/50 text-base leading-relaxed">{currentConfig.subtext}</p>
       </div>
 
       {/* Examples */}
       <div className="flex flex-wrap gap-2 mb-6">
         {currentConfig.examples.map((ex, i) => (
-          <span key={i} className="text-xs bg-vc-purple/5 text-vc-slate px-3 py-1.5 rounded-full">
+          <span key={i} className="text-xs bg-white/10 text-white/70 px-3 py-1.5 rounded-full">
             {ex}
           </span>
         ))}
@@ -123,15 +123,15 @@ export default function CategoryWizard() {
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
+      <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/10">
         <button
           onClick={handleBack}
           disabled={currentIndex === 0}
           className={clsx(
-            'px-6 py-3 rounded-lg font-bold text-sm transition-colors',
+            'px-6 py-3 rounded-btn font-bold text-sm transition-colors',
             currentIndex === 0
-              ? 'text-gray-300 cursor-not-allowed'
-              : 'text-vc-purple hover:bg-vc-purple/5'
+              ? 'text-white/20 cursor-not-allowed'
+              : 'text-vc-purple-light hover:bg-white/10'
           )}
         >
           Back
@@ -141,7 +141,7 @@ export default function CategoryWizard() {
           {peopleInCategory.length === 0 && (
             <button
               onClick={handleNext}
-              className="px-4 py-3 text-vc-gray text-sm hover:text-vc-purple transition-colors"
+              className="px-4 py-3 text-white/40 text-sm hover:text-white transition-colors"
             >
               Skip
             </button>
@@ -150,10 +150,10 @@ export default function CategoryWizard() {
           <button
             onClick={handleNext}
             className={clsx(
-              'px-8 py-3 rounded-lg font-bold text-sm text-white transition-all',
+              'px-8 py-3 rounded-btn font-bold text-sm text-white transition-all',
               isLastCategory
-                ? 'bg-vc-coral hover:bg-vc-coral-light shadow-lg shadow-vc-coral/25'
-                : 'bg-vc-purple hover:bg-vc-purple-light'
+                ? 'bg-vc-coral hover:bg-vc-coral/80 shadow-glow-coral'
+                : 'bg-vc-purple hover:bg-vc-purple-light shadow-glow'
             )}
           >
             {isLastCategory ? 'Find My People' : 'Next'}
@@ -167,13 +167,13 @@ export default function CategoryWizard() {
           <span className={clsx(
             'font-bold text-lg',
             totalPeople >= IDEAL_PEOPLE_COUNT ? 'text-vc-teal' :
-              totalPeople >= 30 ? 'text-vc-purple' : 'text-vc-gray'
+              totalPeople >= 30 ? 'text-vc-purple-light' : 'text-white/40'
           )}>
             {totalPeople}
           </span>
-          <span className="text-vc-gray"> people in your circle</span>
+          <span className="text-white/40"> people in your circle</span>
           {totalPeople < 40 && totalPeople > 0 && (
-            <span className="text-vc-gray"> — aim for {IDEAL_PEOPLE_COUNT}!</span>
+            <span className="text-white/40"> — aim for {IDEAL_PEOPLE_COUNT}!</span>
           )}
         </span>
       </div>

@@ -113,14 +113,14 @@ const ACTION_ICONS: Record<string, { Icon: LucideIcon; color: string }> = {
   mark_contacted: { Icon: Phone, color: 'text-vc-gold' },
   record_outcome: { Icon: FileText, color: 'text-vc-purple' },
 }
-const DEFAULT_ACTION_ICON = { Icon: Circle, color: 'text-vc-gray' }
+const DEFAULT_ACTION_ICON = { Icon: Circle, color: 'text-white/50' }
 
 const OUTCOME_COLORS: Record<string, { bg: string; text: string; bar: string }> = {
   supporter:       { bg: 'bg-vc-teal/10', text: 'text-vc-teal',       bar: 'bg-vc-teal' },
   undecided:       { bg: 'bg-vc-gold/10', text: 'text-vc-gold',     bar: 'bg-vc-gold' },
   opposed:         { bg: 'bg-vc-coral/10', text: 'text-vc-coral',           bar: 'bg-vc-coral' },
   'left-message':  { bg: 'bg-vc-purple/5', text: 'text-vc-purple',         bar: 'bg-vc-purple/60' },
-  'no-answer':     { bg: 'bg-gray-100', text: 'text-vc-gray',       bar: 'bg-vc-gray/50' },
+  'no-answer':     { bg: 'bg-white/10', text: 'text-white/50',       bar: 'bg-white/30' },
 }
 
 const OUTCOME_LABELS: Record<string, string> = {
@@ -148,7 +148,7 @@ const REFRESH_INTERVAL = 30_000
 
 function SkeletonBar({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={clsx('animate-pulse rounded bg-gray-200', className)} style={style} />
+    <div className={clsx('animate-pulse rounded bg-white/10', className)} style={style} />
   )
 }
 
@@ -156,7 +156,7 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Goal progress skeleton */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+      <div className="glass-card p-6">
         <SkeletonBar className="h-4 w-32 mb-5" />
         <div className="space-y-5">
           {[1, 2, 3].map(i => (
@@ -174,7 +174,7 @@ function LoadingSkeleton() {
       {/* Metrics skeleton */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <div key={i} className="glass-card p-5">
             <SkeletonBar className="h-3 w-16 mb-3" />
             <SkeletonBar className="h-8 w-20" />
           </div>
@@ -182,7 +182,7 @@ function LoadingSkeleton() {
       </div>
 
       {/* Chart skeleton */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+      <div className="glass-card p-6">
         <SkeletonBar className="h-4 w-36 mb-4" />
         <div className="flex items-end gap-2 h-40">
           {Array.from({ length: 14 }).map((_, i) => (
@@ -194,7 +194,7 @@ function LoadingSkeleton() {
       </div>
 
       {/* Table skeleton */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+      <div className="glass-card p-6">
         <SkeletonBar className="h-4 w-40 mb-4" />
         <div className="space-y-3">
           {[1, 2, 3, 4].map(i => (
@@ -236,8 +236,8 @@ function GoalProgress({ goals }: { goals: DashboardStats['goals'] }) {
   ]
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-5">
+    <div className="glass-card p-6">
+      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-white/40 mb-5">
         Goal Progress
       </h2>
       <div className="space-y-5">
@@ -246,10 +246,10 @@ function GoalProgress({ goals }: { goals: DashboardStats['goals'] }) {
           return (
             <div key={row.label}>
               <div className="flex items-baseline justify-between mb-1.5">
-                <span className="text-sm font-medium text-vc-slate">{row.label}</span>
-                <span className="text-xs font-display tabular-nums text-vc-gray">
+                <span className="text-sm font-medium text-white">{row.label}</span>
+                <span className="text-xs font-display tabular-nums text-white/50">
                   {fmtNum(row.current)}/{fmtNum(row.goal)}{' '}
-                  <span className="font-bold text-vc-purple">({percent}%)</span>
+                  <span className="font-bold text-vc-purple-light">({percent}%)</span>
                 </span>
               </div>
               <div className={clsx('h-3 rounded-full overflow-hidden', row.trackColor)}>
@@ -304,12 +304,12 @@ function MetricsRow({ stats }: { stats: DashboardStats }) {
         <div
           key={card.label}
           className={clsx(
-            'rounded-xl p-5 border shadow-sm transition-all duration-300',
+            'rounded-card p-5 border transition-all duration-300',
             card.bg,
             card.border,
           )}
         >
-          <p className="text-[10px] font-bold uppercase tracking-wider text-vc-gray mb-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
             {card.label}
           </p>
           <p className={clsx('font-display font-bold text-3xl', card.color)}>
@@ -337,23 +337,23 @@ function ActivityChart({ dailyActivity }: { dailyActivity: DashboardStats['daily
   }, [last14])
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <div className="glass-card p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray">
+        <h2 className="font-display font-bold text-sm uppercase tracking-wider text-white/40">
           Daily Activity (14 days)
         </h2>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-sm bg-vc-purple" />
-            <span className="text-[10px] text-vc-gray">Added</span>
+            <span className="text-[10px] text-white/50">Added</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-sm bg-vc-gold" />
-            <span className="text-[10px] text-vc-gray">Reached</span>
+            <span className="text-[10px] text-white/50">Reached</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-sm bg-vc-teal" />
-            <span className="text-[10px] text-vc-gray">Supporters</span>
+            <span className="text-[10px] text-white/50">Supporters</span>
           </div>
         </div>
       </div>
@@ -372,7 +372,7 @@ function ActivityChart({ dailyActivity }: { dailyActivity: DashboardStats['daily
               className="flex-1 flex flex-col items-center justify-end h-full group relative"
             >
               {/* Tooltip */}
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-vc-purple text-white text-[10px] px-2 py-1 rounded-md font-mono whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-vc-purple text-white text-[10px] px-2 py-1 rounded-md font-display tabular-nums whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                 {total} total
               </div>
 
@@ -400,7 +400,7 @@ function ActivityChart({ dailyActivity }: { dailyActivity: DashboardStats['daily
                   />
                 )}
                 {total === 0 && (
-                  <div className="w-full bg-gray-100 rounded-t-sm" style={{ height: '2px' }} />
+                  <div className="w-full bg-white/10 rounded-t-sm" style={{ height: '2px' }} />
                 )}
               </div>
             </div>
@@ -412,7 +412,7 @@ function ActivityChart({ dailyActivity }: { dailyActivity: DashboardStats['daily
       <div className="flex gap-1.5 sm:gap-2 mt-2">
         {last14.map(day => (
           <div key={day.date} className="flex-1 text-center">
-            <span className="text-[9px] sm:text-[10px] text-vc-gray font-medium">
+            <span className="text-[9px] sm:text-[10px] text-white/50 font-medium">
               {shortDay(day.date)}
             </span>
           </div>
@@ -432,70 +432,70 @@ function VolunteerTable({ volunteers }: { volunteers: DashboardStats['volunteerP
     if (rate >= 50) return 'text-vc-teal font-bold'
     if (rate >= 25) return 'text-vc-gold font-bold'
     if (rate > 0) return 'text-vc-coral'
-    return 'text-vc-gray'
+    return 'text-white/50'
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="glass-card overflow-hidden">
       <div className="p-6 pb-0">
-        <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-4">
+        <h2 className="font-display font-bold text-sm uppercase tracking-wider text-white/40 mb-4">
           Volunteer Progress
         </h2>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-gray-100">
-              <th className="text-left px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
+            <tr className="border-b border-white/10">
+              <th className="text-left px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-white/40">
                 Name
               </th>
-              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
+              <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-white/40">
                 Contacts
               </th>
-              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
+              <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-white/40">
                 Contacted
               </th>
-              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
+              <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-white/40">
                 Supporters
               </th>
-              <th className="text-left px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray min-w-[120px]">
+              <th className="text-left px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-white/40 min-w-[120px]">
                 Contact Rate
               </th>
-              <th className="text-right px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
+              <th className="text-right px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-white/40">
                 Conv. Rate
               </th>
-              <th className="text-right px-6 py-3 text-[10px] font-bold uppercase tracking-wider text-vc-gray">
+              <th className="text-right px-6 py-3 text-[11px] font-bold uppercase tracking-wider text-white/40">
                 Last Active
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-white/5">
             {sorted.map(v => {
               const contactPct = v.contactRate
               const convPct = v.conversionRate
               return (
-                <tr key={v.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-3 font-medium text-vc-purple whitespace-nowrap">
+                <tr key={v.id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-3 font-medium text-vc-purple-light whitespace-nowrap">
                     {v.name}
                   </td>
-                  <td className="px-3 py-3 text-right font-display text-vc-slate tabular-nums">
+                  <td className="px-3 py-3 text-right font-display text-white tabular-nums">
                     {v.contacts}
                   </td>
-                  <td className="px-3 py-3 text-right font-display text-vc-slate tabular-nums">
+                  <td className="px-3 py-3 text-right font-display text-white tabular-nums">
                     {v.contacted}
                   </td>
-                  <td className="px-3 py-3 text-right font-display text-vc-purple font-bold tabular-nums">
+                  <td className="px-3 py-3 text-right font-display text-vc-purple-light font-bold tabular-nums">
                     {v.supporters}
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-vc-purple/70 transition-all duration-500"
                           style={{ width: `${contactPct}%` }}
                         />
                       </div>
-                      <span className="text-[10px] font-display text-vc-gray w-8 text-right tabular-nums">
+                      <span className="text-[10px] font-display text-white/50 w-8 text-right tabular-nums">
                         {contactPct}%
                       </span>
                     </div>
@@ -503,7 +503,7 @@ function VolunteerTable({ volunteers }: { volunteers: DashboardStats['volunteerP
                   <td className={clsx('px-3 py-3 text-right font-display tabular-nums', conversionColor(v.conversionRate))}>
                     {convPct}%
                   </td>
-                  <td className="px-6 py-3 text-right text-[11px] text-vc-gray whitespace-nowrap">
+                  <td className="px-6 py-3 text-right text-[11px] text-white/50 whitespace-nowrap">
                     {v.lastActive ? timeAgo(v.lastActive) : 'Never'}
                   </td>
                 </tr>
@@ -512,7 +512,7 @@ function VolunteerTable({ volunteers }: { volunteers: DashboardStats['volunteerP
           </tbody>
         </table>
         {sorted.length === 0 && (
-          <div className="text-center py-8 text-vc-gray text-sm">
+          <div className="text-center py-8 text-white/50 text-sm">
             No volunteer data yet
           </div>
         )}
@@ -533,18 +533,18 @@ function OutreachMethods({ methods }: { methods: Record<string, number> }) {
   if (entries.length === 0) return null
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-4">
+    <div className="glass-card p-6">
+      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-white/40 mb-4">
         Outreach Methods
       </h2>
       <div className="space-y-3">
         {entries.map(entry => (
           <div key={entry.key}>
             <div className="flex items-baseline justify-between mb-1">
-              <span className="text-sm font-medium text-vc-slate">{entry.label}</span>
-              <span className="text-xs font-display text-vc-gray tabular-nums">{fmtNum(entry.value)}</span>
+              <span className="text-sm font-medium text-white">{entry.label}</span>
+              <span className="text-xs font-display text-white/50 tabular-nums">{fmtNum(entry.value)}</span>
             </div>
-            <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+            <div className="h-2.5 rounded-full bg-white/10 overflow-hidden">
               <div
                 className="h-full rounded-full bg-vc-purple transition-all duration-500"
                 style={{ width: `${pct(entry.value, maxVal)}%` }}
@@ -575,13 +575,13 @@ function OutcomeDistribution({ distribution }: { distribution: Record<string, nu
   if (total === 0) return null
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-4">
+    <div className="glass-card p-6">
+      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-white/40 mb-4">
         Outcome Distribution
       </h2>
 
       {/* Stacked horizontal bar */}
-      <div className="h-6 rounded-full overflow-hidden flex bg-gray-100 mb-4">
+      <div className="h-6 rounded-full overflow-hidden flex bg-white/10 mb-4">
         {entries.map(entry => {
           const widthPct = (entry.value / total) * 100
           if (widthPct === 0) return null
@@ -601,13 +601,13 @@ function OutcomeDistribution({ distribution }: { distribution: Record<string, nu
         {entries.map(entry => (
           <div key={entry.key} className="flex items-center gap-2">
             <div className={clsx('w-2.5 h-2.5 rounded-full', entry.colors.bar)} />
-            <span className="text-xs text-vc-gray">
+            <span className="text-xs text-white/50">
               {entry.label}
             </span>
-            <span className="text-xs font-display font-bold text-vc-slate tabular-nums">
+            <span className="text-xs font-display font-bold text-white tabular-nums">
               {entry.value}
             </span>
-            <span className="text-[10px] text-vc-gray">
+            <span className="text-[10px] text-white/40">
               ({pct(entry.value, total)}%)
             </span>
           </div>
@@ -623,13 +623,13 @@ function RecentActivityFeed({ activities }: { activities: DashboardStats['recent
   if (last10.length === 0) return null
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-vc-gray mb-4">
+    <div className="glass-card p-6">
+      <h2 className="font-display font-bold text-sm uppercase tracking-wider text-white/40 mb-4">
         Recent Activity
       </h2>
       <div className="relative">
         {/* Timeline line */}
-        <div className="absolute left-[15px] top-2 bottom-2 w-px bg-gray-100" />
+        <div className="absolute left-[15px] top-2 bottom-2 w-px bg-white/10" />
 
         <div className="space-y-0.5">
           {last10.map((activity, idx) => {
@@ -639,16 +639,16 @@ function RecentActivityFeed({ activities }: { activities: DashboardStats['recent
                 key={activity.id}
                 className="flex items-start gap-3 py-2 pl-0 relative"
               >
-                <div className={clsx('w-[30px] h-[30px] rounded-full bg-gray-50 flex items-center justify-center flex-shrink-0 z-10 border border-gray-100', iconColor)}>
+                <div className={clsx('w-[30px] h-[30px] rounded-full bg-white/5 flex items-center justify-center flex-shrink-0 z-10 border border-white/10', iconColor)}>
                   <ActionIcon className="w-3.5 h-3.5" />
                 </div>
                 <div className="flex-1 min-w-0 pt-0.5">
                   <p className="text-sm leading-snug">
-                    <span className="font-medium text-vc-purple">{activity.userName}</span>{' '}
-                    <span className="text-vc-gray">{formatAction(activity.action, activity.details)}</span>
+                    <span className="font-medium text-vc-purple-light">{activity.userName}</span>{' '}
+                    <span className="text-white/50">{formatAction(activity.action, activity.details)}</span>
                   </p>
                 </div>
-                <span className="text-[10px] text-vc-gray/60 font-mono whitespace-nowrap flex-shrink-0 pt-1">
+                <span className="text-[10px] text-white/30 font-display tabular-nums whitespace-nowrap flex-shrink-0 pt-1">
                   {timeAgo(activity.createdAt)}
                 </span>
               </div>
@@ -721,10 +721,10 @@ export default function AdminSummary() {
         <p className="font-display font-bold text-vc-coral text-lg mb-1">
           Failed to load dashboard
         </p>
-        <p className="text-sm text-vc-gray mb-4">{error}</p>
+        <p className="text-sm text-white/50 mb-4">{error}</p>
         <button
           onClick={() => fetchStats(true)}
-          className="bg-vc-coral text-white font-bold text-sm px-5 py-2 rounded-lg hover:bg-vc-coral-light transition-colors"
+          className="bg-vc-coral text-white font-bold text-sm px-5 py-2 rounded-btn hover:bg-vc-coral-light transition-colors"
         >
           Retry
         </button>
@@ -738,7 +738,7 @@ export default function AdminSummary() {
     <div className="space-y-6 animate-fade-in">
       {/* Header with last-updated indicator */}
       <div className="flex items-center justify-between">
-        <h1 className="font-display font-bold text-xl text-vc-purple">
+        <h1 className="font-display font-bold text-xl text-white">
           Dashboard
         </h1>
         <div className="flex items-center gap-2">
@@ -747,7 +747,7 @@ export default function AdminSummary() {
               Update failed
             </span>
           )}
-          <span className="text-[11px] text-vc-gray font-mono">
+          <span className="text-[11px] text-white/50 font-display tabular-nums">
             Updated {secondsAgo < 5 ? 'just now' : `${secondsAgo}s ago`}
           </span>
           <div

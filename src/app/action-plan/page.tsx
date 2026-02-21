@@ -22,7 +22,7 @@ export default function ActionPlanPage() {
 
   if (state.actionPlanState.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-vc-bg">
+      <div className="min-h-screen flex flex-col items-center justify-center cosmic-bg constellation">
         <p className="text-white/50">No action plan yet. <Link href="/questionnaire" className="text-vc-purple-light font-bold hover:underline">Build your list first</Link>.</p>
       </div>
     )
@@ -43,7 +43,7 @@ export default function ActionPlanPage() {
   const unmatchedItems = state.actionPlanState.filter(i => i.matchResult.status === 'unmatched')
 
   return (
-    <div className="min-h-screen bg-vc-bg text-white">
+    <div className="min-h-screen cosmic-bg constellation text-white">
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-8">
         <div className="max-w-2xl mx-auto">
           <Link href="/results" className="text-white/40 text-sm hover:text-white transition-colors mb-4 block">
@@ -85,7 +85,7 @@ export default function ActionPlanPage() {
           </span>
           <Link
             href="/rolodex"
-            className="px-4 py-2 rounded-btn text-sm font-bold bg-gray-100 text-vc-gray hover:bg-gray-200 transition-colors"
+            className="px-4 py-2 rounded-btn text-sm font-bold bg-white/10 text-white/70 hover:bg-white/20 transition-colors"
           >
             Rolodex View
           </Link>
@@ -203,7 +203,7 @@ export default function ActionPlanPage() {
         </button>
         <button
           onClick={() => window.print()}
-          className="bg-white border-2 border-vc-purple text-vc-purple px-8 py-3 rounded-btn font-bold hover:bg-vc-purple hover:text-white transition-all flex items-center gap-2"
+          className="bg-white/10 border-2 border-vc-purple text-white px-8 py-3 rounded-btn font-bold hover:bg-vc-purple hover:text-white transition-all flex items-center gap-2"
         >
           <Printer className="w-4 h-4" />
           Print This Plan
