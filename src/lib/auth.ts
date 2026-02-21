@@ -40,12 +40,12 @@ export function getSessionFromRequest(): SessionPayload | null {
 
 export function setSessionCookie(token: string): HeadersInit {
   return {
-    'Set-Cookie': `vc-session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
+    'Set-Cookie': `vc-session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`,
   }
 }
 
 export function clearSessionCookie(): HeadersInit {
   return {
-    'Set-Cookie': `vc-session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
+    'Set-Cookie': `vc-session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
   }
 }

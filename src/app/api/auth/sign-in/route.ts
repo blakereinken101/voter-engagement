@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    response.headers.set('Set-Cookie', `vc-session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`)
+    response.headers.set('Set-Cookie', `vc-session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`)
 
     return response
   } catch (error) {
