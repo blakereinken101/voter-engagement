@@ -6,9 +6,9 @@ import { BrandConfig } from '@/types'
  * For color changes, also update tailwind.config.js vc-* values.
  */
 const brandConfig: BrandConfig = {
-  appName: 'VoteCircle',
+  appName: 'Threshold',
   tagline: 'Your Network Is Your Most Powerful Vote',
-  organizationName: 'VoteCircle',
+  organizationName: 'Threshold',
   privacyText: 'Your data stays on your device. Names you enter are only used to match against public voter records. Nothing is stored on our servers.',
 }
 

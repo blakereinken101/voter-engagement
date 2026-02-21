@@ -264,7 +264,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-const STORAGE_KEY = `votecircle-${campaignConfig.id}`
+const STORAGE_KEY = `threshold-${campaignConfig.id}`
 const STORAGE_VERSION = 1
 
 interface AppContextValue {
@@ -336,10 +336,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         let stored = localStorage.getItem(STORAGE_KEY)
         if (!stored) {
-          stored = sessionStorage.getItem('votecircle-state')
+          stored = sessionStorage.getItem('threshold-state')
           if (stored) {
             localStorage.setItem(STORAGE_KEY, stored)
-            sessionStorage.removeItem('votecircle-state')
+            sessionStorage.removeItem('threshold-state')
           }
         }
         if (stored) {

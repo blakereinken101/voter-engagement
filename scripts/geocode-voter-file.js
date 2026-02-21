@@ -238,7 +238,7 @@ async function runParallel(batches, concurrency, onBatchDone) {
 // ─── Main ──────────────────────────────────────────────────────────────
 
 async function main() {
-  log('=== VoteCircle Voter File Geocoder (Parallel) ===')
+  log('=== Threshold Voter File Geocoder (Parallel) ===')
   log(`Batch size: ${BATCH_SIZE} | Concurrency: ${CONCURRENCY}`)
   log('')
 

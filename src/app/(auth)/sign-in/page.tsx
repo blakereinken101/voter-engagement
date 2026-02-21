@@ -34,7 +34,7 @@ export default function SignInPage() {
       <div className="w-full max-w-md animate-slide-up">
         <div className="text-center mb-8">
           <Link href="/" className="font-display font-extrabold text-3xl text-white tracking-tight hover:opacity-80 transition-opacity">
-            VoteCircle
+            Threshold
           </Link>
           <p className="text-white/60 text-sm mt-2">Sign in to your account</p>
         </div>

@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(csv, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename=votecircle-export-${date}.csv`,
+        'Content-Disposition': `attachment; filename=threshold-export-${date}.csv`,
       },
     })
   } catch (error: unknown) {

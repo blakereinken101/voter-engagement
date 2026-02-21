@@ -8,7 +8,7 @@ export async function geocodeAddress(address: string): Promise<GeoResult | null>
   try {
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'VoteCircle/1.0' },
+      headers: { 'User-Agent': 'Threshold/1.0' },
     })
     if (!res.ok) return null
 

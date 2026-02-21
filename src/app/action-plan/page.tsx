@@ -194,7 +194,7 @@ export default function ActionPlanPage() {
           onClick={() => {
             const csv = generateVoteBuilderCSV(state.actionPlanState, state.selectedState, state.userId)
             const date = new Date().toISOString().slice(0, 10)
-            downloadCSV(csv, `votecircle-export-${date}.csv`)
+            downloadCSV(csv, `threshold-export-${date}.csv`)
           }}
           className="bg-vc-purple text-white px-8 py-3 rounded-btn font-bold hover:bg-vc-purple-light transition-all flex items-center gap-2"
         >

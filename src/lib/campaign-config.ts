@@ -20,11 +20,11 @@ export interface CampaignConfig {
  */
 const campaignConfig: CampaignConfig = {
   id: process.env.CAMPAIGN_ID || process.env.NEXT_PUBLIC_CAMPAIGN_ID || 'demo-2026',
-  name: process.env.NEXT_PUBLIC_CAMPAIGN_NAME || 'VoteCircle Demo',
+  name: process.env.NEXT_PUBLIC_CAMPAIGN_NAME || 'Threshold Demo',
   candidateName: process.env.NEXT_PUBLIC_CANDIDATE_NAME || 'Demo Candidate',
   state: process.env.NEXT_PUBLIC_CAMPAIGN_STATE || 'NC',
   electionDate: process.env.ELECTION_DATE || '2026-11-03',
-  organizationName: process.env.NEXT_PUBLIC_ORGANIZATION_NAME || 'VoteCircle',
+  organizationName: process.env.NEXT_PUBLIC_ORGANIZATION_NAME || 'Threshold',
   privacyText: 'Your data stays on your device. Names you enter are only used to match against public voter records. Each campaign\'s data is isolated — your work here is private to this campaign.',
 }
 

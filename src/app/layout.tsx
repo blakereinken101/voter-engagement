@@ -4,7 +4,7 @@ import { AppProvider } from '@/context/AppContext'
 import { AuthProvider } from '@/context/AuthContext'
 
 export const metadata: Metadata = {
-  title: 'VoteCircle — Your Network Is Your Most Powerful Vote',
+  title: 'Threshold — Your Network Is Your Most Powerful Vote',
   description: 'Build your list. Find your people. Start conversations that move them to the polls.',
 }
 

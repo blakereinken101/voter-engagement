@@ -38,7 +38,7 @@ export default function DashboardPage() {
         {/* Top bar */}
         <div className="max-w-6xl mx-auto px-6 pt-5 pb-3 flex items-center justify-between">
           <Link href="/" className="font-display font-extrabold text-white text-3xl tracking-tight hover:opacity-80 transition-opacity">
-            VoteCircle
+            Threshold
           </Link>
           {user && (
             <div className="flex items-center gap-3">
@@ -93,7 +93,7 @@ export default function DashboardPage() {
                   campaignConfig.name
                 )
                 const date = new Date().toISOString().slice(0, 10)
-                downloadCSV(csv, `votecircle-${campaignConfig.id}-${date}.csv`)
+                downloadCSV(csv, `threshold-${campaignConfig.id}-${date}.csv`)
               }}
               className="text-sm text-white/60 hover:text-white px-5 py-2.5 rounded-btn glass hover:border-white/20 font-bold transition-colors flex items-center gap-2"
             >

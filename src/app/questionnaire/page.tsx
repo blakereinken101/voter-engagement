@@ -14,7 +14,7 @@ export default function QuestionnairePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 cosmic-bg constellation">
         <Link href="/" className="font-display font-extrabold text-vc-purple-light text-lg mb-12 hover:opacity-80 transition-opacity">
-          VoteCircle
+          Threshold
         </Link>
         <h1 className="font-display text-3xl md:text-4xl text-white font-extrabold mb-3 text-center tracking-tight">
           What state do you live in?
@@ -32,7 +32,7 @@ export default function QuestionnairePage() {
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-4 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between mb-3">
           <Link href="/" className="font-display font-extrabold text-white text-sm hover:opacity-80 transition-opacity">
-            VoteCircle
+            Threshold
           </Link>
           <span className="text-white/40 text-sm">{state.personEntries.length} people</span>
         </div>

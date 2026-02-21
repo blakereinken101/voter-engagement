@@ -103,7 +103,7 @@ async function initSchema() {
     // Seed admin user if no users exist
     const userCount = await client.query('SELECT COUNT(*) as count FROM users')
     if (parseInt(userCount.rows[0].count) === 0) {
-      const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@votecircle.local'
+      const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@thresholdvote.com'
       const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'changeme123'
       const id = crypto.randomUUID()
       const passwordHash = hashSync(adminPassword, 10)

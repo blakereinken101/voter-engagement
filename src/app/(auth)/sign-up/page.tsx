@@ -47,7 +47,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-md animate-slide-up">
         <div className="text-center mb-8">
           <Link href="/" className="font-display font-extrabold text-3xl text-white tracking-tight hover:opacity-80 transition-opacity">
-            VoteCircle
+            Threshold
           </Link>
           <p className="text-white/60 text-sm mt-2">Create your volunteer account</p>
         </div>
