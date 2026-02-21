@@ -134,7 +134,7 @@ export default function InlineAddRow() {
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-vc-coral"
         >
           {CATEGORIES.map(c => (
-            <option key={c.id} value={c.id}>{c.icon} {c.id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
+            <option key={c.id} value={c.id}>{c.id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
           ))}
         </select>
         <button

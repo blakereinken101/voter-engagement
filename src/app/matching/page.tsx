@@ -29,7 +29,7 @@ export default function MatchingPage() {
 
   if (state.error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-vc-bg">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-vc-bg text-white">
         <div className="glass-card p-8 max-w-md text-center">
           <h2 className="font-display text-xl font-bold text-vc-coral mb-3">Something went wrong</h2>
           <p className="text-vc-gray mb-6">{state.error}</p>
@@ -58,8 +58,8 @@ export default function MatchingPage() {
 
   // No results yet and not loading — redirect to questionnaire
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-vc-bg">
-      <p className="text-vc-gray">No people to match. <Link href="/questionnaire" className="text-vc-purple font-bold hover:underline">Go build your list</Link>.</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-vc-bg text-white">
+      <p className="text-white/50">No people to match. <Link href="/questionnaire" className="text-vc-purple-light font-bold hover:underline">Go build your list</Link>.</p>
     </div>
   )
 }

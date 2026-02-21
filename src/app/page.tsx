@@ -44,7 +44,7 @@ export default function LandingPage() {
   const privacyInView = useInView(privacyRef)
 
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="min-h-screen flex flex-col bg-vc-bg">
       {/* Resume banner */}
       {hasExistingData && (
         <div className="bg-gradient-to-r from-vc-purple to-vc-purple-light text-white px-6 py-4 text-center">
@@ -96,7 +96,7 @@ export default function LandingPage() {
         ref={howRef}
         className={`px-6 py-24 max-w-4xl mx-auto opacity-0 ${howInView ? 'animate-slide-up' : ''}`}
       >
-        <h2 className="font-display text-3xl md:text-4xl font-extrabold text-vc-slate mb-16 text-center tracking-tight">
+        <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-16 text-center tracking-tight">
           Three steps. Real impact.
         </h2>
         <div className="grid md:grid-cols-3 gap-8">
@@ -163,13 +163,13 @@ export default function LandingPage() {
       >
         <div className="max-w-md mx-auto">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Shield className="w-4 h-4 text-vc-gray" />
-            <span className="text-vc-gray text-xs font-semibold uppercase tracking-widest">Privacy</span>
+            <Shield className="w-4 h-4 text-white/40" />
+            <span className="text-white/40 text-xs font-semibold uppercase tracking-widest">Privacy</span>
           </div>
-          <p className="text-vc-gray text-sm leading-relaxed">
+          <p className="text-white/50 text-sm leading-relaxed">
             {campaignConfig.privacyText}
           </p>
-          <p className="text-vc-gray/40 text-xs mt-6">
+          <p className="text-white/20 text-xs mt-6">
             {campaignConfig.name} | {campaignConfig.state}
           </p>
         </div>

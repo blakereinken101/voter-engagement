@@ -14,7 +14,9 @@ module.exports = {
           gold: '#F59E0B',
           slate: '#1E293B',
           gray: '#64748B',
-          bg: '#FAFAF9',
+          bg: '#0F0A1A',
+          'bg-light': '#FAFAF9',
+          surface: '#1A1128',
         },
         // Legacy aliases (for incremental migration)
         rally: {

@@ -84,7 +84,7 @@ export default function ContactCard({
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 ml-4">
-            <span className="text-[10px] bg-vc-purple/5 text-vc-gray px-2 py-0.5 rounded-full">
+            <span className="text-[10px] bg-vc-purple/5 text-vc-gray px-2 py-0.5 rounded-full capitalize">
               {catConfig?.id.replace(/-/g, ' ')}
             </span>
             {bestMatch?.city && (

@@ -23,7 +23,7 @@ export default function ActionPlanPage() {
   if (state.actionPlanState.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-vc-bg">
-        <p className="text-vc-gray">No action plan yet. <Link href="/questionnaire" className="text-vc-purple font-bold hover:underline">Build your list first</Link>.</p>
+        <p className="text-white/50">No action plan yet. <Link href="/questionnaire" className="text-vc-purple-light font-bold hover:underline">Build your list first</Link>.</p>
       </div>
     )
   }
@@ -43,7 +43,7 @@ export default function ActionPlanPage() {
   const unmatchedItems = state.actionPlanState.filter(i => i.matchResult.status === 'unmatched')
 
   return (
-    <div className="min-h-screen bg-vc-bg">
+    <div className="min-h-screen bg-vc-bg text-white">
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-8">
         <div className="max-w-2xl mx-auto">
           <Link href="/results" className="text-white/40 text-sm hover:text-white transition-colors mb-4 block">
@@ -106,9 +106,9 @@ export default function ActionPlanPage() {
                 <span className={clsx('text-xs font-bold uppercase tracking-wider', config.color)}>
                   {config.priority}
                 </span>
-                <h2 className="font-display text-xl font-bold text-vc-slate">{config.label}</h2>
+                <h2 className="font-display text-xl font-bold text-white">{config.label}</h2>
               </div>
-              <p className="text-vc-gray text-sm mb-4">
+              <p className="text-white/50 text-sm mb-4">
                 {remaining} remaining
               </p>
 
@@ -156,12 +156,12 @@ export default function ActionPlanPage() {
         {unmatchedItems.length > 0 && (
           <section>
             <div className="flex items-baseline gap-3 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-vc-gray">
+              <span className="text-xs font-bold uppercase tracking-wider text-white/40">
                 Also reach out
               </span>
-              <h2 className="font-display text-xl font-bold text-vc-slate">Not in Voter File</h2>
+              <h2 className="font-display text-xl font-bold text-white">Not in Voter File</h2>
             </div>
-            <p className="text-vc-gray text-sm mb-4">
+            <p className="text-white/50 text-sm mb-4">
               {unmatchedItems.filter(i => !i.contacted).length} remaining — still worth the conversation
             </p>
 

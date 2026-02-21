@@ -43,7 +43,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-vc-bg flex flex-col">
+    <div className="min-h-screen bg-vc-bg flex flex-col text-white">
       {/* Header */}
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light py-8">
         <div className="max-w-md mx-auto px-4 text-center">
@@ -138,9 +138,9 @@ export default function SignUpPage() {
             </button>
           </form>
 
-          <p className="text-center mt-8 text-sm text-vc-gray">
+          <p className="text-center mt-8 text-sm text-white/50">
             Already have an account?{' '}
-            <Link href="/sign-in" className="text-vc-purple font-bold hover:underline">
+            <Link href="/sign-in" className="text-vc-purple-light font-bold hover:underline">
               Sign in
             </Link>
           </p>
