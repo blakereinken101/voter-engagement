@@ -7,7 +7,7 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++ gcc
 
 # Copy package files and install
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json* .npmrc* ./
 RUN npm ci
 
 # Copy source code (data/ is excluded via .dockerignore)
