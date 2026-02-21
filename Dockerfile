@@ -25,8 +25,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install curl for voter data download + create non-root user
-RUN apk add --no-cache curl && \
+# Install curl + su-exec for voter data download + create non-root user
+RUN apk add --no-cache curl su-exec && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
@@ -45,11 +45,11 @@ RUN chmod +x /app/ensure-voter-data.sh
 # Set ownership
 RUN chown -R nextjs:nodejs /app
 
-USER nextjs
-
 EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
+# Run as root so we can write to the mounted volume on first boot,
+# then the startup script launches node as-is
 CMD ["/app/ensure-voter-data.sh"]
