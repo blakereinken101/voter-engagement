@@ -13,23 +13,14 @@ if [ -f "$VOTER_FILE" ]; then
   echo "[voter-data] Found voter file ($FILE_SIZE bytes)"
 else
   echo "[voter-data] Voter file not found. Downloading from GitHub release..."
-  echo "[voter-data] URL: $DOWNLOAD_URL"
 
-  # Use wget with redirect following (-L equivalent via --max-redirect)
-  wget --max-redirect=5 -q -O "$VOTER_FILE.gz" "$DOWNLOAD_URL" 2>&1
-  WGET_EXIT=$?
+  curl -L -s -o "$VOTER_FILE.gz" "$DOWNLOAD_URL"
+  DL_EXIT=$?
 
-  if [ $WGET_EXIT -ne 0 ]; then
-    echo "[voter-data] ERROR: Download failed (exit code: $WGET_EXIT)"
-    echo "[voter-data] Trying with curl as fallback..."
-    if command -v curl > /dev/null 2>&1; then
-      curl -L -s -o "$VOTER_FILE.gz" "$DOWNLOAD_URL"
-      WGET_EXIT=$?
-    fi
-    if [ $WGET_EXIT -ne 0 ]; then
-      echo "[voter-data] ERROR: All download methods failed. Starting without voter data."
-      exec node server.js
-    fi
+  if [ $DL_EXIT -ne 0 ]; then
+    echo "[voter-data] ERROR: Download failed (exit code: $DL_EXIT)"
+    echo "[voter-data] Starting without voter data (will use mock data)."
+    exec node server.js
   fi
 
   DOWNLOAD_SIZE=$(wc -c < "$VOTER_FILE.gz" | tr -d ' ')
@@ -41,7 +32,7 @@ else
   if [ $GUNZIP_EXIT -ne 0 ]; then
     echo "[voter-data] ERROR: Decompression failed (exit code: $GUNZIP_EXIT)"
     rm -f "$VOTER_FILE.gz"
-    echo "[voter-data] Starting without voter data."
+    echo "[voter-data] Starting without voter data (will use mock data)."
     exec node server.js
   fi
 
