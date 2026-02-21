@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+*.md
+.DS_Store
+.env*.local
+.env
+
+# Large data files — these go on Railway persistent volume, not in the image
+data/
+scripts/
+
+# Dev files
+*.log

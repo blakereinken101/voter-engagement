@@ -1,0 +1,186 @@
+'use client'
+import { useState, useRef } from 'react'
+import { useAppContext } from '@/context/AppContext'
+import { RelationshipCategory, AgeRange, Gender } from '@/types'
+import { CATEGORIES } from '@/lib/wizard-config'
+import clsx from 'clsx'
+
+// Input sanitization — strip anything that isn't a normal character
+function sanitizeText(input: string): string {
+  return input.replace(/<[^>]*>/g, '').replace(/[^\w\s\-'.(),#]/g, '').trim()
+}
+
+function sanitizeNumeric(input: string): string {
+  return input.replace(/[^0-9]/g, '')
+}
+
+function ageToRange(ageNum: number): AgeRange | undefined {
+  if (ageNum < 25) return 'under-25'
+  if (ageNum < 35) return '25-34'
+  if (ageNum < 45) return '35-44'
+  if (ageNum < 55) return '45-54'
+  if (ageNum < 65) return '55-64'
+  return '65+'
+}
+
+export default function InlineAddRow() {
+  const { addPerson } = useAppContext()
+  const firstNameRef = useRef<HTMLInputElement>(null)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [city, setCity] = useState('')
+  const [age, setAge] = useState('')
+  const [category, setCategory] = useState<RelationshipCategory>('who-did-we-miss')
+  const [showMore, setShowMore] = useState(false)
+  const [address, setAddress] = useState('')
+  const [zip, setZip] = useState('')
+  const [gender, setGender] = useState<Gender>('')
+  const [errors, setErrors] = useState<{ firstName?: boolean; lastName?: boolean; city?: boolean; age?: boolean }>({})
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const newErrors: typeof errors = {}
+    if (!firstName.trim()) newErrors.firstName = true
+    if (!lastName.trim()) newErrors.lastName = true
+    if (!city.trim()) newErrors.city = true
+    if (!age.trim()) newErrors.age = true
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    const ageNum = parseInt(sanitizeNumeric(age))
+    if (isNaN(ageNum) || ageNum < 18 || ageNum > 120) {
+      setErrors({ age: true })
+      return
+    }
+
+    addPerson({
+      firstName: sanitizeText(firstName),
+      lastName: sanitizeText(lastName),
+      city: sanitizeText(city),
+      age: ageNum,
+      ageRange: ageToRange(ageNum),
+      address: address.trim() ? sanitizeText(address) : undefined,
+      zip: zip.trim() ? sanitizeNumeric(zip).slice(0, 5) : undefined,
+      gender: (gender || undefined) as Gender | undefined,
+      category,
+    })
+
+    setFirstName('')
+    setLastName('')
+    setCity('')
+    setAge('')
+    setAddress('')
+    setZip('')
+    setGender('')
+    setErrors({})
+    firstNameRef.current?.focus()
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-rally-navy/5 border-2 border-dashed border-rally-navy/20 rounded-lg p-3">
+      <div className="flex gap-2 items-center flex-wrap">
+        <input
+          ref={firstNameRef}
+          type="text"
+          placeholder="First name *"
+          value={firstName}
+          onChange={e => { setFirstName(e.target.value); setErrors(prev => ({ ...prev, firstName: false })) }}
+          className={clsx(
+            'px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rally-red w-32',
+            errors.firstName ? 'border-rally-red' : 'border-gray-200'
+          )}
+          autoFocus
+          maxLength={50}
+        />
+        <input
+          type="text"
+          placeholder="Last name *"
+          value={lastName}
+          onChange={e => { setLastName(e.target.value); setErrors(prev => ({ ...prev, lastName: false })) }}
+          className={clsx(
+            'px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rally-red w-32',
+            errors.lastName ? 'border-rally-red' : 'border-gray-200'
+          )}
+          maxLength={50}
+        />
+        <input
+          type="text"
+          placeholder="City *"
+          value={city}
+          onChange={e => { setCity(e.target.value); setErrors(prev => ({ ...prev, city: false })) }}
+          className={clsx(
+            'px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rally-red w-28',
+            errors.city ? 'border-rally-red' : 'border-gray-200'
+          )}
+          maxLength={50}
+        />
+        <input
+          type="number"
+          placeholder="Age *"
+          value={age}
+          onChange={e => { setAge(e.target.value); setErrors(prev => ({ ...prev, age: false })) }}
+          className={clsx(
+            'px-3 py-2 border rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rally-red w-24',
+            errors.age ? 'border-rally-red' : 'border-gray-200'
+          )}
+          min={18}
+          max={120}
+        />
+        <select
+          value={category}
+          onChange={e => setCategory(e.target.value as RelationshipCategory)}
+          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-rally-red"
+        >
+          {CATEGORIES.map(c => (
+            <option key={c.id} value={c.id}>{c.icon} {c.id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="bg-rally-navy text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-rally-navy-light transition-colors"
+        >
+          + Add
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowMore(!showMore)}
+          className="text-xs text-rally-slate-light hover:text-rally-navy transition-colors py-2"
+        >
+          {showMore ? '- less' : '+ more'}
+        </button>
+      </div>
+
+      {showMore && (
+        <div className="flex gap-2 items-center flex-wrap mt-2 animate-fade-in">
+          <input
+            type="text"
+            placeholder="Address"
+            value={address}
+            onChange={e => setAddress(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rally-red w-48"
+            maxLength={100}
+          />
+          <input
+            type="text"
+            placeholder="Zip"
+            value={zip}
+            onChange={e => setZip(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rally-red w-20"
+            maxLength={5}
+          />
+          <select
+            value={gender}
+            onChange={e => setGender(e.target.value as Gender)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-rally-red"
+          >
+            <option value="">Gender</option>
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+          </select>
+        </div>
+      )}
+    </form>
+  )
+}
