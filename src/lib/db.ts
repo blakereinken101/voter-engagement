@@ -100,11 +100,11 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_activity_log_created_at ON activity_log(created_at);
     `)
 
-    // Seed admin user if no users exist
-    const userCount = await client.query('SELECT COUNT(*) as count FROM users')
-    if (parseInt(userCount.rows[0].count) === 0) {
-      const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@thresholdvote.com'
-      const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'changeme123'
+    // Ensure admin user exists (upsert)
+    const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@thresholdvote.com'
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'changeme123'
+    const { rows: existingAdmin } = await client.query('SELECT id FROM users WHERE email = $1', [adminEmail])
+    if (existingAdmin.length === 0) {
       const id = crypto.randomUUID()
       const passwordHash = hashSync(adminPassword, 10)
 
