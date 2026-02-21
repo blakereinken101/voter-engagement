@@ -11,17 +11,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    const db = getDb()
+    const db = await getDb()
 
-    const user = db.prepare('SELECT id, email, password_hash, name, role, campaign_id FROM users WHERE email = ?')
-      .get(email.toLowerCase()) as { id: string; email: string; password_hash: string; name: string; role: string; campaign_id: string } | undefined
+    const { rows } = await db.query(
+      'SELECT id, email, password_hash, name, role, campaign_id FROM users WHERE email = $1',
+      [email.toLowerCase()]
+    )
+    const user = rows[0] as { id: string; email: string; password_hash: string; name: string; role: string; campaign_id: string } | undefined
 
     if (!user || !verifyPassword(password, user.password_hash)) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
     // Log activity
-    logActivity(db, user.id, 'sign_in')
+    await logActivity(user.id, 'sign_in')
 
     // Create session
     const token = createSessionToken({

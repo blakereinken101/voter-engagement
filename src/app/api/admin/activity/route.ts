@@ -5,7 +5,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 export async function GET(request: NextRequest) {
   try {
     requireAdmin()
-    const db = getDb()
+    const db = await getDb()
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50')
     const userId = searchParams.get('userId')
@@ -16,16 +16,17 @@ export async function GET(request: NextRequest) {
       JOIN users u ON u.id = al.user_id
     `
     const params: unknown[] = []
+    let paramIdx = 1
 
     if (userId) {
-      query += ' WHERE al.user_id = ?'
+      query += ` WHERE al.user_id = $${paramIdx++}`
       params.push(userId)
     }
 
-    query += ' ORDER BY al.created_at DESC LIMIT ?'
+    query += ` ORDER BY al.created_at DESC LIMIT $${paramIdx}`
     params.push(limit)
 
-    const activities = db.prepare(query).all(...params)
+    const { rows: activities } = await db.query(query, params)
 
     return NextResponse.json({ activities })
   } catch (error: unknown) {

@@ -7,9 +7,9 @@ export async function GET() {
     const session = getSessionFromRequest()
     if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const db = getDb()
+    const db = await getDb()
 
-    const contacts = db.prepare(`
+    const { rows: contacts } = await db.query(`
       SELECT c.*,
              mr.id as mr_id, mr.status as mr_status, mr.best_match_data, mr.candidates_data,
              mr.vote_score, mr.segment, mr.user_confirmed,
@@ -19,9 +19,9 @@ export async function GET() {
       FROM contacts c
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
-      WHERE c.user_id = ?
+      WHERE c.user_id = $1
       ORDER BY c.created_at ASC
-    `).all(session.userId) as Record<string, unknown>[]
+    `, [session.userId])
 
     // Transform DB rows back to the client-side state shape
     const personEntries = contacts.map((row) => ({
@@ -93,33 +93,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'firstName, lastName, and category are required' }, { status: 400 })
     }
 
-    const db = getDb()
+    const db = await getDb()
     const contactId = id || crypto.randomUUID()
 
-    const insertContact = db.prepare(`
-      INSERT INTO contacts (id, user_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+    const client = await db.connect()
+    try {
+      await client.query('BEGIN')
 
-    const insertMatchResult = db.prepare(`
-      INSERT INTO match_results (id, contact_id, status)
-      VALUES (?, ?, 'pending')
-    `)
+      await client.query(`
+        INSERT INTO contacts (id, user_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `, [contactId, session.userId, firstName, lastName, phone || null, address || null, city || null, zip || null, age || null, ageRange || null, gender || null, category])
 
-    const insertActionItem = db.prepare(`
-      INSERT INTO action_items (id, contact_id)
-      VALUES (?, ?)
-    `)
+      await client.query(`
+        INSERT INTO match_results (id, contact_id, status)
+        VALUES ($1, $2, 'pending')
+      `, [crypto.randomUUID(), contactId])
 
-    const transaction = db.transaction(() => {
-      insertContact.run(contactId, session.userId, firstName, lastName, phone || null, address || null, city || null, zip || null, age || null, ageRange || null, gender || null, category)
-      insertMatchResult.run(crypto.randomUUID(), contactId)
-      insertActionItem.run(crypto.randomUUID(), contactId)
-    })
+      await client.query(`
+        INSERT INTO action_items (id, contact_id)
+        VALUES ($1, $2)
+      `, [crypto.randomUUID(), contactId])
 
-    transaction()
+      await client.query('COMMIT')
+    } catch (e) {
+      await client.query('ROLLBACK')
+      throw e
+    } finally {
+      client.release()
+    }
 
-    logActivity(db, session.userId, 'add_contact', { contactId, name: `${firstName} ${lastName}` })
+    await logActivity(session.userId, 'add_contact', { contactId, name: `${firstName} ${lastName}` })
 
     return NextResponse.json({ id: contactId, success: true })
   } catch (error) {
@@ -137,16 +141,16 @@ export async function DELETE(request: NextRequest) {
     const contactId = searchParams.get('contactId')
     if (!contactId) return NextResponse.json({ error: 'contactId is required' }, { status: 400 })
 
-    const db = getDb()
+    const db = await getDb()
 
     // Verify ownership
-    const contact = db.prepare('SELECT id FROM contacts WHERE id = ? AND user_id = ?').get(contactId, session.userId)
-    if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+    const { rows } = await db.query('SELECT id FROM contacts WHERE id = $1 AND user_id = $2', [contactId, session.userId])
+    if (!rows[0]) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
 
     // CASCADE deletes match_results and action_items
-    db.prepare('DELETE FROM contacts WHERE id = ?').run(contactId)
+    await db.query('DELETE FROM contacts WHERE id = $1', [contactId])
 
-    logActivity(db, session.userId, 'remove_contact', { contactId })
+    await logActivity(session.userId, 'remove_contact', { contactId })
 
     return NextResponse.json({ success: true })
   } catch (error) {

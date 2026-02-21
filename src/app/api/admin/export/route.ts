@@ -13,7 +13,7 @@ function escapeCSV(val: string | null | undefined): string {
 export async function GET(request: NextRequest) {
   try {
     requireAdmin()
-    const db = getDb()
+    const db = await getDb()
     const { searchParams } = new URL(request.url)
 
     const volunteer = searchParams.get('volunteer')
@@ -22,11 +22,12 @@ export async function GET(request: NextRequest) {
 
     let where = 'WHERE 1=1'
     const params: unknown[] = []
-    if (volunteer) { where += ' AND c.user_id = ?'; params.push(volunteer) }
-    if (segment) { where += ' AND mr.segment = ?'; params.push(segment) }
-    if (outcome) { where += ' AND ai.contact_outcome = ?'; params.push(outcome) }
+    let paramIdx = 1
+    if (volunteer) { where += ` AND c.user_id = $${paramIdx++}`; params.push(volunteer) }
+    if (segment) { where += ` AND mr.segment = $${paramIdx++}`; params.push(segment) }
+    if (outcome) { where += ` AND ai.contact_outcome = $${paramIdx++}`; params.push(outcome) }
 
-    const rows = db.prepare(`
+    const { rows } = await db.query(`
       SELECT c.*, u.name as volunteer_name,
              mr.status as match_status, mr.best_match_data, mr.vote_score, mr.segment,
              ai.contacted, ai.contacted_date, ai.outreach_method, ai.contact_outcome, ai.notes,
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN action_items ai ON ai.contact_id = c.id
       ${where}
       ORDER BY c.created_at DESC
-    `).all(...params) as Record<string, unknown>[]
+    `, params)
 
     const headers = ['Volunteer','First Name','Last Name','Phone','Category','City','Zip','Match Status','Party','Vote Score','Segment','Outreach Method','Outcome','Notes','Volunteer Prospect','Contact Date','Created']
     const csvLines = [headers.join(',')]

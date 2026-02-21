@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
-import { hashPassword, createSessionToken, setSessionCookie } from '@/lib/auth'
+import { hashPassword, createSessionToken } from '@/lib/auth'
 import campaignConfig from '@/lib/campaign-config'
 
 export async function POST(request: NextRequest) {
@@ -26,11 +26,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
     }
 
-    const db = getDb()
+    const db = await getDb()
 
     // Check if email already exists
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase())
-    if (existing) {
+    const { rows: existingRows } = await db.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()])
+    if (existingRows[0]) {
       return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
     }
 
@@ -38,13 +38,13 @@ export async function POST(request: NextRequest) {
     const id = crypto.randomUUID()
     const passwordHash = hashPassword(password)
 
-    db.prepare(`
+    await db.query(`
       INSERT INTO users (id, email, password_hash, name, role, campaign_id)
-      VALUES (?, ?, ?, ?, 'volunteer', ?)
-    `).run(id, email.toLowerCase(), passwordHash, name.trim(), campaignConfig.id)
+      VALUES ($1, $2, $3, $4, 'volunteer', $5)
+    `, [id, email.toLowerCase(), passwordHash, name.trim(), campaignConfig.id])
 
     // Log activity
-    logActivity(db, id, 'sign_up', { email: email.toLowerCase() })
+    await logActivity(id, 'sign_up', { email: email.toLowerCase() })
 
     // Create session
     const token = createSessionToken({ userId: id, email: email.toLowerCase(), role: 'volunteer' })

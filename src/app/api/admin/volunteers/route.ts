@@ -5,9 +5,9 @@ import { requireAdmin } from '@/lib/admin-guard'
 export async function GET() {
   try {
     requireAdmin()
-    const db = getDb()
+    const db = await getDb()
 
-    const volunteers = db.prepare(`
+    const { rows: volunteers } = await db.query(`
       SELECT
         u.id, u.email, u.name, u.created_at,
         COUNT(DISTINCT c.id) as contact_count,
@@ -20,9 +20,9 @@ export async function GET() {
       LEFT JOIN contacts c ON c.user_id = u.id
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
-      GROUP BY u.id
+      GROUP BY u.id, u.email, u.name, u.created_at
       ORDER BY u.created_at DESC
-    `).all()
+    `)
 
     return NextResponse.json({ volunteers })
   } catch (error: unknown) {

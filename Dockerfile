@@ -3,9 +3,6 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies for native modules (better-sqlite3)
-RUN apk add --no-cache python3 make g++ gcc
-
 # Copy package files and install
 COPY package.json package-lock.json* .npmrc* ./
 RUN npm ci
@@ -25,9 +22,6 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Install runtime dependencies for better-sqlite3
-RUN apk add --no-cache libc6-compat
-
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
@@ -40,8 +34,7 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Create data directory — Railway persistent volume will mount at /app/data
-# Upload voter files to the volume after first deploy
+# Create data directory for voter file volume
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
 # Set ownership

@@ -11,58 +11,58 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
     const body = await request.json()
     const { action, voterRecord, voteScore, segment, candidates } = body
 
-    const db = getDb()
+    const db = await getDb()
 
     // Verify ownership
-    const contact = db.prepare('SELECT id FROM contacts WHERE id = ? AND user_id = ?').get(contactId, session.userId)
-    if (!contact) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+    const { rows } = await db.query('SELECT id FROM contacts WHERE id = $1 AND user_id = $2', [contactId, session.userId])
+    if (!rows[0]) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
 
     if (action === 'confirm' && voterRecord) {
-      db.prepare(`
+      await db.query(`
         UPDATE match_results SET
           status = 'confirmed',
-          best_match_data = ?,
-          candidates_data = ?,
-          vote_score = ?,
-          segment = ?,
+          best_match_data = $1,
+          candidates_data = $2,
+          vote_score = $3,
+          segment = $4,
           user_confirmed = 1,
-          updated_at = datetime('now')
-        WHERE contact_id = ?
-      `).run(
+          updated_at = NOW()
+        WHERE contact_id = $5
+      `, [
         JSON.stringify(voterRecord),
         candidates ? JSON.stringify(candidates) : null,
         voteScore ?? null,
         segment ?? null,
         contactId
-      )
+      ])
 
-      logActivity(db, session.userId, 'confirm_match', { contactId })
+      await logActivity(session.userId, 'confirm_match', { contactId })
     } else if (action === 'reject') {
-      db.prepare(`
+      await db.query(`
         UPDATE match_results SET
           status = 'unmatched',
           best_match_data = NULL,
           vote_score = NULL,
           segment = NULL,
           user_confirmed = 0,
-          updated_at = datetime('now')
-        WHERE contact_id = ?
-      `).run(contactId)
+          updated_at = NOW()
+        WHERE contact_id = $1
+      `, [contactId])
 
-      logActivity(db, session.userId, 'reject_match', { contactId })
+      await logActivity(session.userId, 'reject_match', { contactId })
     } else if (action === 'set_results') {
       // Bulk set match results from the matching API
-      db.prepare(`
+      await db.query(`
         UPDATE match_results SET
-          status = ?,
-          best_match_data = ?,
-          candidates_data = ?,
-          vote_score = ?,
-          segment = ?,
-          user_confirmed = ?,
-          updated_at = datetime('now')
-        WHERE contact_id = ?
-      `).run(
+          status = $1,
+          best_match_data = $2,
+          candidates_data = $3,
+          vote_score = $4,
+          segment = $5,
+          user_confirmed = $6,
+          updated_at = NOW()
+        WHERE contact_id = $7
+      `, [
         body.status || 'pending',
         body.bestMatch ? JSON.stringify(body.bestMatch) : null,
         candidates ? JSON.stringify(candidates) : null,
@@ -70,7 +70,7 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
         segment ?? null,
         body.userConfirmed ? 1 : 0,
         contactId
-      )
+      ])
     }
 
     return NextResponse.json({ success: true })

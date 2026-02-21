@@ -9,9 +9,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const db = getDb()
-    const user = db.prepare('SELECT id, email, name, role, campaign_id, created_at FROM users WHERE id = ?')
-      .get(session.userId) as { id: string; email: string; name: string; role: string; campaign_id: string; created_at: string } | undefined
+    const db = await getDb()
+    const { rows } = await db.query(
+      'SELECT id, email, name, role, campaign_id, created_at FROM users WHERE id = $1',
+      [session.userId]
+    )
+    const user = rows[0] as { id: string; email: string; name: string; role: string; campaign_id: string; created_at: string } | undefined
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 401 })
