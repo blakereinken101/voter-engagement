@@ -58,9 +58,9 @@ export default function VolunteerList() {
                 <td className="px-4 py-3 font-medium">{vol.name}</td>
                 <td className="px-4 py-3 text-vc-gray">{vol.email}</td>
                 <td className="px-4 py-3 font-display tabular-nums">{vol.contact_count}</td>
-                <td className="px-4 py-3 font-mono text-vc-teal">{vol.matched_count}</td>
-                <td className="px-4 py-3 font-mono text-vc-gold">{vol.contacted_count}</td>
-                <td className="px-4 py-3 font-mono text-vc-teal">{vol.supporter_count}</td>
+                <td className="px-4 py-3 font-display tabular-nums text-vc-teal">{vol.matched_count}</td>
+                <td className="px-4 py-3 font-display tabular-nums text-vc-gold">{vol.contacted_count}</td>
+                <td className="px-4 py-3 font-display tabular-nums text-vc-teal">{vol.supporter_count}</td>
                 <td className="px-4 py-3 text-vc-gray text-xs">{new Date(vol.created_at).toLocaleDateString()}</td>
               </tr>
             ))}
