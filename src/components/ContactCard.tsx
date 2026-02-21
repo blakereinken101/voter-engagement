@@ -74,7 +74,7 @@ export default function ContactCard({
         <div>
           <div className="flex items-center gap-2">
             <div className={clsx('w-2 h-2 rounded-full', segmentDot)} />
-            <h3 className="font-bold text-white text-base">
+            <h3 className="font-bold text-white text-base md:text-lg">
               {person.firstName} {person.lastName}
             </h3>
             {isNew && (
@@ -84,11 +84,11 @@ export default function ContactCard({
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 ml-4">
-            <span className="text-[10px] bg-white/10 text-white/50 px-2 py-0.5 rounded-full capitalize">
+            <span className="text-[10px] bg-white/10 text-white/70 px-2 py-0.5 rounded-full capitalize">
               {catConfig?.id.replace(/-/g, ' ')}
             </span>
             {bestMatch?.city && (
-              <span className="text-xs text-white/50">{bestMatch.city}</span>
+              <span className="text-xs text-white/70">{bestMatch.city}</span>
             )}
           </div>
         </div>
@@ -110,13 +110,13 @@ export default function ContactCard({
       {/* Match status */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         {!matchResult && (
-          <span className="text-[10px] text-white/40 bg-white/10 px-2 py-0.5 rounded-full">Not matched yet</span>
+          <span className="text-[10px] text-white/60 bg-white/10 px-2 py-0.5 rounded-full">Not matched yet</span>
         )}
         {status === 'confirmed' && (
           <span className="text-[10px] font-bold text-vc-teal bg-vc-teal/10 px-2 py-0.5 rounded-full">Matched</span>
         )}
         {status === 'unmatched' && (
-          <span className="text-[10px] font-bold text-white/40 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
+          <span className="text-[10px] font-bold text-white/60 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
         )}
         {status === 'ambiguous' && (
           <div className="relative">
@@ -196,7 +196,7 @@ export default function ContactCard({
               <button
                 key={method}
                 onClick={() => onToggleContacted(person.id, method)}
-                className="flex-1 py-2 rounded-btn text-xs font-bold border border-white/15 text-white/60 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 rounded-btn text-xs font-bold border border-white/15 text-white/70 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center justify-center gap-1.5"
                 title={tip}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -231,7 +231,7 @@ export default function ContactCard({
 
       {/* Outreach method used */}
       {contacted && outreachMethod && (
-        <p className="text-[10px] text-white/40 mb-2 flex items-center gap-1">
+        <p className="text-[10px] text-white/60 mb-2 flex items-center gap-1">
           Via {(() => { const MIcon = OUTREACH_LABELS[outreachMethod].Icon; return <MIcon className="w-3 h-3" /> })()}
           {OUTREACH_LABELS[outreachMethod].label}
         </p>
@@ -240,13 +240,13 @@ export default function ContactCard({
       {/* Outcome selector */}
       {contacted && !contactOutcome && (
         <div className="mb-3">
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1.5">How did it go?</p>
+          <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-1.5">How did it go?</p>
           <div className="flex flex-wrap gap-1.5">
             {(Object.entries(OUTCOME_CONFIG) as [ContactOutcome, typeof OUTCOME_CONFIG[ContactOutcome]][]).map(([outcome, { label, Icon, tip }]) => (
               <button
                 key={outcome}
                 onClick={() => onOutcomeSelect(person.id, outcome)}
-                className="py-1.5 px-2.5 rounded-btn text-[10px] font-bold border border-white/15 text-white/60 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center gap-1"
+                className="py-1.5 px-2.5 rounded-btn text-[10px] font-bold border border-white/15 text-white/70 hover:border-vc-purple hover:bg-vc-purple hover:text-white transition-all flex items-center gap-1"
                 title={tip}
               >
                 <Icon className="w-3 h-3" />

@@ -232,7 +232,7 @@ export default function ContactSpreadsheet() {
             <option value="no-answer">No answer</option>
             <option value="opposed">Not interested</option>
           </select>
-          <span className="text-xs text-white/40 font-display tabular-nums ml-auto">
+          <span className="text-xs text-white/60 font-display tabular-nums ml-auto">
             {sorted.length} of {rows.length}
           </span>
         </div>
@@ -243,7 +243,7 @@ export default function ContactSpreadsheet() {
         <div className="hidden md:block flex-1 overflow-auto px-4 pb-20">
           <table className="w-full text-left border-separate" style={{ borderSpacing: '0 4px' }}>
             <thead className="sticky top-0 z-10">
-              <tr className="text-[11px] font-bold text-white/40 uppercase tracking-wider">
+              <tr className="text-[11px] font-bold text-white/50 uppercase tracking-wider">
                 <th className="py-2 px-3 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('name')}>
                   Name{sortIndicator('name')}
                 </th>
@@ -308,7 +308,7 @@ export default function ContactSpreadsheet() {
       {/* Empty state */}
       {rows.length === 0 && (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-white/40 text-sm font-medium">
+          <p className="text-white/60 text-sm font-medium">
             Add your first contact above to get started.
           </p>
         </div>

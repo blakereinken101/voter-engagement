@@ -111,7 +111,7 @@ export default function ContactRow({
               onClick={() => setExpanded(!expanded)}
               className="text-left"
             >
-              <span className="font-bold text-white text-base">
+              <span className="font-bold text-white text-lg">
                 {person.firstName} {person.lastName}
               </span>
             </button>
@@ -138,26 +138,26 @@ export default function ContactRow({
 
         {/* Category */}
         <td className="py-2.5 px-2">
-          <span className="text-xs bg-white/10 text-white/80 px-2 py-0.5 rounded-full whitespace-nowrap inline-flex items-center gap-1">
+          <span className="text-xs bg-white/10 text-white/90 px-2 py-0.5 rounded-full whitespace-nowrap inline-flex items-center gap-1">
             {catConfig?.icon && CATEGORY_ICONS[catConfig.icon] && (() => { const CatIcon = CATEGORY_ICONS[catConfig.icon]; return <CatIcon className="w-3 h-3" /> })()}
           </span>
         </td>
 
         {/* City */}
-        <td className="py-2.5 px-2 text-xs text-white/50">
+        <td className="py-2.5 px-2 text-xs text-white/70">
           {bestMatch?.city || person.city || '—'}
         </td>
 
         {/* Match Status */}
         <td className="py-2.5 px-2">
           {!matchResult && (
-            <span className="text-xs text-white/40">—</span>
+            <span className="text-xs text-white/50">—</span>
           )}
           {status === 'confirmed' && (
             <span className="text-[10px] font-bold text-vc-teal bg-vc-teal/10 px-2 py-0.5 rounded-full">Matched</span>
           )}
           {status === 'unmatched' && (
-            <span className="text-[10px] font-bold text-white/40 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
+            <span className="text-[10px] font-bold text-white/60 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
           )}
           {status === 'ambiguous' && (
             <div className="relative">
@@ -219,7 +219,7 @@ export default function ContactRow({
                 <button
                   key={method}
                   onClick={() => onToggleContacted(person.id, method)}
-                  className="w-7 h-7 rounded text-xs border bg-white/10 border-white/15 text-white/60 hover:bg-vc-purple hover:text-white hover:border-vc-purple transition-all flex items-center justify-center"
+                  className="w-7 h-7 rounded text-xs border bg-white/10 border-white/15 text-white/70 hover:bg-vc-purple hover:text-white hover:border-vc-purple transition-all flex items-center justify-center"
                   title={tip}
                 >
                   <Icon className="w-3 h-3" />
@@ -242,7 +242,7 @@ export default function ContactRow({
                 className={clsx(
                   'w-7 h-7 rounded text-xs border transition-all flex items-center justify-center',
                   person.phone
-                    ? 'bg-white/10 border-white/15 text-white/60 hover:bg-vc-purple hover:text-white hover:border-vc-purple cursor-pointer'
+                    ? 'bg-white/10 border-white/15 text-white/70 hover:bg-vc-purple hover:text-white hover:border-vc-purple cursor-pointer'
                     : 'border-white/10 text-white/20 cursor-not-allowed'
                 )}
                 title={person.phone ? 'Send SMS with template' : 'No phone number'}
@@ -265,7 +265,7 @@ export default function ContactRow({
                 <button
                   key={outcome}
                   onClick={() => onOutcomeSelect(person.id, outcome)}
-                  className="w-6 h-6 rounded text-xs border bg-white/10 border-white/15 text-white/60 hover:bg-vc-purple hover:text-white hover:border-vc-purple transition-all flex items-center justify-center"
+                  className="w-6 h-6 rounded text-xs border bg-white/10 border-white/15 text-white/70 hover:bg-vc-purple hover:text-white hover:border-vc-purple transition-all flex items-center justify-center"
                   title={tip}
                 >
                   <Icon className="w-3 h-3" />
@@ -327,11 +327,11 @@ export default function ContactRow({
               {/* Person details */}
               <div className="space-y-1">
                 <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider">Details</p>
-                {person.address && <p className="text-white/40">{person.address}</p>}
-                {person.city && <p className="text-white/40">{person.city}{person.zip ? `, ${person.zip}` : ''}</p>}
-                {person.age && <p className="text-white/40">Age {person.age}</p>}
-                {person.gender && <p className="text-white/40">{person.gender === 'M' ? 'Male' : 'Female'}</p>}
-                <p className="text-white/40 flex items-center gap-1">
+                {person.address && <p className="text-white/60">{person.address}</p>}
+                {person.city && <p className="text-white/60">{person.city}{person.zip ? `, ${person.zip}` : ''}</p>}
+                {person.age && <p className="text-white/60">Age {person.age}</p>}
+                {person.gender && <p className="text-white/60">{person.gender === 'M' ? 'Male' : 'Female'}</p>}
+                <p className="text-white/60 flex items-center gap-1">
                   {catConfig?.icon && CATEGORY_ICONS[catConfig.icon] && (() => { const CatIcon = CATEGORY_ICONS[catConfig.icon]; return <CatIcon className="w-3 h-3" /> })()}
                   {catConfig?.id.replace(/-/g, ' ')}
                 </p>
@@ -362,7 +362,7 @@ export default function ContactRow({
               {relationshipTip && (
                 <div className="max-w-xs">
                   <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Tip</p>
-                  <p className="text-white/40 leading-relaxed">{relationshipTip}</p>
+                  <p className="text-white/60 leading-relaxed">{relationshipTip}</p>
                 </div>
               )}
 
@@ -370,11 +370,11 @@ export default function ContactRow({
               {bestMatch && (
                 <div>
                   <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Voter Record</p>
-                  <p className="text-white/40">{bestMatch.first_name} {bestMatch.last_name}</p>
-                  <p className="text-white/40">{bestMatch.residential_address}</p>
-                  <p className="text-white/40">{bestMatch.city}, {bestMatch.state} {bestMatch.zip}</p>
-                  {bestMatch.birth_year && <p className="text-white/40">Born {bestMatch.birth_year}</p>}
-                  <p className="text-white/40">Party: {bestMatch.party_affiliation}</p>
+                  <p className="text-white/60">{bestMatch.first_name} {bestMatch.last_name}</p>
+                  <p className="text-white/60">{bestMatch.residential_address}</p>
+                  <p className="text-white/60">{bestMatch.city}, {bestMatch.state} {bestMatch.zip}</p>
+                  {bestMatch.birth_year && <p className="text-white/60">Born {bestMatch.birth_year}</p>}
+                  <p className="text-white/60">Party: {bestMatch.party_affiliation}</p>
                 </div>
               )}
             </div>

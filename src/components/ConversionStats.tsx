@@ -59,7 +59,7 @@ function StatCircle({ value, label, borderColor, glowColor }: {
       >
         <span className="font-display text-2xl font-bold text-white">{value}</span>
       </div>
-      <span className="text-[11px] font-bold text-white/50 uppercase tracking-wider">{label}</span>
+      <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider">{label}</span>
     </div>
   )
 }
@@ -109,7 +109,7 @@ export default function ConversionStats() {
 
     for (const entry of segmentMap.values()) {
       entry.conversionRate = entry.contacted > 0
-        ? Math.round((entry.supporters / entry.contacted) * 100)
+        ? Math.min(100, Math.round((entry.supporters / entry.contacted) * 100))
         : 0
     }
 
@@ -128,7 +128,7 @@ export default function ConversionStats() {
     const streak = computeStreak(contactedDates)
 
     const contactPercent = totalPeople > 0
-      ? Math.round((totalContacted / totalPeople) * 100)
+      ? Math.min(100, Math.round((totalContacted / totalPeople) * 100))
       : 0
 
     const segments = Array.from(segmentMap.values()).filter(s => s.total > 0)
@@ -173,47 +173,6 @@ export default function ConversionStats() {
               borderColor="border-vc-gold"
               glowColor="rgba(245,158,11,0.25)"
             />
-          </div>
-
-          {/* Per-segment breakdown */}
-          <div className="space-y-2.5">
-            <p className="text-xs font-bold text-white/40 uppercase tracking-wider">
-              By Segment
-            </p>
-            {stats.segments.map(seg => {
-              const contactedPct = seg.total > 0 ? Math.round((seg.contacted / seg.total) * 100) : 0
-
-              return (
-                <div key={seg.segment} className="flex items-center gap-3">
-                  <div className="w-28 shrink-0">
-                    <span className={clsx('text-xs font-bold', seg.colorClass)}>
-                      {seg.label}
-                    </span>
-                    <span className="text-[10px] text-white/30 font-display tabular-nums ml-1">
-                      {seg.contacted}/{seg.total}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 bg-white/10 rounded-full h-3 relative overflow-hidden">
-                    <div
-                      className={clsx('h-3 rounded-full transition-all duration-500', seg.barColorClass)}
-                      style={{ width: `${contactedPct}%` }}
-                    />
-                    {contactedPct > 12 && (
-                      <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white">
-                        {contactedPct}%
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="w-14 text-right shrink-0">
-                    <span className="text-[10px] font-display tabular-nums text-white/30">
-                      {seg.contacted > 0 ? `${seg.conversionRate}% conv` : '--'}
-                    </span>
-                  </div>
-                </div>
-              )
-            })}
           </div>
 
           {/* Outcome tally */}

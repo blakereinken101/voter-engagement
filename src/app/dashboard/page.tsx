@@ -47,7 +47,7 @@ export default function DashboardPage() {
               </div>
               <div className="hidden sm:block">
                 <p className="text-sm font-bold text-white leading-tight">{user.name || 'Volunteer'}</p>
-                <p className="text-xs text-white/40 leading-tight">{user.email}</p>
+                <p className="text-xs text-white/60 leading-tight">{user.email}</p>
               </div>
               <button
                 onClick={() => signOut()}
@@ -105,7 +105,7 @@ export default function DashboardPage() {
           {/* Stats — pushed right */}
           {!isAdminMode && totalPeople > 0 && (
             <div className="flex flex-wrap items-center gap-4 text-sm ml-auto font-display tabular-nums">
-              <span className="flex items-center gap-1.5 text-white/50">
+              <span className="flex items-center gap-1.5 text-white/70">
                 <Users className="w-4 h-4" />
                 <span className="text-white font-bold">{totalPeople}</span>
               </span>
