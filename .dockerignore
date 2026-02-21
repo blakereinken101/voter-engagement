@@ -8,7 +8,10 @@ node_modules
 
 # Large data files — these go on Railway persistent volume, not in the image
 data/
+
+# Dev/processing scripts (but allow startup script)
 scripts/
+!scripts/ensure-voter-data.sh
 
 # Dev files
 *.log
