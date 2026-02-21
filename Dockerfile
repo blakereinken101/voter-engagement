@@ -37,6 +37,10 @@ COPY --from=builder /app/public ./public
 # Create data directory for voter file volume
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
+# Copy startup script that downloads voter data if not on volume
+COPY scripts/ensure-voter-data.sh /app/ensure-voter-data.sh
+RUN chmod +x /app/ensure-voter-data.sh
+
 # Set ownership
 RUN chown -R nextjs:nodejs /app
 
@@ -47,4 +51,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["/app/ensure-voter-data.sh"]
