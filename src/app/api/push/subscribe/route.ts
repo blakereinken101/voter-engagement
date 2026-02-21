@@ -29,10 +29,19 @@ export async function POST(request: NextRequest) {
     const subscriptionJson = JSON.stringify(subscription)
 
     // Remove any existing subscription with the same endpoint for this user
-    await db.query(
-      `DELETE FROM push_subscriptions WHERE user_id = $1 AND subscription LIKE $2`,
-      [session.userId, `%${subscription.endpoint}%`]
+    // Safely match by parsing stored JSON rather than using LIKE (prevents injection)
+    const { rows: existing } = await db.query(
+      `SELECT id, subscription FROM push_subscriptions WHERE user_id = $1`,
+      [session.userId]
     )
+    for (const row of existing) {
+      try {
+        const sub = JSON.parse(row.subscription as string)
+        if (sub.endpoint === subscription.endpoint) {
+          await db.query(`DELETE FROM push_subscriptions WHERE id = $1`, [row.id])
+        }
+      } catch { /* skip malformed rows */ }
+    }
 
     // Insert the new subscription
     const id = crypto.randomUUID()

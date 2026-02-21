@@ -1,14 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Share2, Copy, Check } from 'lucide-react'
 import campaignConfig from '@/lib/campaign-config'
 
 export default function SocialShareBar() {
   const [isExpanded, setIsExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [shareUrl, setShareUrl] = useState('')
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  // Avoid SSR mismatch — only read window.location.origin after mount
+  useEffect(() => {
+    setShareUrl(window.location.origin)
+  }, [])
+
   const shareText = `I'm using ${campaignConfig.name} to reach my network before Election Day. Your vote matters \u2014 let's make sure everyone shows up. Join me: ${shareUrl}`
 
   async function handleShare() {

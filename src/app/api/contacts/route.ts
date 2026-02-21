@@ -87,12 +87,22 @@ export async function POST(request: NextRequest) {
     const session = getSessionFromRequest()
     if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-    const body = await request.json()
+    let body: Record<string, unknown>
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
     const { id, firstName, lastName, phone, address, city, zip, age, ageRange, gender, category } = body
 
-    if (!firstName || !lastName || !category) {
+    if (!firstName || typeof firstName !== 'string' || !lastName || typeof lastName !== 'string' || !category || typeof category !== 'string') {
       return NextResponse.json({ error: 'firstName, lastName, and category are required' }, { status: 400 })
     }
+
+    // Sanitize string inputs
+    const sanitize = (val: unknown, maxLen = 200): string | null =>
+      typeof val === 'string' ? val.replace(/<[^>]*>/g, '').trim().slice(0, maxLen) : null
 
     const db = await getDb()
     const contactId = id || crypto.randomUUID()
@@ -101,10 +111,14 @@ export async function POST(request: NextRequest) {
     try {
       await client.query('BEGIN')
 
+      const safeAge = typeof age === 'number' && age >= 18 && age <= 120 ? Math.floor(age) : null
+      const safeGender = (gender === 'M' || gender === 'F' || gender === '') ? gender : null
+      const safeZip = typeof zip === 'string' ? zip.replace(/[^0-9]/g, '').slice(0, 5) : null
+
       await client.query(`
         INSERT INTO contacts (id, user_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-      `, [contactId, session.userId, firstName, lastName, phone || null, address || null, city || null, zip || null, age || null, ageRange || null, gender || null, category])
+      `, [contactId, session.userId, sanitize(firstName, 50), sanitize(lastName, 50), sanitize(phone, 20) || null, sanitize(address, 200) || null, sanitize(city, 50) || null, safeZip || null, safeAge, sanitize(ageRange, 20) || null, safeGender || null, sanitize(category, 50)])
 
       await client.query(`
         INSERT INTO match_results (id, contact_id, status)

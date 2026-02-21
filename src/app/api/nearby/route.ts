@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getVoterFile } from '@/lib/mock-data'
 import { SafeVoterRecord, VoterRecord } from '@/types'
 import { geocodeAddress, geocodeZip } from '@/lib/geocode'
+import { getSessionFromRequest } from '@/lib/auth'
 
 function sanitizeVoterRecord(record: VoterRecord): SafeVoterRecord {
   const { voter_id, date_of_birth, ...rest } = record
@@ -94,6 +95,9 @@ function sortByDistance(
  * Uses pre-stored lat/lng from geocoded voter file for instant distance calculation.
  */
 export async function POST(request: NextRequest) {
+  const session = getSessionFromRequest()
+  if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
   let body: { address?: string; zip?: string; state: string; limit?: number; offset?: number }
   try {
     body = await request.json()

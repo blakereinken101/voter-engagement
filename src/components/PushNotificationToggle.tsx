@@ -23,6 +23,7 @@ export default function PushNotificationToggle() {
   const [isEnabled, setIsEnabled] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission>('default')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window
@@ -45,7 +46,7 @@ export default function PushNotificationToggle() {
 
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
       if (!vapidKey) {
-        console.error('[push] NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set')
+        setError('Push notifications are not configured for this campaign.')
         return
       }
 
@@ -70,6 +71,7 @@ export default function PushNotificationToggle() {
       setPermission(Notification.permission)
     } catch (err) {
       console.error('[push] Subscribe error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to enable notifications')
       setPermission(Notification.permission)
     } finally {
       setLoading(false)
@@ -146,6 +148,12 @@ export default function PushNotificationToggle() {
           <p className="text-xs text-white/60">
             Get reminded to follow up with your contacts and stay on top of your outreach goals.
           </p>
+
+          {error && (
+            <div className="text-xs text-red-400/80 bg-red-500/10 border border-red-500/20 rounded-btn px-3 py-2">
+              {error}
+            </div>
+          )}
 
           {permission === 'denied' ? (
             <div className="text-xs text-red-400/80 bg-red-500/10 border border-red-500/20 rounded-btn px-3 py-2">

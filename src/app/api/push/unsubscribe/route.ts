@@ -16,10 +16,19 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb()
 
-    await db.query(
-      `DELETE FROM push_subscriptions WHERE user_id = $1 AND subscription LIKE $2`,
-      [session.userId, `%${endpoint}%`]
+    // Safely match by parsing stored JSON rather than using LIKE (prevents injection)
+    const { rows: existing } = await db.query(
+      `SELECT id, subscription FROM push_subscriptions WHERE user_id = $1`,
+      [session.userId]
     )
+    for (const row of existing) {
+      try {
+        const sub = JSON.parse(row.subscription as string)
+        if (sub.endpoint === endpoint) {
+          await db.query(`DELETE FROM push_subscriptions WHERE id = $1`, [row.id])
+        }
+      } catch { /* skip malformed rows */ }
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

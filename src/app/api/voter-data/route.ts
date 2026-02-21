@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getVoterFile } from '@/lib/mock-data'
+import { getSessionFromRequest } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
+  const session = getSessionFromRequest()
+  if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
   const { searchParams } = new URL(request.url)
   const state = searchParams.get('state')
 

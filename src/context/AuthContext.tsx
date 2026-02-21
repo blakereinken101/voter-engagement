@@ -25,16 +25,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Check session on mount
+  // Check session on mount and periodically verify token is still valid
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => {
-        if (res.ok) return res.json()
-        throw new Error('Not authenticated')
-      })
-      .then(data => setUser(data.user))
-      .catch(() => setUser(null))
-      .finally(() => setIsLoading(false))
+    let isMounted = true
+
+    function checkSession() {
+      fetch('/api/auth/me')
+        .then(res => {
+          if (!isMounted) return
+          if (res.ok) return res.json()
+          // Token expired or invalid — sign out
+          if (res.status === 401) {
+            setUser(null)
+            return null
+          }
+          throw new Error('Not authenticated')
+        })
+        .then(data => {
+          if (isMounted && data) setUser(data.user)
+        })
+        .catch(() => {
+          if (isMounted) setUser(null)
+        })
+        .finally(() => {
+          if (isMounted) setIsLoading(false)
+        })
+    }
+
+    checkSession()
+
+    // Re-check session every 30 minutes to catch token expiry
+    const interval = setInterval(checkSession, 30 * 60 * 1000)
+
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
   }, [])
 
   const signIn = useCallback(async (email: string, password: string) => {

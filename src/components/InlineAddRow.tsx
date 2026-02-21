@@ -30,7 +30,7 @@ export default function InlineAddRow() {
   const [lastName, setLastName] = useState('')
   const [city, setCity] = useState('')
   const [age, setAge] = useState('')
-  const [phone, setPhone] = useState('203-219-0005')
+  const [phone, setPhone] = useState('')
   const [category, setCategory] = useState<RelationshipCategory>('who-did-we-miss')
   const [showMore, setShowMore] = useState(false)
   const [address, setAddress] = useState('')
@@ -62,7 +62,7 @@ export default function InlineAddRow() {
       city: sanitizeText(city),
       age: ageNum,
       ageRange: ageToRange(ageNum),
-      phone: phone.trim() || '203-219-0005',
+      phone: phone.trim() || undefined,
       address: address.trim() ? sanitizeText(address) : undefined,
       zip: zip.trim() ? sanitizeNumeric(zip).slice(0, 5) : undefined,
       gender: (gender || undefined) as Gender | undefined,
@@ -73,7 +73,7 @@ export default function InlineAddRow() {
     setLastName('')
     setCity('')
     setAge('')
-    setPhone('203-219-0005')
+    setPhone('')
     setAddress('')
     setZip('')
     setGender('')

@@ -280,8 +280,16 @@ function appReducer(state: AppState, action: AppAction): AppState {
     }
     case 'SET_ERROR':
       return { ...state, error: action.payload }
-    case 'HYDRATE':
-      return { ...state, ...action.payload }
+    case 'HYDRATE': {
+      // Deep merge arrays — only overwrite if the incoming payload has non-empty arrays
+      const hydrated = { ...state }
+      for (const [key, value] of Object.entries(action.payload)) {
+        if (value !== undefined) {
+          (hydrated as Record<string, unknown>)[key] = value
+        }
+      }
+      return hydrated
+    }
     case 'RESET':
       return { ...INITIAL_STATE, userId: state.userId }
     default:
@@ -392,7 +400,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addPerson = useCallback((person: Omit<PersonEntry, 'id'>, autoMatchVoter?: SafeVoterRecord) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-    const entry = { ...person, id, phone: person.phone || '203-219-0005', createdAt: Date.now() }
+    const entry = { ...person, id, phone: person.phone || undefined, createdAt: Date.now() }
     dispatch({ type: 'ADD_PERSON', payload: entry })
     if (user) syncToServer('/api/contacts', 'POST', entry)
 

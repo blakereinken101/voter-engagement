@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getVoterFile } from '@/lib/mock-data'
 import { matchPeopleToVoterFile } from '@/lib/matching'
 import { MatchRequestBody, PersonEntry } from '@/types'
+import { getSessionFromRequest } from '@/lib/auth'
 
 // Sanitize string inputs — strip HTML tags and control characters
 function sanitizeString(input: unknown): string {
@@ -34,6 +35,9 @@ function sanitizePerson(p: Record<string, unknown>): PersonEntry | null {
 }
 
 export async function POST(request: NextRequest) {
+  const session = getSessionFromRequest()
+  if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
   let body: MatchRequestBody
   try {
     // Limit request body size (100KB max)
