@@ -2,9 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { hashPassword, createSessionToken } from '@/lib/auth'
 import campaignConfig from '@/lib/campaign-config'
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 attempts per 15 minutes per IP
+    const ip = getClientIP(request)
+    const rateLimit = checkRateLimit(`sign-up:${ip}`)
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: `Too many sign-up attempts. Please try again in ${rateLimit.retryAfterSeconds} seconds.` },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } }
+      )
+    }
+
     const body = await request.json()
     const { email, password, name } = body
 
