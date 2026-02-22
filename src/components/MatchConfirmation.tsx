@@ -57,7 +57,7 @@ export default function MatchConfirmation({ ambiguousResults }: Props) {
             <button
               key={i}
               onClick={() => handleConfirm(candidate.voterRecord)}
-              className="w-full glass-card p-5 border-2 border-transparent hover:border-vc-purple transition-all text-left"
+              className="w-full glass-card p-5 border-2 border-white/15 hover:border-vc-purple bg-white/10 transition-all text-left"
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -82,7 +82,7 @@ export default function MatchConfirmation({ ambiguousResults }: Props) {
 
         <button
           onClick={handleReject}
-          className="w-full mt-4 py-4 text-white/40 hover:text-white text-sm transition-colors border-2 border-dashed border-white/15 rounded-card hover:border-white/30"
+          className="w-full mt-4 py-4 text-white/50 hover:text-white text-sm font-medium transition-colors border-2 border-dashed border-white/20 rounded-card hover:border-white/30 bg-white/5"
         >
           None of these &mdash; skip this person
         </button>
