@@ -1,18 +1,25 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { requireAdmin } from '@/lib/admin-guard'
+import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 
 export async function GET() {
   try {
-    requireAdmin()
+    const ctx = await requireAdmin()
     const db = await getDb()
 
-    // ── Summary stats ──────────────────────────────────────────────────
+    // ── Summary stats (scoped to campaign members) ──────────────────────
+    const campaignId = ctx.campaignId
 
-    const { rows: volRows } = await db.query("SELECT COUNT(*) as c FROM users WHERE role = 'volunteer'")
+    const { rows: volRows } = await db.query(
+      "SELECT COUNT(*) as c FROM memberships WHERE campaign_id = $1 AND role = 'volunteer' AND is_active = true",
+      [campaignId]
+    )
     const totalVolunteers = parseInt(volRows[0].c)
 
-    const { rows: contRows } = await db.query('SELECT COUNT(*) as c FROM contacts')
+    const { rows: contRows } = await db.query(
+      'SELECT COUNT(*) as c FROM contacts c JOIN memberships m ON m.user_id = c.user_id AND m.campaign_id = $1',
+      [campaignId]
+    )
     const totalContacts = parseInt(contRows[0].c)
 
     const { rows: matchRows } = await db.query("SELECT COUNT(*) as c FROM match_results WHERE status = 'confirmed'")
@@ -110,10 +117,11 @@ export async function GET() {
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
       LEFT JOIN activity_log al ON al.user_id = u.id
-      WHERE u.role = 'volunteer'
+      JOIN memberships mem ON mem.user_id = u.id AND mem.campaign_id = $1
+      WHERE mem.role = 'volunteer'
       GROUP BY u.id, u.name
       ORDER BY contacts DESC
-    `)
+    `, [campaignId])
 
     const volunteerProgress = volunteerRows.map((v: {
       id: string
@@ -230,9 +238,7 @@ export async function GET() {
       goals,
     })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error'
-    if (msg === 'Admin access required') return NextResponse.json({ error: msg }, { status: 403 })
-    if (msg === 'Not authenticated') return NextResponse.json({ error: msg }, { status: 401 })
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
@@ -9,11 +9,22 @@ import { LogIn, AlertCircle } from 'lucide-react'
 
 export default function SignInPage() {
   const router = useRouter()
-  const { signIn } = useAuth()
+  const redirectTo = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    return new URLSearchParams(window.location.search).get('redirect')
+  }, [])
+  const { signIn, user, isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // If already signed in, redirect to dashboard or redirect URL
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push(redirectTo || '/dashboard')
+    }
+  }, [authLoading, user, router, redirectTo])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,9 +44,19 @@ export default function SignInPage() {
 
     try {
       await signIn(email, password)
-      router.push('/dashboard')
+      router.push(redirectTo || '/dashboard')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed')
+      const msg = err instanceof Error ? err.message : 'Sign in failed'
+      // Provide more user-friendly error messages
+      if (msg.includes('Internal server error') || msg.includes('500')) {
+        setError('Something went wrong. Please try again in a moment.')
+      } else if (msg.includes('Invalid email or password')) {
+        setError('Invalid email or password. Please check your credentials and try again.')
+      } else if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        setError('Unable to connect. Please check your internet connection and try again.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
@@ -107,10 +128,7 @@ export default function SignInPage() {
           Forgot password? Contact your campaign admin for a reset.
         </p>
         <p className="text-center mt-3 text-sm text-white/50">
-          Don&apos;t have an account?{' '}
-          <Link href="/sign-up" className="text-vc-purple-light font-bold hover:underline">
-            Sign up
-          </Link>
+          Need an account? Ask your campaign admin for an invite link.
         </p>
       </div>
     </div>

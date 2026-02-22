@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { requireAdmin } from '@/lib/admin-guard'
+import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 import { hashPassword } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
-    requireAdmin()
+    await requireAdmin()
 
     const body = await request.json()
     const { userId, newPassword } = body
@@ -32,10 +32,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error'
-    if (msg === 'Admin access required') return NextResponse.json({ error: msg }, { status: 403 })
-    if (msg === 'Not authenticated') return NextResponse.json({ error: msg }, { status: 401 })
-    console.error('[auth/reset-password] Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
   }
 }

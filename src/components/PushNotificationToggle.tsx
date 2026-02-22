@@ -26,10 +26,11 @@ export default function PushNotificationToggle() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const supported = 'serviceWorker' in navigator && 'PushManager' in window
-    setIsSupported(supported)
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+    const hasVapidKey = !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    setIsSupported(supported && hasVapidKey)
 
-    if (supported) {
+    if (supported && hasVapidKey) {
       setPermission(Notification.permission)
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored === 'true') {

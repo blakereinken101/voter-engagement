@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { requireAdmin } from '@/lib/admin-guard'
+import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 
 export async function GET() {
   try {
-    requireAdmin()
+    await requireAdmin()
     const db = await getDb()
 
     const { rows: volunteers } = await db.query(`
@@ -26,9 +26,7 @@ export async function GET() {
 
     return NextResponse.json({ volunteers })
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Error'
-    if (msg === 'Admin access required') return NextResponse.json({ error: msg }, { status: 403 })
-    if (msg === 'Not authenticated') return NextResponse.json({ error: msg }, { status: 401 })
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
   }
 }

@@ -9,11 +9,13 @@ import ActivityTimeline from './ActivityTimeline'
 import ExportPanel from './ExportPanel'
 import Leaderboard from './Leaderboard'
 import DataPurge from './DataPurge'
-import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2 } from 'lucide-react'
+import TeamManagement from './TeamManagement'
+import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'summary', label: 'Summary', Icon: BarChart3 },
+  { id: 'team', label: 'Team', Icon: UserPlus },
   { id: 'volunteers', label: 'Volunteers', Icon: Users },
   { id: 'contacts', label: 'Contacts', Icon: Contact },
   { id: 'activity', label: 'Activity', Icon: Activity },
@@ -49,6 +51,7 @@ export default function AdminPanel() {
       {/* Tab content */}
       <div className="animate-fade-in">
         {activeTab === 'summary' && <AdminSummary />}
+        {activeTab === 'team' && <TeamManagement />}
         {activeTab === 'volunteers' && <VolunteerList />}
         {activeTab === 'contacts' && <AdminContacts />}
         {activeTab === 'activity' && <ActivityTimeline />}

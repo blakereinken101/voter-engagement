@@ -274,19 +274,71 @@ export interface NearbyVoter {
 // AUTH TYPES
 // =============================================
 
-export type UserRole = 'volunteer' | 'admin'
+export type MembershipRole = 'platform_admin' | 'org_owner' | 'campaign_admin' | 'organizer' | 'volunteer'
+
+// Roles that count as "admin" for campaign-level admin actions
+export const ADMIN_ROLES: MembershipRole[] = ['platform_admin', 'org_owner', 'campaign_admin']
+
+export interface Organization {
+  id: string
+  name: string
+  slug: string
+  createdAt: string
+}
+
+export interface Campaign {
+  id: string
+  orgId: string
+  name: string
+  slug: string
+  candidateName: string
+  state: string
+  electionDate?: string
+  settings: Record<string, unknown>
+  isActive: boolean
+  createdAt: string
+}
+
+export interface Membership {
+  id: string
+  userId: string
+  campaignId: string
+  role: MembershipRole
+  campaignName?: string
+  campaignSlug?: string
+  orgName?: string
+  joinedAt: string
+  isActive: boolean
+}
+
+export interface Invitation {
+  id: string
+  campaignId: string
+  email: string | null
+  role: MembershipRole
+  token: string
+  invitedBy: string
+  expiresAt: string
+  acceptedAt: string | null
+  maxUses: number
+  useCount: number
+  createdAt: string
+  campaignName?: string
+  inviterName?: string
+}
 
 export interface User {
   id: string
   email: string
   name: string
-  role: UserRole
-  campaignId: string
+  isPlatformAdmin: boolean
   createdAt: string
 }
 
 export interface AuthState {
   user: User | null
+  memberships: Membership[]
+  activeMembership: Membership | null
   isLoading: boolean
 }
 
@@ -298,6 +350,7 @@ export interface VolunteerSummary {
   id: string
   name: string
   email: string
+  role: MembershipRole
   contactCount: number
   matchedCount: number
   contactedCount: number
@@ -325,4 +378,4 @@ export interface ActivityLogEntry {
   createdAt: string
 }
 
-export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge'
+export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge' | 'team'

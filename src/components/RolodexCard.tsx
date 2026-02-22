@@ -124,10 +124,12 @@ export default function RolodexCard() {
     }
   }
 
+  // Guard against invalid outcome values from stale data
+  const outcomeValid = item.contactOutcome && item.contactOutcome in OUTCOME_CONFIG
   const isRecontact = item.contacted && (item.contactOutcome === 'left-message' || item.contactOutcome === 'no-answer')
-  const isFullyDone = item.contacted && item.contactOutcome && !isRecontact
+  const isFullyDone = item.contacted && outcomeValid && !isRecontact
   // If contacted but no outcome recorded (e.g. user selected method then skipped), show log step
-  const needsOutcome = item.contacted && !item.contactOutcome
+  const needsOutcome = item.contacted && !outcomeValid
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6">
@@ -212,7 +214,7 @@ export default function RolodexCard() {
         </div>
 
         {/* Re-contact prompt */}
-        {isRecontact && step === 'prep' && (
+        {isRecontact && step === 'prep' && outcomeValid && (
           <div className="bg-vc-gold/10 border border-vc-gold/30 rounded-lg p-4 mb-4">
             <p className="text-sm font-bold text-white mb-2 flex items-center gap-1.5">
               Previously: {(() => { const { Icon } = OUTCOME_CONFIG[item.contactOutcome!]; return <Icon className="w-3.5 h-3.5" />; })()} {OUTCOME_CONFIG[item.contactOutcome!].label}
@@ -229,7 +231,7 @@ export default function RolodexCard() {
         )}
 
         {/* Already done */}
-        {isFullyDone && (
+        {isFullyDone && outcomeValid && (
           <div className="bg-vc-teal/10 border border-vc-teal/30 rounded-lg p-4 mb-4">
             <p className="text-sm font-bold text-white flex items-center gap-1.5">
               {(() => { const { Icon } = OUTCOME_CONFIG[item.contactOutcome!]; return <Icon className="w-3.5 h-3.5" />; })()} {OUTCOME_CONFIG[item.contactOutcome!].label}

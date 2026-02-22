@@ -4,7 +4,9 @@ import { jwtVerify } from 'jose'
 const PUBLIC_PATHS = [
   '/sign-in',
   '/sign-up',
+  '/invite/',
   '/api/auth/',
+  '/api/invitations/accept',
 ]
 
 export async function middleware(request: NextRequest) {

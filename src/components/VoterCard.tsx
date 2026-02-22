@@ -51,12 +51,13 @@ export default function VoterCard({
 
   const voteHistory = bestMatch ? getVoteHistoryDetail(bestMatch) : []
   const relationshipTip = getRelationshipTip(personEntry.category)
+  const outcomeValid = contactOutcome && contactOutcome in OUTCOME_CONFIG
   const isRecontact = contactOutcome === 'left-message' || contactOutcome === 'no-answer'
 
   return (
     <div className={clsx(
       'glass-card p-4 transition-all',
-      contacted && contactOutcome && !isRecontact && 'opacity-75'
+      contacted && outcomeValid && !isRecontact && 'opacity-75'
     )}>
       <div className="flex justify-between items-start">
         <div className="flex-1">
@@ -65,7 +66,7 @@ export default function VoterCard({
             <h3 className="font-bold text-white text-base">
               {personEntry.firstName} {personEntry.lastName}
             </h3>
-            {contacted && contactOutcome && !isRecontact && (() => {
+            {contacted && outcomeValid && !isRecontact && (() => {
               const { Icon, color, label } = OUTCOME_CONFIG[contactOutcome]
               return (
                 <span className={clsx('ml-1 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full', color)}>
@@ -112,7 +113,7 @@ export default function VoterCard({
       )}
 
       {/* After contact: show outreach method used */}
-      {contacted && outreachMethod && !contactOutcome && (() => {
+      {contacted && outreachMethod && !outcomeValid && (() => {
         const { Icon, label } = OUTREACH_LABELS[outreachMethod]
         return (
           <div className="mt-2 text-xs text-white/40 inline-flex items-center gap-1">
@@ -122,7 +123,7 @@ export default function VoterCard({
       })()}
 
       {/* Outcome selector */}
-      {contacted && !contactOutcome && onOutcomeSelect && (
+      {contacted && !outcomeValid && onOutcomeSelect && (
         <div className="mt-3 animate-fade-in">
           <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-2">
             How did it go?
@@ -142,7 +143,7 @@ export default function VoterCard({
       )}
 
       {/* Re-contact button */}
-      {contacted && isRecontact && onRecontact && (() => {
+      {contacted && isRecontact && outcomeValid && onRecontact && (() => {
         const { Icon, color, label } = OUTCOME_CONFIG[contactOutcome!]
         return (
           <div className="flex items-center gap-3 mt-3">
@@ -174,7 +175,7 @@ export default function VoterCard({
       )}
 
       {/* Contacted + outcome set: show method */}
-      {contacted && contactOutcome && outreachMethod && !isRecontact && (() => {
+      {contacted && outcomeValid && outreachMethod && !isRecontact && (() => {
         const { Icon, label } = OUTREACH_LABELS[outreachMethod]
         return (
           <div className="mt-2 text-xs text-white/40 inline-flex items-center gap-1">

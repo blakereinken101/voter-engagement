@@ -1,28 +1,33 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { Membership, ADMIN_ROLES } from '@/types'
 
 export interface AuthUser {
   id: string
   email: string
   name: string
-  role: 'volunteer' | 'admin'
-  campaignId: string
+  isPlatformAdmin: boolean
   createdAt?: string
 }
 
 interface AuthContextValue {
   user: AuthUser | null
+  memberships: Membership[]
+  activeMembership: Membership | null
   isLoading: boolean
+  isAdmin: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, name: string) => Promise<void>
   signOut: () => Promise<void>
+  switchCampaign: (campaignId: string) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [memberships, setMemberships] = useState<Membership[]>([])
+  const [activeMembership, setActiveMembership] = useState<Membership | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   // Check session on mount and periodically verify token is still valid
@@ -34,18 +39,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then(res => {
           if (!isMounted) return
           if (res.ok) return res.json()
-          // Token expired or invalid — sign out
           if (res.status === 401) {
             setUser(null)
+            setMemberships([])
+            setActiveMembership(null)
             return null
           }
           throw new Error('Not authenticated')
         })
         .then(data => {
-          if (isMounted && data) setUser(data.user)
+          if (isMounted && data) {
+            setUser(data.user)
+            setMemberships(data.memberships || [])
+            if (data.activeMembership) {
+              setActiveMembership(data.activeMembership)
+            } else if (data.memberships?.length === 1) {
+              // Auto-select if only one campaign
+              const m = data.memberships[0]
+              setActiveMembership(m)
+              document.cookie = `vc-campaign=${m.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
+            }
+          }
         })
         .catch(() => {
-          if (isMounted) setUser(null)
+          if (isMounted) {
+            setUser(null)
+            setMemberships([])
+            setActiveMembership(null)
+          }
         })
         .finally(() => {
           if (isMounted) setIsLoading(false)
@@ -54,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkSession()
 
-    // Re-check session every 30 minutes to catch token expiry
     const interval = setInterval(checkSession, 30 * 60 * 1000)
 
     return () => {
@@ -70,35 +90,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       body: JSON.stringify({ email, password }),
     })
     if (!res.ok) {
-      const data = await res.json()
-      throw new Error(data.error || 'Sign in failed')
+      let errorMsg = 'Sign in failed'
+      try {
+        const data = await res.json()
+        errorMsg = data.error || errorMsg
+      } catch {
+        if (res.status === 429) errorMsg = 'Too many attempts. Please wait a moment and try again.'
+        else if (res.status >= 500) errorMsg = 'Internal server error'
+      }
+      throw new Error(errorMsg)
     }
     const data = await res.json()
     setUser(data.user)
-  }, [])
+    setMemberships(data.memberships || [])
 
-  const signUp = useCallback(async (email: string, password: string, name: string) => {
-    const res = await fetch('/api/auth/sign-up', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name }),
-    })
-    if (!res.ok) {
-      const data = await res.json()
-      throw new Error(data.error || 'Sign up failed')
+    // Auto-select campaign
+    if (data.memberships?.length >= 1) {
+      const m = data.activeMembership || data.memberships[0]
+      setActiveMembership(m)
+      document.cookie = `vc-campaign=${m.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
     }
-    const data = await res.json()
-    setUser(data.user)
   }, [])
 
   const signOut = useCallback(async () => {
     await fetch('/api/auth/sign-out', { method: 'POST' })
     setUser(null)
+    setMemberships([])
+    setActiveMembership(null)
+    document.cookie = 'vc-campaign=; Path=/; SameSite=Lax; Max-Age=0'
     window.location.href = '/sign-in'
   }, [])
 
+  const switchCampaign = useCallback((campaignId: string) => {
+    const m = memberships.find(mem => mem.campaignId === campaignId)
+    if (m) {
+      setActiveMembership(m)
+      document.cookie = `vc-campaign=${campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
+      window.location.reload()
+    }
+  }, [memberships])
+
+  const isAdmin = !!(
+    user?.isPlatformAdmin ||
+    (activeMembership && ADMIN_ROLES.includes(activeMembership.role))
+  )
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{
+      user, memberships, activeMembership, isLoading, isAdmin,
+      signIn, signOut, switchCampaign,
+    }}>
       {children}
     </AuthContext.Provider>
   )

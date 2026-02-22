@@ -64,7 +64,15 @@ export default function BulkImportPanel() {
 
     const ext = file.name.split('.').pop()?.toLowerCase()
     if (!ext || !['csv', 'xlsx', 'xls'].includes(ext)) {
-      setError('Unsupported file type. Please use .csv, .xlsx, or .xls files.')
+      setError(`Unsupported file type (.${ext || 'unknown'}). Please use .csv, .xlsx, or .xls files.`)
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File is too large (max 10 MB).')
+      return
+    }
+    if (file.size === 0) {
+      setError('File is empty.')
       return
     }
 
@@ -87,6 +95,12 @@ export default function BulkImportPanel() {
 
       const detected = autoDetectColumns(result.headers)
       setColumnMapping(detected)
+
+      // Warn if no name column could be detected
+      if (!detected.firstName && !detected.lastName) {
+        setError(`Could not find a name column. Available columns: ${result.headers.join(', ')}. Please map the columns manually below.`)
+      }
+
       setShowPreview(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file. Please check the format.')
@@ -191,6 +205,9 @@ export default function BulkImportPanel() {
       count++
     }
 
+    if (count === 0) {
+      setError('No contacts could be imported. Make sure each row has at least a first and last name.')
+    }
     setImportedCount(count)
     if (count > 0) {
       setShowPreview(false)

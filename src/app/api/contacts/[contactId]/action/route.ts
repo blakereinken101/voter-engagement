@@ -25,9 +25,9 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
     const { rows } = await db.query('SELECT id FROM contacts WHERE id = $1 AND user_id = $2', [contactId, session.userId])
     if (!rows[0]) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
 
-    // Valid enum values
-    const VALID_OUTREACH = ['text', 'call', 'in-person', 'social-media', 'email', null]
-    const VALID_OUTCOMES = ['great-conversation', 'left-message', 'no-answer', 'not-interested', 'moved', 'wrong-number', 'pledged-to-vote', 'already-voted', 'needs-follow-up', null]
+    // Valid enum values — must match types in src/types/index.ts
+    const VALID_OUTREACH = ['text', 'call', 'one-on-one', null]
+    const VALID_OUTCOMES = ['supporter', 'undecided', 'opposed', 'left-message', 'no-answer', null]
 
     // Build dynamic update
     const updates: string[] = []

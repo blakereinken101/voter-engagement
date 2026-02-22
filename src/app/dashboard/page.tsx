@@ -17,7 +17,7 @@ import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, 
 
 export default function DashboardPage() {
   const { state } = useAppContext()
-  const { user, signOut } = useAuth()
+  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign } = useAuth()
   const [isAdminMode, setIsAdminMode] = useState(false)
 
   // Stats
@@ -63,11 +63,25 @@ export default function DashboardPage() {
               </button>
             </div>
           )}
+          {/* Campaign switcher */}
+          {memberships.length > 1 && (
+            <select
+              value={activeMembership?.campaignId || ''}
+              onChange={e => switchCampaign(e.target.value)}
+              className="text-xs glass-input rounded-btn px-3 py-1.5 text-white bg-transparent border border-white/20"
+            >
+              {memberships.map(m => (
+                <option key={m.campaignId} value={m.campaignId} className="bg-vc-bg">
+                  {m.campaignName}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Nav bar */}
         <div className="max-w-6xl mx-auto px-6 pb-4 flex flex-wrap items-center gap-2 md:gap-3">
-          {user?.role === 'admin' && (
+          {isAdmin && (
             <button
               onClick={() => setIsAdminMode(!isAdminMode)}
               className={`text-sm px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${

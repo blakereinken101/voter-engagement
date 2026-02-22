@@ -52,6 +52,7 @@ export default function ContactCard({
   const contacted = actionItem?.contacted ?? false
   const outreachMethod = actionItem?.outreachMethod
   const contactOutcome = actionItem?.contactOutcome
+  const outcomeValid = contactOutcome && contactOutcome in OUTCOME_CONFIG
   const isRecontact = contactOutcome === 'left-message' || contactOutcome === 'no-answer'
 
   const catConfig = CATEGORIES.find(c => c.id === person.category)
@@ -170,13 +171,13 @@ export default function ContactCard({
             )}
           </div>
         )}
-        {contacted && contactOutcome && (
+        {contacted && outcomeValid && (
           <span className={clsx('text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1', OUTCOME_CONFIG[contactOutcome].color)}>
             {(() => { const OIcon = OUTCOME_CONFIG[contactOutcome].Icon; return <OIcon className="w-3 h-3" /> })()}
             {OUTCOME_CONFIG[contactOutcome].label}
           </span>
         )}
-        {contacted && contactOutcome && isRecontact && (
+        {contacted && outcomeValid && isRecontact && (
           <button
             onClick={() => onRecontact(person.id)}
             className="text-[10px] text-vc-coral hover:underline font-bold"
@@ -184,7 +185,7 @@ export default function ContactCard({
             Try again
           </button>
         )}
-        {contacted && contactOutcome === 'supporter' && !actionItem?.isVolunteerProspect && (
+        {contacted && outcomeValid && contactOutcome === 'supporter' && !actionItem?.isVolunteerProspect && (
           <button
             onClick={() => onVolunteerRecruit(person.id)}
             className="text-[10px] text-vc-purple bg-vc-purple/10 hover:bg-vc-purple hover:text-white px-2 py-0.5 rounded-full font-bold transition-colors inline-flex items-center gap-1"
@@ -251,7 +252,7 @@ export default function ContactCard({
       )}
 
       {/* Outcome selector */}
-      {contacted && !contactOutcome && (
+      {contacted && !outcomeValid && (
         <div className="mb-3">
           <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider mb-1.5">How did it go?</p>
           <div className="flex flex-wrap gap-1.5">
@@ -271,7 +272,7 @@ export default function ContactCard({
       )}
 
       {/* Survey questions — show after outcome is recorded */}
-      {contacted && contactOutcome && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && campaignConfig.surveyQuestions.length > 0 && (
+      {contacted && outcomeValid && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && campaignConfig.surveyQuestions.length > 0 && (
         <div className="mb-3 space-y-2">
           <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider flex items-center gap-1">
             <ClipboardList className="w-3 h-3" />

@@ -1,8 +1,13 @@
-import { getSessionFromRequest } from '@/lib/auth'
+import { getRequestContext, requireCampaignAdmin, AuthError, handleAuthError, type RequestContext } from '@/lib/auth'
 
-export function requireAdmin() {
-  const session = getSessionFromRequest()
-  if (!session) throw new Error('Not authenticated')
-  if (session.role !== 'admin') throw new Error('Admin access required')
-  return session
+/**
+ * Legacy-compatible admin guard. Returns the request context or throws.
+ * Replaces the old requireAdmin() — now checks campaign membership role.
+ */
+export async function requireAdmin(): Promise<RequestContext> {
+  const ctx = await getRequestContext()
+  requireCampaignAdmin(ctx)
+  return ctx
 }
+
+export { AuthError, handleAuthError, type RequestContext }

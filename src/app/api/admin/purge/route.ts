@@ -1,23 +1,11 @@
 import { NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
-import { getSessionFromRequest } from '@/lib/auth'
+import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 
 export async function GET() {
   try {
-    const session = getSessionFromRequest()
-    if (!session) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
+    await requireAdmin()
     const db = await getDb()
-
-    const { rows: userRows } = await db.query(
-      'SELECT role FROM users WHERE id = $1',
-      [session.userId]
-    )
-    if (!userRows.length || userRows[0].role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
 
     const { rows: activityRows } = await db.query('SELECT COUNT(*) as c FROM activity_log')
     const { rows: actionRows } = await db.query('SELECT COUNT(*) as c FROM action_items')
@@ -32,27 +20,16 @@ export async function GET() {
       contacts: parseInt(contactRows[0].c),
       users: parseInt(userCountRows[0].c),
     })
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (error: unknown) {
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = getSessionFromRequest()
-    if (!session) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
+    const ctx = await requireAdmin()
     const db = await getDb()
-
-    const { rows: userRows } = await db.query(
-      'SELECT role FROM users WHERE id = $1',
-      [session.userId]
-    )
-    if (!userRows.length || userRows[0].role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
 
     const body = await request.json()
     if (body.confirm !== true) {
@@ -67,13 +44,14 @@ export async function POST(request: Request) {
     await db.query("DELETE FROM users WHERE role != 'admin'")
 
     // Log the purge action
-    await logActivity(session.userId, 'data_purge', { deletedBy: session.userId })
+    await logActivity(ctx.userId, 'data_purge', { deletedBy: ctx.userId })
 
     return NextResponse.json({
       success: true,
       message: 'All campaign data purged. Admin accounts preserved.',
     })
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  } catch (error: unknown) {
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
   }
 }

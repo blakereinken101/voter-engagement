@@ -175,19 +175,42 @@ export default function ContactsPanel() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
+    // Validate file type and size
     const ext = file.name.split('.').pop()?.toLowerCase()
     if (ext !== 'vcf') {
-      setPickerStatus('Please select a .vcf (vCard) file')
+      setPickerStatus('Please select a .vcf (vCard) file. Got: .' + (ext || 'unknown'))
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setPickerStatus('File is too large (max 10 MB)')
+      return
+    }
+    if (file.size === 0) {
+      setPickerStatus('File is empty')
       return
     }
 
     const reader = new FileReader()
     reader.onload = (event) => {
       const vcfContent = event.target?.result as string
-      if (!vcfContent) return
+      if (!vcfContent) {
+        setPickerStatus('Could not read file contents')
+        return
+      }
+
+      // Check if this is actually a vCard file
+      if (!vcfContent.includes('BEGIN:VCARD')) {
+        setPickerStatus('This file does not contain valid contact data. Please select a .vcf (vCard) file.')
+        return
+      }
 
       const vcardContacts = parseVCards(vcfContent)
+
+      if (vcardContacts.length === 0) {
+        setPickerStatus('No contacts found in this file. The file may be empty or in an unsupported format.')
+        return
+      }
+
       const newParsed: ParsedContact[] = vcardContacts.map(c => ({
         firstName: c.firstName,
         lastName: c.lastName,
@@ -200,10 +223,18 @@ export default function ContactsPanel() {
         source: 'vcf' as const,
       }))
 
+      const validCount = newParsed.filter(c => c.valid).length
+      if (validCount === 0) {
+        setPickerStatus('No valid contacts found. Each contact needs at least a first and last name.')
+      }
+
       setParsed(newParsed)
       setShowParsed(true)
       setAddedCount(0)
-      setPickerStatus(`${newParsed.length} contacts imported from ${file.name}`)
+      setPickerStatus(`${newParsed.length} contacts imported from ${file.name}${validCount < newParsed.length ? ` (${newParsed.length - validCount} need editing)` : ''}`)
+    }
+    reader.onerror = () => {
+      setPickerStatus('Failed to read the file. Please try again.')
     }
     reader.readAsText(file)
 
@@ -341,7 +372,12 @@ export default function ContactsPanel() {
 
         {/* Status message */}
         {pickerStatus && (
-          <p className="text-xs text-white/50 font-display px-1">{pickerStatus}</p>
+          <p className={clsx(
+            'text-xs font-display px-3 py-2 rounded-lg',
+            pickerStatus.includes('not contain') || pickerStatus.includes('No contacts') || pickerStatus.includes('No valid') || pickerStatus.includes('too large') || pickerStatus.includes('empty') || pickerStatus.includes('Failed') || pickerStatus.includes('Could not')
+              ? 'bg-vc-coral/10 text-vc-coral font-medium'
+              : 'text-white/50 px-1'
+          )}>{pickerStatus}</p>
         )}
       </div>
 

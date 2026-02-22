@@ -88,6 +88,7 @@ export default function ContactRow({
   const contacted = actionItem?.contacted ?? false
   const outreachMethod = actionItem?.outreachMethod
   const contactOutcome = actionItem?.contactOutcome
+  const outcomeValid = contactOutcome && contactOutcome in OUTCOME_CONFIG
   const isRecontact = contactOutcome === 'left-message' || contactOutcome === 'no-answer'
   const isNew = person.createdAt && (Date.now() - person.createdAt) < 30000
 
@@ -261,7 +262,7 @@ export default function ContactRow({
 
         {/* Outcome */}
         <td className="py-2.5 px-2">
-          {contacted && !contactOutcome && (
+          {contacted && !outcomeValid && (
             <div className="flex gap-1 flex-wrap">
               {(Object.entries(OUTCOME_CONFIG) as [ContactOutcome, typeof OUTCOME_CONFIG[ContactOutcome]][]).map(([outcome, { Icon, tip }]) => (
                 <button
@@ -275,7 +276,7 @@ export default function ContactRow({
               ))}
             </div>
           )}
-          {contacted && contactOutcome && (
+          {contacted && outcomeValid && (
             <div className="flex items-center gap-1">
               <span className={clsx('text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1', OUTCOME_CONFIG[contactOutcome].color)}>
                 {(() => { const OutcomeIcon = OUTCOME_CONFIG[contactOutcome].Icon; return <OutcomeIcon className="w-3 h-3" /> })()} {OUTCOME_CONFIG[contactOutcome].label}
@@ -381,7 +382,7 @@ export default function ContactRow({
               )}
 
               {/* Survey questions */}
-              {contacted && contactOutcome && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && campaignConfig.surveyQuestions.length > 0 && (
+              {contacted && outcomeValid && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && campaignConfig.surveyQuestions.length > 0 && (
                 <div>
                   <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Survey</p>
                   <div className="space-y-1.5">

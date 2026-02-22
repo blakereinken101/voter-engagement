@@ -55,7 +55,7 @@ export default function VolunteerDetail({ userId, onBack }: Props) {
           <div className="flex items-start justify-between">
             <div>
               <h2 className="font-display font-bold text-xl text-white">{user.name}</h2>
-              <p className="text-sm text-white/50">{user.email} · {user.role}</p>
+              <p className="text-sm text-white/50">{user.email}</p>
               <p className="text-xs text-white/40 mt-1">{contacts.length} contacts</p>
             </div>
 
