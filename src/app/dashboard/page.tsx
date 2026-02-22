@@ -44,16 +44,30 @@ export default function DashboardPage() {
         {/* Top bar */}
         <div className="max-w-6xl mx-auto px-6 pt-5 pb-3 flex items-center justify-between">
           <Link href="/" className="hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-12 md:h-16 w-auto" priority />
+            <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-16 md:h-20 w-auto" priority />
           </Link>
           {user && (
             <div className="flex items-center gap-3">
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-bold text-white leading-tight">{user.name || 'Volunteer'}</p>
+                {memberships.length > 1 ? (
+                  <select
+                    value={activeMembership?.campaignId || ''}
+                    onChange={e => switchCampaign(e.target.value)}
+                    className="text-xs text-vc-purple-light bg-transparent border-none p-0 cursor-pointer leading-tight focus:outline-none focus:ring-0"
+                  >
+                    {memberships.map(m => (
+                      <option key={m.campaignId} value={m.campaignId} className="bg-vc-bg text-white">
+                        {m.campaignName}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-vc-purple-light leading-tight">{campaignConfig.name}</p>
+                )}
+              </div>
               <div className="w-9 h-9 rounded-full bg-vc-purple/30 ring-2 ring-vc-purple/50 flex items-center justify-center text-sm font-bold text-white">
                 {userInitials}
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-sm font-bold text-white leading-tight">{user.name || 'Volunteer'}</p>
-                <p className="text-xs text-white/60 leading-tight">{user.email}</p>
               </div>
               <button
                 onClick={() => signOut()}
@@ -63,20 +77,6 @@ export default function DashboardPage() {
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
-          )}
-          {/* Campaign switcher */}
-          {memberships.length > 1 && (
-            <select
-              value={activeMembership?.campaignId || ''}
-              onChange={e => switchCampaign(e.target.value)}
-              className="text-xs glass-input rounded-btn px-3 py-1.5 text-white bg-transparent border border-white/20"
-            >
-              {memberships.map(m => (
-                <option key={m.campaignId} value={m.campaignId} className="bg-vc-bg">
-                  {m.campaignName}
-                </option>
-              ))}
-            </select>
           )}
         </div>
 
