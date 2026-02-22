@@ -8,11 +8,11 @@ import path from 'path'
 
 const voterFileCache = new Map<string, VoterRecord[]>()
 
-function loadRealVoterData(state: string): VoterRecord[] | null {
+function loadRealVoterData(state: string, campaignVoterFile?: string): VoterRecord[] | null {
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
 
-  // Check for a custom voter file name (env var), then geo, then plain
-  const voterFileName = process.env.VOTER_FILE
+  // Priority: campaign-specific file > env var > default discovery
+  const voterFileName = campaignVoterFile || process.env.VOTER_FILE
   const candidates = voterFileName
     ? [path.join(dataDir, voterFileName)]
     : [
@@ -41,20 +41,21 @@ function loadRealVoterData(state: string): VoterRecord[] | null {
   return data
 }
 
-export function getVoterFile(state: string): VoterRecord[] {
-  const key = state.toUpperCase()
-  if (voterFileCache.has(key)) return voterFileCache.get(key)!
+export function getVoterFile(state: string, campaignVoterFile?: string): VoterRecord[] {
+  const stateKey = state.toUpperCase()
+  const cacheKey = campaignVoterFile ? `${stateKey}:${campaignVoterFile}` : stateKey
+  if (voterFileCache.has(cacheKey)) return voterFileCache.get(cacheKey)!
 
   // Try loading real data first
-  const realData = loadRealVoterData(key)
+  const realData = loadRealVoterData(stateKey, campaignVoterFile)
   if (realData) {
-    voterFileCache.set(key, realData)
+    voterFileCache.set(cacheKey, realData)
     return realData
   }
 
   // Fall back to mock data if no voter file found
-  const mockData = generateMockVoterFile(key, 750)
-  voterFileCache.set(key, mockData)
+  const mockData = generateMockVoterFile(stateKey, 750)
+  voterFileCache.set(cacheKey, mockData)
   return mockData
 }
 

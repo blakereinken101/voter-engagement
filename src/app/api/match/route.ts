@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getVoterFile } from '@/lib/mock-data'
 import { matchPeopleToVoterFile } from '@/lib/matching'
 import { MatchRequestBody, PersonEntry } from '@/types'
-import { getSessionFromRequest } from '@/lib/auth'
+import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
+import { getCampaignConfig } from '@/lib/campaign-config.server'
 
 // Sanitize string inputs — strip HTML tags and control characters
 function sanitizeString(input: unknown): string {
@@ -35,8 +36,8 @@ function sanitizePerson(p: Record<string, unknown>): PersonEntry | null {
 }
 
 export async function POST(request: NextRequest) {
-  const session = getSessionFromRequest()
-  if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  try {
+  const ctx = await getRequestContext()
 
   let body: MatchRequestBody
   try {
@@ -76,9 +77,19 @@ export async function POST(request: NextRequest) {
   }
 
   const start = Date.now()
-  const voterFile = getVoterFile(state.toUpperCase())
+  const campaignConfig = await getCampaignConfig(ctx.campaignId)
+  const voterFile = getVoterFile(state.toUpperCase(), campaignConfig.voterFile)
   const results = await matchPeopleToVoterFile(sanitizedPeople, voterFile)
   const processingTimeMs = Date.now() - start
 
   return NextResponse.json({ results, processingTimeMs })
+
+  } catch (error) {
+    if (error instanceof AuthError) {
+      const { error: msg, status } = handleAuthError(error)
+      return NextResponse.json({ error: msg }, { status })
+    }
+    console.error('[match] Error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

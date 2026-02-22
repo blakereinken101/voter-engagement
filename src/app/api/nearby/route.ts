@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getVoterFile } from '@/lib/mock-data'
 import { SafeVoterRecord, VoterRecord } from '@/types'
 import { geocodeAddress, geocodeZip } from '@/lib/geocode'
-import { getSessionFromRequest } from '@/lib/auth'
+import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
+import { getCampaignConfig } from '@/lib/campaign-config.server'
 
 function sanitizeVoterRecord(record: VoterRecord): SafeVoterRecord {
   const { voter_id, date_of_birth, ...rest } = record
@@ -95,8 +96,8 @@ function sortByDistance(
  * Uses pre-stored lat/lng from geocoded voter file for instant distance calculation.
  */
 export async function POST(request: NextRequest) {
-  const session = getSessionFromRequest()
-  if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  try {
+  const ctx = await getRequestContext()
 
   let body: { address?: string; zip?: string; state: string; limit?: number; offset?: number }
   try {
@@ -118,7 +119,10 @@ export async function POST(request: NextRequest) {
   const cleanState = state.toUpperCase()
   const safeLimit = Math.min(Math.max(1, Number(limit) || 50), 200)
   const safeOffset = Math.max(0, Number(offset) || 0)
-  const voterFile = getVoterFile(cleanState)
+
+  // Load campaign config to get campaign-specific voter file
+  const campaignConfig = await getCampaignConfig(ctx.campaignId)
+  const voterFile = getVoterFile(cleanState, campaignConfig.voterFile)
 
   // ─── ADDRESS-BASED SEARCH ────────────────────────────────────────────
   if (address && typeof address === 'string' && address.trim().length > 2) {
@@ -260,4 +264,13 @@ export async function POST(request: NextRequest) {
     centerLat: zipGeo?.lat,
     centerLng: zipGeo?.lng,
   })
+
+  } catch (error) {
+    if (error instanceof AuthError) {
+      const { error: msg, status } = handleAuthError(error)
+      return NextResponse.json({ error: msg }, { status })
+    }
+    console.error('[nearby] Error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }

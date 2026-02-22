@@ -13,6 +13,7 @@ export interface CampaignConfig {
   electionDate?: string
   organizationName?: string
   privacyText?: string
+  voterFile?: string
   surveyQuestions: SurveyQuestionConfig[]
 }
 

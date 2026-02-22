@@ -33,6 +33,7 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
     electionDate: row.election_date ? new Date(row.election_date as string).toISOString().slice(0, 10) : campaignConfig.electionDate,
     organizationName: (row.org_name as string) || campaignConfig.organizationName,
     privacyText: (settings.privacyText as string) || campaignConfig.privacyText,
+    voterFile: (settings.voterFile as string) || undefined,
     surveyQuestions: (settings.surveyQuestions as SurveyQuestionConfig[]) || campaignConfig.surveyQuestions,
   }
 }
