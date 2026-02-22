@@ -140,8 +140,8 @@ export default function LandingPage() {
 
       {/* Photo divider 1 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-2.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover blur-[2px] brightness-50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a]/40 to-[#0a0a1a]" />
+        <Image src="/hero-3.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover blur-[2px] brightness-[0.65]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a]/20 to-[#0a0a1a]" />
       </div>
 
       {/* Features */}
@@ -207,8 +207,8 @@ export default function LandingPage() {
 
       {/* Photo divider 2 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-3.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover blur-[2px] brightness-50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a]/40 to-[#0a0a1a]" />
+        <Image src="/hero-2.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover blur-[1px] brightness-75" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a]/20 to-[#0a0a1a]" />
       </div>
 
       {/* Why relational organizing */}
@@ -241,8 +241,8 @@ export default function LandingPage() {
 
       {/* Photo divider 3 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover blur-[2px] brightness-50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a]/40 to-[#0a0a1a]" />
+        <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover blur-[2px] brightness-[0.65]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-[#0a0a1a]/20 to-[#0a0a1a]" />
       </div>
 
       {/* Contact / Get in Touch */}
