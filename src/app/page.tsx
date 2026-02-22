@@ -138,38 +138,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo gallery */}
-      <section className="px-6 py-12 max-w-5xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-            <Image
-              src="/hero-2.jpg"
-              alt="Volunteers making phone calls around a table"
-              width={1200}
-              height={900}
-              className="w-full h-56 md:h-72 object-cover"
-            />
-          </div>
-          <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-            <Image
-              src="/hero-3.jpg"
-              alt="Packed town hall event with engaged voters"
-              width={1200}
-              height={900}
-              className="w-full h-56 md:h-72 object-cover"
-            />
-          </div>
-          <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-            <Image
-              src="/hero-organizing.jpg"
-              alt="Campaign rally with enthusiastic crowd"
-              width={1200}
-              height={900}
-              className="w-full h-56 md:h-72 object-cover"
-            />
-          </div>
-        </div>
-      </section>
+      {/* Photo divider 1 */}
+      <div className="relative h-48 md:h-64 overflow-hidden">
+        <Image src="/hero-2.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-transparent to-[#0a0a1a]" />
+      </div>
 
       {/* Features */}
       <section
@@ -232,6 +205,12 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Photo divider 2 */}
+      <div className="relative h-48 md:h-64 overflow-hidden">
+        <Image src="/hero-3.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-transparent to-[#0a0a1a]" />
+      </div>
+
       {/* Why relational organizing */}
       <section
         ref={whyRef}
@@ -259,6 +238,12 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Photo divider 3 */}
+      <div className="relative h-48 md:h-64 overflow-hidden">
+        <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-transparent to-[#0a0a1a]" />
+      </div>
 
       {/* Contact / Get in Touch */}
       <section
