@@ -138,6 +138,19 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Photo banner */}
+      <section className="px-6 py-12 max-w-5xl mx-auto">
+        <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+          <Image
+            src="/hero-organizing.jpg"
+            alt="Grassroots organizing in action"
+            width={1200}
+            height={900}
+            className="w-full h-64 md:h-96 object-cover"
+          />
+        </div>
+      </section>
+
       {/* Features */}
       <section
         ref={featuresRef}
