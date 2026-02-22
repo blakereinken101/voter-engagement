@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { verifyPassword, createSessionToken } from '@/lib/auth'
+import { verifyPassword, createPendingToken, generateVerificationCode } from '@/lib/auth'
+import { sendVerificationCode } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,40 +25,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
-    // Get memberships with campaign info
-    const { rows: memberRows } = await db.query(`
-      SELECT m.id, m.campaign_id as "campaignId", m.role, m.joined_at as "joinedAt", m.is_active as "isActive",
-             c.name as "campaignName", c.slug as "campaignSlug",
-             o.name as "orgName"
-      FROM memberships m
-      JOIN campaigns c ON c.id = m.campaign_id
-      JOIN organizations o ON o.id = c.org_id
-      WHERE m.user_id = $1 AND m.is_active = true
-      ORDER BY m.joined_at DESC
-    `, [user.id])
+    // Generate 2FA code
+    const code = generateVerificationCode()
+    const codeId = crypto.randomUUID()
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
 
-    const memberships = memberRows.map(m => ({
-      ...m,
-      userId: user.id,
-    }))
+    // Invalidate any existing unused codes for this user
+    await db.query(
+      'UPDATE verification_codes SET used = true WHERE user_id = $1 AND used = false',
+      [user.id]
+    )
 
-    const token = createSessionToken({ userId: user.id, email: user.email })
+    // Store new code
+    await db.query(
+      `INSERT INTO verification_codes (id, user_id, code, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [codeId, user.id, code, expiresAt.toISOString()]
+    )
+
+    // Send code via email
+    await sendVerificationCode(user.email, code)
+
+    // Create pending 2FA token (short-lived, can't access dashboard)
+    const pendingToken = createPendingToken(user.id, user.email)
 
     const response = NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isPlatformAdmin: user.is_platform_admin,
-      },
-      memberships,
-      activeMembership: memberships[0] || null,
+      requiresVerification: true,
+      email: user.email,
     })
 
-    response.headers.append('Set-Cookie', `vc-session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`)
-    if (memberships[0]) {
-      response.headers.append('Set-Cookie', `vc-campaign=${memberships[0].campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`)
-    }
+    response.headers.append(
+      'Set-Cookie',
+      `vc-2fa-pending=${pendingToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`
+    )
 
     return response
   } catch (error) {

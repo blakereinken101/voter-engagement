@@ -64,6 +64,32 @@ export function clearSessionCookie(): HeadersInit {
   }
 }
 
+// ── 2FA Pending Session ──────────────────────────────────────────
+
+export function createPendingToken(userId: string, email: string): string {
+  return jwt.sign({ userId, email, pending2fa: true }, JWT_SECRET, { expiresIn: '10m' })
+}
+
+export function getPendingSession(): SessionPayload | null {
+  const cookieStore = cookies()
+  const token = cookieStore.get('vc-2fa-pending')?.value
+  if (!token) return null
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as SessionPayload & { pending2fa?: boolean }
+    if (!decoded.pending2fa) return null
+    return decoded
+  } catch {
+    return null
+  }
+}
+
+export function generateVerificationCode(): string {
+  // Generate a random 6-digit code (100000-999999)
+  const array = new Uint32Array(1)
+  globalThis.crypto.getRandomValues(array)
+  return String(100000 + (array[0] % 900000))
+}
+
 /**
  * Get full request context including campaign membership.
  * Use this instead of getSessionFromRequest() for campaign-scoped endpoints.

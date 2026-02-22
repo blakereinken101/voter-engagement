@@ -165,6 +165,16 @@ async function initSchema() {
       ALTER TABLE action_items ADD COLUMN IF NOT EXISTS survey_responses TEXT;
       ALTER TABLE contacts ADD COLUMN IF NOT EXISTS campaign_id TEXT REFERENCES campaigns(id);
       ALTER TABLE activity_log ADD COLUMN IF NOT EXISTS campaign_id TEXT;
+
+      CREATE TABLE IF NOT EXISTS verification_codes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        code TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        attempts INTEGER DEFAULT 0,
+        used BOOLEAN DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `)
 
     // ── Indexes ──────────────────────────────────────────────────────
@@ -180,6 +190,7 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_invitations_campaign_id ON invitations(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_contacts_campaign_id ON contacts(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_activity_log_campaign_id ON activity_log(campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_verification_codes_user_id ON verification_codes(user_id);
     `)
 
     // ── Seed defaults ────────────────────────────────────────────────

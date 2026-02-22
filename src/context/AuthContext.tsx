@@ -14,6 +14,10 @@ export interface AuthUser {
   createdAt?: string
 }
 
+interface SignInResult {
+  requiresVerification?: boolean
+}
+
 interface AuthContextValue {
   user: AuthUser | null
   memberships: Membership[]
@@ -21,9 +25,11 @@ interface AuthContextValue {
   campaignConfig: CampaignConfig | null
   isLoading: boolean
   isAdmin: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<SignInResult | void>
   signOut: () => Promise<void>
   switchCampaign: (campaignId: string) => void
+  verifyCode: (code: string) => Promise<void>
+  resendCode: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -93,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string): Promise<SignInResult | void> => {
     const res = await fetch('/api/auth/sign-in', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -111,6 +117,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(errorMsg)
     }
     const data = await res.json()
+
+    // 2FA required — don't set user state yet
+    if (data.requiresVerification) {
+      return { requiresVerification: true }
+    }
+
     setUser(data.user)
     setMemberships(data.memberships || [])
 
@@ -119,6 +131,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const m = data.activeMembership || data.memberships[0]
       setActiveMembership(m)
       document.cookie = `vc-campaign=${m.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
+    }
+  }, [])
+
+  const verifyCode = useCallback(async (code: string) => {
+    const res = await fetch('/api/auth/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ error: 'Verification failed' }))
+      throw new Error(data.error || 'Verification failed')
+    }
+    const data = await res.json()
+    setUser(data.user)
+    setMemberships(data.memberships || [])
+
+    if (data.memberships?.length >= 1) {
+      const m = data.activeMembership || data.memberships[0]
+      setActiveMembership(m)
+      document.cookie = `vc-campaign=${m.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
+    }
+  }, [])
+
+  const resendCode = useCallback(async () => {
+    const res = await fetch('/api/auth/resend-code', { method: 'POST' })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ error: 'Failed to resend code' }))
+      throw new Error(data.error || 'Failed to resend code')
     }
   }, [])
 
@@ -149,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, memberships, activeMembership, campaignConfig, isLoading, isAdmin,
-      signIn, signOut, switchCampaign,
+      signIn, signOut, switchCampaign, verifyCode, resendCode,
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
-import { hashPassword, createSessionToken, getSessionFromRequest } from '@/lib/auth'
+import { hashPassword, createSessionToken, createPendingToken, generateVerificationCode, getSessionFromRequest } from '@/lib/auth'
+import { sendVerificationCode } from '@/lib/email'
 import crypto from 'crypto'
 
 /**
@@ -181,20 +182,48 @@ export async function POST(request: NextRequest) {
       role: invitation.role,
     })
 
-    // Create session token
-    const sessionToken = createSessionToken({ userId, email: userEmail })
+    if (session) {
+      // Already signed in (already passed 2FA) — issue full session for new campaign
+      const sessionToken = createSessionToken({ userId, email: userEmail })
 
-    // Set both session and campaign cookies
+      const response = NextResponse.json({
+        success: true,
+        user: { id: userId, email: userEmail, name: userName },
+        campaignId: invitation.campaign_id,
+        campaignName: invitation.campaign_name,
+        isNewUser,
+      })
+
+      response.headers.append('Set-Cookie', `vc-session=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`)
+      response.headers.append('Set-Cookie', `vc-campaign=${invitation.campaign_id}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`)
+
+      return response
+    }
+
+    // New user — require 2FA verification before full session
+    const code = generateVerificationCode()
+    const codeId = crypto.randomUUID()
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+
+    await db.query(
+      `INSERT INTO verification_codes (id, user_id, code, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [codeId, userId, code, expiresAt.toISOString()]
+    )
+
+    await sendVerificationCode(userEmail, code)
+
+    const pendingToken = createPendingToken(userId, userEmail)
+
     const response = NextResponse.json({
       success: true,
-      user: { id: userId, email: userEmail, name: userName },
+      requiresVerification: true,
       campaignId: invitation.campaign_id,
       campaignName: invitation.campaign_name,
       isNewUser,
     })
 
-    // Set multiple cookies
-    response.headers.append('Set-Cookie', `vc-session=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`)
+    response.headers.append('Set-Cookie', `vc-2fa-pending=${pendingToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`)
     response.headers.append('Set-Cookie', `vc-campaign=${invitation.campaign_id}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`)
 
     return response

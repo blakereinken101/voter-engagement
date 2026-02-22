@@ -43,7 +43,11 @@ export default function SignInPage() {
     setLoading(true)
 
     try {
-      await signIn(email, password)
+      const result = await signIn(email, password)
+      if (result?.requiresVerification) {
+        router.push('/verify-code')
+        return
+      }
       router.push(redirectTo || '/dashboard')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Sign in failed'
