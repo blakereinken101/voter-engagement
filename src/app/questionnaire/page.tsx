@@ -33,7 +33,7 @@ export default function QuestionnairePage() {
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-4 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between mb-3">
           <Link href="/" className="hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-16 md:h-20 w-auto" />
+            <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-20 md:h-28 w-auto" />
           </Link>
           <span className="text-white/40 text-sm">{state.personEntries.length} people</span>
         </div>

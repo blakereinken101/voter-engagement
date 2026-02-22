@@ -65,7 +65,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="glass-dark border-b border-white/10">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-10 md:h-14 w-auto" priority />
+          <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-20 md:h-28 w-auto" priority />
           <div className="flex items-center gap-4">
             {user ? (
               <Link

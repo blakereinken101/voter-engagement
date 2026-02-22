@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
       <header className="glass-dark border-b border-white/10">
         <div className="max-w-3xl mx-auto px-6 py-5 flex items-center justify-between">
           <Link href="/" className="hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-12 w-auto" priority />
+            <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-20 md:h-28 w-auto" priority />
           </Link>
           <Link
             href="/"

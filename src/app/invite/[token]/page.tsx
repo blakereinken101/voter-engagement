@@ -115,7 +115,7 @@ export default function InvitePage() {
     return (
       <div className="cosmic-bg constellation min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-md text-center">
-          <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-32 w-auto mx-auto mb-8" priority />
+          <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-40 w-auto mx-auto mb-8" priority />
           <div className="glass-card p-8">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-white mb-2">Invalid Invitation</h2>
@@ -150,7 +150,7 @@ export default function InvitePage() {
     <div className="cosmic-bg constellation min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-md animate-slide-up">
         <div className="text-center mb-8">
-          <Image src="/logo.png" alt="Threshold" width={400} height={224} className="h-32 w-auto mx-auto mb-4" priority />
+          <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-40 w-auto mx-auto mb-4" priority />
           <h1 className="text-2xl font-bold text-white mb-2">You&apos;re Invited</h1>
           <p className="text-white/60 text-sm">
             <span className="text-white font-bold">{invite?.inviterName}</span> has invited you to join
