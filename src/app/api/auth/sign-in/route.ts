@@ -54,10 +54,13 @@ export async function POST(request: NextRequest) {
       email: user.email,
     })
 
-    response.headers.append(
-      'Set-Cookie',
-      `vc-2fa-pending=${pendingToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`
-    )
+    response.cookies.set('vc-2fa-pending', pendingToken, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 600, // 10 minutes
+    })
 
     return response
   } catch (error) {

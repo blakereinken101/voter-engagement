@@ -100,10 +100,26 @@ export async function POST(request: NextRequest) {
     })
 
     // Set session cookie, clear pending cookie
-    response.headers.append('Set-Cookie', `vc-session=${sessionToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`)
-    response.headers.append('Set-Cookie', `vc-2fa-pending=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`)
+    response.cookies.set('vc-session', sessionToken, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    })
+    response.cookies.set('vc-2fa-pending', '', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+    })
     if (memberships[0]) {
-      response.headers.append('Set-Cookie', `vc-campaign=${memberships[0].campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`)
+      response.cookies.set('vc-campaign', memberships[0].campaignId, {
+        path: '/',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 365, // 1 year
+      })
     }
 
     return response
