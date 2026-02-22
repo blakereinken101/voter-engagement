@@ -18,11 +18,11 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb()
 
-    // Find the latest unused code for this user
+    // Find the latest unused 2FA code for this user
     const { rows: codeRows } = await db.query(
       `SELECT id, code, expires_at, attempts
        FROM verification_codes
-       WHERE user_id = $1 AND used = false
+       WHERE user_id = $1 AND used = false AND type = 'two_factor'
        ORDER BY created_at DESC LIMIT 1`,
       [pending.userId]
     )

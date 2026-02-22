@@ -175,6 +175,8 @@ async function initSchema() {
         used BOOLEAN DEFAULT false,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'two_factor';
     `)
 
     // ── Indexes ──────────────────────────────────────────────────────

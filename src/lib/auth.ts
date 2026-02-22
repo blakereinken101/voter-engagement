@@ -83,6 +83,25 @@ export function getPendingSession(): SessionPayload | null {
   }
 }
 
+// ── Password Reset Pending Session ───────────────────────────────
+
+export function createResetPendingToken(userId: string, email: string): string {
+  return jwt.sign({ userId, email, pendingReset: true }, JWT_SECRET, { expiresIn: '10m' })
+}
+
+export function getResetPendingSession(): SessionPayload | null {
+  const cookieStore = cookies()
+  const token = cookieStore.get('vc-reset-pending')?.value
+  if (!token) return null
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as SessionPayload & { pendingReset?: boolean }
+    if (!decoded.pendingReset) return null
+    return decoded
+  } catch {
+    return null
+  }
+}
+
 export function generateVerificationCode(): string {
   // Generate a random 6-digit code (100000-999999)
   const array = new Uint32Array(1)

@@ -30,16 +30,16 @@ export async function POST(request: NextRequest) {
     const codeId = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
 
-    // Invalidate any existing unused codes for this user
+    // Invalidate any existing unused 2FA codes for this user
     await db.query(
-      'UPDATE verification_codes SET used = true WHERE user_id = $1 AND used = false',
+      `UPDATE verification_codes SET used = true WHERE user_id = $1 AND used = false AND type = 'two_factor'`,
       [user.id]
     )
 
     // Store new code
     await db.query(
-      `INSERT INTO verification_codes (id, user_id, code, expires_at)
-       VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO verification_codes (id, user_id, code, expires_at, type)
+       VALUES ($1, $2, $3, $4, 'two_factor')`,
       [codeId, user.id, code, expiresAt.toISOString()]
     )
 

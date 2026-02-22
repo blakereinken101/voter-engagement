@@ -1,21 +1,24 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { getPendingSession, generateVerificationCode } from '@/lib/auth'
-import { sendVerificationCode } from '@/lib/email'
+import { getResetPendingSession, generateVerificationCode } from '@/lib/auth'
+import { sendPasswordResetCode } from '@/lib/email'
 
 export async function POST() {
   try {
-    const pending = getPendingSession()
+    const pending = getResetPendingSession()
     if (!pending) {
-      return NextResponse.json({ error: 'No pending verification. Please sign in again.' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'No pending reset. Please start over.' },
+        { status: 401 }
+      )
     }
 
     const db = await getDb()
 
-    // Rate limit: check if a 2FA code was sent in the last 60 seconds
+    // Rate limit: 60-second cooldown
     const { rows: recentCodes } = await db.query(
       `SELECT created_at FROM verification_codes
-       WHERE user_id = $1 AND type = 'two_factor' AND created_at > NOW() - INTERVAL '60 seconds'
+       WHERE user_id = $1 AND type = 'password_reset' AND created_at > NOW() - INTERVAL '60 seconds'
        ORDER BY created_at DESC LIMIT 1`,
       [pending.userId]
     )
@@ -30,9 +33,9 @@ export async function POST() {
       }, { status: 429 })
     }
 
-    // Invalidate existing 2FA codes
+    // Invalidate existing unused password reset codes
     await db.query(
-      `UPDATE verification_codes SET used = true WHERE user_id = $1 AND used = false AND type = 'two_factor'`,
+      `UPDATE verification_codes SET used = true WHERE user_id = $1 AND used = false AND type = 'password_reset'`,
       [pending.userId]
     )
 
@@ -43,16 +46,16 @@ export async function POST() {
 
     await db.query(
       `INSERT INTO verification_codes (id, user_id, code, expires_at, type)
-       VALUES ($1, $2, $3, $4, 'two_factor')`,
+       VALUES ($1, $2, $3, $4, 'password_reset')`,
       [codeId, pending.userId, code, expiresAt.toISOString()]
     )
 
     // Send via email
-    await sendVerificationCode(pending.email, code)
+    await sendPasswordResetCode(pending.email, code)
 
     return NextResponse.json({ sent: true })
   } catch (error) {
-    console.error('[auth/resend-code] Error:', error)
+    console.error('[auth/resend-reset-code] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

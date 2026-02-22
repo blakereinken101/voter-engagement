@@ -5,13 +5,17 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogIn, AlertCircle } from 'lucide-react'
+import { LogIn, AlertCircle, CheckCircle } from 'lucide-react'
 
 export default function SignInPage() {
   const router = useRouter()
   const redirectTo = useMemo(() => {
     if (typeof window === 'undefined') return null
     return new URLSearchParams(window.location.search).get('redirect')
+  }, [])
+  const wasReset = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return new URLSearchParams(window.location.search).get('reset') === 'true'
   }, [])
   const { signIn, user, isLoading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
@@ -77,6 +81,12 @@ export default function SignInPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
+          {wasReset && (
+            <div className="flex items-center gap-2 bg-vc-teal/20 text-vc-teal text-sm px-4 py-3 rounded-lg border border-vc-teal/30">
+              <CheckCircle className="w-4 h-4 flex-shrink-0" />
+              Password reset successfully! Sign in with your new password.
+            </div>
+          )}
           {error && (
             <div className="flex items-center gap-2 bg-red-500/20 text-red-300 text-sm px-4 py-3 rounded-lg border border-red-500/30">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -129,7 +139,9 @@ export default function SignInPage() {
         </form>
 
         <p className="text-center mt-6 text-xs text-white/40">
-          Forgot password? Contact your campaign admin for a reset.
+          <Link href="/forgot-password" className="text-vc-purple-light hover:underline">
+            Forgot your password?
+          </Link>
         </p>
         <p className="text-center mt-3 text-sm text-white/50">
           Need an account? Ask your campaign admin for an invite link.
