@@ -138,16 +138,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo banner */}
+      {/* Photo gallery */}
       <section className="px-6 py-12 max-w-5xl mx-auto">
-        <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
-          <Image
-            src="/hero-organizing.jpg"
-            alt="Grassroots organizing in action"
-            width={1200}
-            height={900}
-            className="w-full h-64 md:h-96 object-cover"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+            <Image
+              src="/hero-2.jpg"
+              alt="Volunteers making phone calls around a table"
+              width={1200}
+              height={900}
+              className="w-full h-56 md:h-72 object-cover"
+            />
+          </div>
+          <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+            <Image
+              src="/hero-3.jpg"
+              alt="Packed town hall event with engaged voters"
+              width={1200}
+              height={900}
+              className="w-full h-56 md:h-72 object-cover"
+            />
+          </div>
+          <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+            <Image
+              src="/hero-organizing.jpg"
+              alt="Campaign rally with enthusiastic crowd"
+              width={1200}
+              height={900}
+              className="w-full h-56 md:h-72 object-cover"
+            />
+          </div>
         </div>
       </section>
 
