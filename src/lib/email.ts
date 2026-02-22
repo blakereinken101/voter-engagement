@@ -34,3 +34,61 @@ export async function sendVerificationCode(email: string, code: string): Promise
     throw new Error('Failed to send verification email')
   }
 }
+
+interface ContactFormData {
+  name: string
+  email: string
+  organization?: string
+  message: string
+}
+
+export async function sendContactFormEmail(data: ContactFormData): Promise<void> {
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const TO_EMAIL = 'info@votethreshold.com'
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold Contact Form <${FROM_EMAIL}>`,
+    to: TO_EMAIL,
+    replyTo: data.email,
+    subject: `New contact form submission from ${data.name}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="color: #1a1a2e; margin: 0 0 20px;">New Contact Form Submission</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top; width: 120px;">Name</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px;">${escapeHtml(data.name)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top;">Email</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px;"><a href="mailto:${escapeHtml(data.email)}" style="color: #7c3aed;">${escapeHtml(data.email)}</a></td>
+          </tr>
+          ${data.organization ? `
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top;">Organization</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px;">${escapeHtml(data.organization)}</td>
+          </tr>
+          ` : ''}
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top;">Message</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px; white-space: pre-wrap;">${escapeHtml(data.message)}</td>
+          </tr>
+        </table>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send contact form email:', error)
+    throw new Error('Failed to send contact form email')
+  }
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}

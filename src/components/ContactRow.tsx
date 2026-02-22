@@ -313,14 +313,25 @@ export default function ContactRow({
 
         {/* Notes */}
         <td className="py-2.5 px-2">
-          <input
-            type="text"
-            value={localNotes}
-            onChange={e => setLocalNotes(e.target.value)}
-            onBlur={() => onNotesChange(person.id, localNotes)}
-            placeholder="Notes..."
-            className="glass-input w-full px-2 py-1 rounded text-xs focus:outline-none focus:ring-1 focus:ring-vc-purple/30"
-          />
+          <div className="flex gap-1 items-center">
+            <input
+              type="text"
+              value={localNotes}
+              onChange={e => setLocalNotes(e.target.value)}
+              onBlur={() => onNotesChange(person.id, localNotes)}
+              onKeyDown={e => { if (e.key === 'Enter') { onNotesChange(person.id, localNotes); (e.target as HTMLInputElement).blur() } }}
+              placeholder="Notes..."
+              className="glass-input flex-1 px-2 py-1 rounded text-xs focus:outline-none focus:ring-1 focus:ring-vc-purple/30"
+            />
+            {localNotes !== (actionItem?.notes ?? '') && (
+              <button
+                onClick={() => onNotesChange(person.id, localNotes)}
+                className="text-[9px] font-bold bg-vc-purple text-white px-1.5 py-0.5 rounded hover:bg-vc-purple-light transition-colors whitespace-nowrap"
+              >
+                Save
+              </button>
+            )}
+          </div>
         </td>
       </tr>
 

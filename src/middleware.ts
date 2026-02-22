@@ -16,8 +16,10 @@ export async function middleware(request: NextRequest) {
   // Allow public paths
   if (
     pathname === '/' ||
+    pathname === '/privacy' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
+    pathname.startsWith('/api/contact') ||
     PUBLIC_PATHS.some(p => pathname.startsWith(p))
   ) {
     return NextResponse.next()

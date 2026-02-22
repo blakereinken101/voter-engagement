@@ -174,10 +174,15 @@ export default function DashboardPage() {
       </main>
 
       {/* Footer */}
-      <footer className="text-center py-3">
-        <p className="text-white/15 text-xs">
-          {campaignConfig.organizationName} | {campaignConfig.name}
+      <footer className="text-center py-4 border-t border-white/5">
+        <p className="text-white/30 text-xs">
+          &copy; {new Date().getFullYear()} Vote Threshold LLC. All Rights Reserved.
         </p>
+        <div className="flex items-center justify-center gap-3 mt-1">
+          <Link href="/privacy" className="text-white/20 text-[10px] hover:text-white/40 transition-colors">Privacy Policy</Link>
+          <span className="text-white/10 text-[10px]">|</span>
+          <a href="mailto:info@votethreshold.com" className="text-white/20 text-[10px] hover:text-white/40 transition-colors">info@votethreshold.com</a>
+        </div>
       </footer>
     </div>
   )
