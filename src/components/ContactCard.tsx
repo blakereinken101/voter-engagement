@@ -4,7 +4,7 @@ import { SpreadsheetRow, OutreachMethod, ContactOutcome, SafeVoterRecord } from 
 import { CATEGORIES } from '@/lib/wizard-config'
 import { generateSmsLinkForContact } from '@/lib/sms-templates'
 import { useAuth } from '@/context/AuthContext'
-import campaignConfig from '@/lib/campaign-config'
+import defaultCampaignConfig from '@/lib/campaign-config'
 import { calculatePriority, getPriorityLabel } from '@/lib/contact-priority'
 import { MessageCircle, Phone, Coffee, ThumbsUp, HelpCircle, ThumbsDown, Mail, PhoneOff, Smartphone, X, UserPlus, Star, ClipboardList, Zap } from 'lucide-react'
 import clsx from 'clsx'
@@ -41,7 +41,8 @@ export default function ContactCard({
   onRemove, onConfirmMatch, onRejectMatch, onVolunteerRecruit, onSurveyChange,
 }: Props) {
   const { person, matchResult, actionItem } = row
-  const { user } = useAuth()
+  const { user, campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
   const [localNotes, setLocalNotes] = useState(actionItem?.notes ?? '')
   const [showCandidates, setShowCandidates] = useState(false)
 
@@ -221,7 +222,7 @@ export default function ContactCard({
           {person.phone ? (
             <button
               onClick={() => {
-                const smsLink = generateSmsLinkForContact(person.phone!, person.firstName, user?.name ?? '', matchResult?.segment)
+                const smsLink = generateSmsLinkForContact(person.phone!, person.firstName, user?.name ?? '', matchResult?.segment, campaignConfig.electionDate)
                 window.open(smsLink, '_blank')
                 onToggleContacted(person.id, 'text')
               }}

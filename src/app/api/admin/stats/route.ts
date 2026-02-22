@@ -7,9 +7,9 @@ export async function GET() {
     const ctx = await requireAdmin()
     const db = await getDb()
 
-    // ── Summary stats (scoped to campaign members) ──────────────────────
     const campaignId = ctx.campaignId
 
+    // ── Summary stats (scoped to campaign) ──────────────────────
     const { rows: volRows } = await db.query(
       "SELECT COUNT(*) as c FROM memberships WHERE campaign_id = $1 AND role = 'volunteer' AND is_active = true",
       [campaignId]
@@ -17,41 +17,52 @@ export async function GET() {
     const totalVolunteers = parseInt(volRows[0].c)
 
     const { rows: contRows } = await db.query(
-      'SELECT COUNT(*) as c FROM contacts c JOIN memberships m ON m.user_id = c.user_id AND m.campaign_id = $1',
+      'SELECT COUNT(*) as c FROM contacts WHERE campaign_id = $1',
       [campaignId]
     )
     const totalContacts = parseInt(contRows[0].c)
 
-    const { rows: matchRows } = await db.query("SELECT COUNT(*) as c FROM match_results WHERE status = 'confirmed'")
+    const { rows: matchRows } = await db.query(
+      "SELECT COUNT(*) as c FROM match_results mr JOIN contacts c ON c.id = mr.contact_id WHERE mr.status = 'confirmed' AND c.campaign_id = $1",
+      [campaignId]
+    )
     const matchedCount = parseInt(matchRows[0].c)
 
-    const { rows: contactedRows } = await db.query('SELECT COUNT(*) as c FROM action_items WHERE contacted = 1')
+    const { rows: contactedRows } = await db.query(
+      'SELECT COUNT(*) as c FROM action_items ai JOIN contacts c ON c.id = ai.contact_id WHERE ai.contacted = 1 AND c.campaign_id = $1',
+      [campaignId]
+    )
     const contactedCount = parseInt(contactedRows[0].c)
 
-    const { rows: suppRows } = await db.query("SELECT COUNT(*) as c FROM action_items WHERE contact_outcome = 'supporter'")
+    const { rows: suppRows } = await db.query(
+      "SELECT COUNT(*) as c FROM action_items ai JOIN contacts c ON c.id = ai.contact_id WHERE ai.contact_outcome = 'supporter' AND c.campaign_id = $1",
+      [campaignId]
+    )
     const supportersCount = parseInt(suppRows[0].c)
 
     // Outcome distribution
     const { rows: outcomes } = await db.query(`
-      SELECT contact_outcome, COUNT(*) as c FROM action_items
-      WHERE contact_outcome IS NOT NULL GROUP BY contact_outcome
-    `)
+      SELECT ai.contact_outcome, COUNT(*) as c FROM action_items ai
+      JOIN contacts c ON c.id = ai.contact_id
+      WHERE ai.contact_outcome IS NOT NULL AND c.campaign_id = $1
+      GROUP BY ai.contact_outcome
+    `, [campaignId])
 
     const outcomeDistribution: Record<string, number> = {}
     outcomes.forEach((o: { contact_outcome: string; c: string }) => { outcomeDistribution[o.contact_outcome] = parseInt(o.c) })
 
     // Segment distribution
     const { rows: segments } = await db.query(`
-      SELECT segment, COUNT(*) as c FROM match_results
-      WHERE segment IS NOT NULL GROUP BY segment
-    `)
+      SELECT mr.segment, COUNT(*) as c FROM match_results mr
+      JOIN contacts c ON c.id = mr.contact_id
+      WHERE mr.segment IS NOT NULL AND c.campaign_id = $1
+      GROUP BY mr.segment
+    `, [campaignId])
 
     const segmentDistribution: Record<string, number> = {}
     segments.forEach((s: { segment: string; c: string }) => { segmentDistribution[s.segment] = parseInt(s.c) })
 
     // ── Daily activity trend (last 30 days) ────────────────────────────
-
-    // Build a list of the last 30 dates (YYYY-MM-DD)
     const last30Dates: string[] = []
     const now = new Date()
     for (let i = 29; i >= 0; i--) {
@@ -65,31 +76,33 @@ export async function GET() {
     const { rows: contactsAddedRows } = await db.query(`
       SELECT DATE(created_at) as day, COUNT(*) as c
       FROM contacts
-      WHERE DATE(created_at) >= $1
+      WHERE DATE(created_at) >= $1 AND campaign_id = $2
       GROUP BY DATE(created_at)
-    `, [thirtyDaysAgo])
+    `, [thirtyDaysAgo, campaignId])
 
     const contactsAddedMap: Record<string, number> = {}
     contactsAddedRows.forEach((r: { day: string; c: string }) => { contactsAddedMap[r.day] = parseInt(r.c) })
 
-    // Contacts reached per day (contacted_date)
+    // Contacts reached per day
     const { rows: contactsReachedRows } = await db.query(`
-      SELECT DATE(contacted_date) as day, COUNT(*) as c
-      FROM action_items
-      WHERE contacted = 1 AND DATE(contacted_date) >= $1
-      GROUP BY DATE(contacted_date)
-    `, [thirtyDaysAgo])
+      SELECT DATE(ai.contacted_date) as day, COUNT(*) as c
+      FROM action_items ai
+      JOIN contacts c ON c.id = ai.contact_id
+      WHERE ai.contacted = 1 AND DATE(ai.contacted_date) >= $1 AND c.campaign_id = $2
+      GROUP BY DATE(ai.contacted_date)
+    `, [thirtyDaysAgo, campaignId])
 
     const contactsReachedMap: Record<string, number> = {}
     contactsReachedRows.forEach((r: { day: string; c: string }) => { contactsReachedMap[r.day] = parseInt(r.c) })
 
-    // Supporters gained per day (contacted_date with outcome = 'supporter')
+    // Supporters gained per day
     const { rows: supportersGainedRows } = await db.query(`
-      SELECT DATE(contacted_date) as day, COUNT(*) as c
-      FROM action_items
-      WHERE contact_outcome = 'supporter' AND DATE(contacted_date) >= $1
-      GROUP BY DATE(contacted_date)
-    `, [thirtyDaysAgo])
+      SELECT DATE(ai.contacted_date) as day, COUNT(*) as c
+      FROM action_items ai
+      JOIN contacts c ON c.id = ai.contact_id
+      WHERE ai.contact_outcome = 'supporter' AND DATE(ai.contacted_date) >= $1 AND c.campaign_id = $2
+      GROUP BY DATE(ai.contacted_date)
+    `, [thirtyDaysAgo, campaignId])
 
     const supportersGainedMap: Record<string, number> = {}
     supportersGainedRows.forEach((r: { day: string; c: string }) => { supportersGainedMap[r.day] = parseInt(r.c) })
@@ -102,7 +115,6 @@ export async function GET() {
     }))
 
     // ── Per-volunteer progress ─────────────────────────────────────────
-
     const { rows: volunteerRows } = await db.query(`
       SELECT
         u.id,
@@ -113,11 +125,11 @@ export async function GET() {
         COUNT(DISTINCT CASE WHEN ai.contact_outcome = 'supporter' THEN ai.id END) as supporters,
         MAX(al.created_at) as "lastActive"
       FROM users u
-      LEFT JOIN contacts c ON c.user_id = u.id
+      JOIN memberships mem ON mem.user_id = u.id AND mem.campaign_id = $1
+      LEFT JOIN contacts c ON c.user_id = u.id AND c.campaign_id = $1
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
-      LEFT JOIN activity_log al ON al.user_id = u.id
-      JOIN memberships mem ON mem.user_id = u.id AND mem.campaign_id = $1
+      LEFT JOIN activity_log al ON al.user_id = u.id AND al.campaign_id = $1
       WHERE mem.role = 'volunteer'
       GROUP BY u.id, u.name
       ORDER BY contacts DESC
@@ -149,19 +161,18 @@ export async function GET() {
     })
 
     // ── Outreach method breakdown ──────────────────────────────────────
-
     const { rows: methodRows } = await db.query(`
-      SELECT outreach_method, COUNT(*) as c
-      FROM action_items
-      WHERE outreach_method IS NOT NULL AND contacted = 1
-      GROUP BY outreach_method
-    `)
+      SELECT ai.outreach_method, COUNT(*) as c
+      FROM action_items ai
+      JOIN contacts c ON c.id = ai.contact_id
+      WHERE ai.outreach_method IS NOT NULL AND ai.contacted = 1 AND c.campaign_id = $1
+      GROUP BY ai.outreach_method
+    `, [campaignId])
 
     const outreachMethods: Record<string, number> = {}
     methodRows.forEach((m: { outreach_method: string; c: string }) => { outreachMethods[m.outreach_method] = parseInt(m.c) })
 
     // ── Category breakdown ─────────────────────────────────────────────
-
     const { rows: categoryRows } = await db.query(`
       SELECT
         c.category,
@@ -170,9 +181,10 @@ export async function GET() {
         COUNT(DISTINCT CASE WHEN ai.contact_outcome = 'supporter' THEN c.id END) as supporters
       FROM contacts c
       LEFT JOIN action_items ai ON ai.contact_id = c.id
+      WHERE c.campaign_id = $1
       GROUP BY c.category
       ORDER BY total DESC
-    `)
+    `, [campaignId])
 
     const categoryBreakdown = categoryRows.map((r: {
       category: string
@@ -187,14 +199,14 @@ export async function GET() {
     }))
 
     // ── Recent activity feed (last 20 entries) ─────────────────────────
-
     const { rows: activityRows } = await db.query(`
       SELECT al.id, u.name as "userName", al.action, al.details, al.created_at as "createdAt"
       FROM activity_log al
       JOIN users u ON u.id = al.user_id
+      WHERE al.campaign_id = $1
       ORDER BY al.created_at DESC
       LIMIT 20
-    `)
+    `, [campaignId])
 
     const recentActivity = activityRows.map((r: {
       id: number
@@ -211,7 +223,6 @@ export async function GET() {
     }))
 
     // ── Goal tracking ──────────────────────────────────────────────────
-
     const goals = {
       totalContactsGoal: parseInt(process.env.GOAL_CONTACTS || '500'),
       totalContactedGoal: parseInt(process.env.GOAL_CONTACTED || '250'),
@@ -220,8 +231,6 @@ export async function GET() {
       currentContacted: contactedCount,
       currentSupporters: supportersCount,
     }
-
-    // ── Return full response ───────────────────────────────────────────
 
     return NextResponse.json({
       totalVolunteers,

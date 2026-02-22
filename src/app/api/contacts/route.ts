@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
-import { getSessionFromRequest } from '@/lib/auth'
+import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 
 export async function GET() {
   try {
-    const session = getSessionFromRequest()
-    if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const ctx = await getRequestContext()
 
     const db = await getDb()
 
@@ -19,9 +18,9 @@ export async function GET() {
       FROM contacts c
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
-      WHERE c.user_id = $1
+      WHERE c.user_id = $1 AND c.campaign_id = $2
       ORDER BY c.created_at ASC
-    `, [session.userId])
+    `, [ctx.userId, ctx.campaignId])
 
     // Transform DB rows back to the client-side state shape
     const personEntries = contacts.map((row) => ({
@@ -77,6 +76,10 @@ export async function GET() {
 
     return NextResponse.json({ personEntries, matchResults, actionPlanState })
   } catch (error) {
+    if (error instanceof AuthError) {
+      const { error: msg, status } = handleAuthError(error)
+      return NextResponse.json({ error: msg }, { status })
+    }
     console.error('[contacts GET] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -84,8 +87,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = getSessionFromRequest()
-    if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const ctx = await getRequestContext()
 
     let body: Record<string, unknown>
     try {
@@ -116,9 +118,9 @@ export async function POST(request: NextRequest) {
       const safeZip = typeof zip === 'string' ? zip.replace(/[^0-9]/g, '').slice(0, 5) : null
 
       await client.query(`
-        INSERT INTO contacts (id, user_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-      `, [contactId, session.userId, sanitize(firstName, 50), sanitize(lastName, 50), sanitize(phone, 20) || null, sanitize(address, 200) || null, sanitize(city, 50) || null, safeZip || null, safeAge, sanitize(ageRange, 20) || null, safeGender || null, sanitize(category, 50)])
+        INSERT INTO contacts (id, user_id, campaign_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `, [contactId, ctx.userId, ctx.campaignId, sanitize(firstName, 50), sanitize(lastName, 50), sanitize(phone, 20) || null, sanitize(address, 200) || null, sanitize(city, 50) || null, safeZip || null, safeAge, sanitize(ageRange, 20) || null, safeGender || null, sanitize(category, 50)])
 
       await client.query(`
         INSERT INTO match_results (id, contact_id, status)
@@ -138,10 +140,14 @@ export async function POST(request: NextRequest) {
       client.release()
     }
 
-    await logActivity(session.userId, 'add_contact', { contactId, name: `${firstName} ${lastName}` })
+    await logActivity(ctx.userId, 'add_contact', { contactId, name: `${firstName} ${lastName}` }, ctx.campaignId)
 
     return NextResponse.json({ id: contactId, success: true })
   } catch (error) {
+    if (error instanceof AuthError) {
+      const { error: msg, status } = handleAuthError(error)
+      return NextResponse.json({ error: msg }, { status })
+    }
     console.error('[contacts POST] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -149,8 +155,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = getSessionFromRequest()
-    if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const ctx = await getRequestContext()
 
     const { searchParams } = new URL(request.url)
     const contactId = searchParams.get('contactId')
@@ -158,17 +163,21 @@ export async function DELETE(request: NextRequest) {
 
     const db = await getDb()
 
-    // Verify ownership
-    const { rows } = await db.query('SELECT id FROM contacts WHERE id = $1 AND user_id = $2', [contactId, session.userId])
+    // Verify ownership + campaign
+    const { rows } = await db.query('SELECT id FROM contacts WHERE id = $1 AND user_id = $2 AND campaign_id = $3', [contactId, ctx.userId, ctx.campaignId])
     if (!rows[0]) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
 
     // CASCADE deletes match_results and action_items
     await db.query('DELETE FROM contacts WHERE id = $1', [contactId])
 
-    await logActivity(session.userId, 'remove_contact', { contactId })
+    await logActivity(ctx.userId, 'remove_contact', { contactId }, ctx.campaignId)
 
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof AuthError) {
+      const { error: msg, status } = handleAuthError(error)
+      return NextResponse.json({ error: msg }, { status })
+    }
     console.error('[contacts DELETE] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

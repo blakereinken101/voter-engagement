@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { Share2, Copy, Check } from 'lucide-react'
-import campaignConfig from '@/lib/campaign-config'
+import defaultCampaignConfig from '@/lib/campaign-config'
+import { useAuth } from '@/context/AuthContext'
 
 export default function SocialShareBar() {
+  const { campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
   const [isExpanded, setIsExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const [shareUrl, setShareUrl] = useState('')

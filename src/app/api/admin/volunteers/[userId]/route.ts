@@ -4,12 +4,16 @@ import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 
 export async function GET(_request: NextRequest, { params }: { params: { userId: string } }) {
   try {
-    await requireAdmin()
+    const ctx = await requireAdmin()
     const db = await getDb()
     const { userId } = params
 
-    const { rows: userRows } = await db.query('SELECT id, email, name, role, created_at FROM users WHERE id = $1', [userId])
-    if (!userRows[0]) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    // Verify user is a member of this campaign
+    const { rows: memberRows } = await db.query(
+      'SELECT u.id, u.email, u.name, u.created_at FROM users u JOIN memberships m ON m.user_id = u.id AND m.campaign_id = $1 WHERE u.id = $2',
+      [ctx.campaignId, userId]
+    )
+    if (!memberRows[0]) return NextResponse.json({ error: 'User not found in this campaign' }, { status: 404 })
 
     const { rows: contacts } = await db.query(`
       SELECT c.*,
@@ -19,11 +23,11 @@ export async function GET(_request: NextRequest, { params }: { params: { userId:
       FROM contacts c
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
-      WHERE c.user_id = $1
+      WHERE c.user_id = $1 AND c.campaign_id = $2
       ORDER BY c.created_at DESC
-    `, [userId])
+    `, [userId, ctx.campaignId])
 
-    return NextResponse.json({ user: userRows[0], contacts })
+    return NextResponse.json({ user: memberRows[0], contacts })
   } catch (error: unknown) {
     const { error: msg, status } = handleAuthError(error)
     return NextResponse.json({ error: msg }, { status })

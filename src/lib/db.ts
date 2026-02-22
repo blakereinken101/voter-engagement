@@ -163,6 +163,8 @@ async function initSchema() {
       );
 
       ALTER TABLE action_items ADD COLUMN IF NOT EXISTS survey_responses TEXT;
+      ALTER TABLE contacts ADD COLUMN IF NOT EXISTS campaign_id TEXT REFERENCES campaigns(id);
+      ALTER TABLE activity_log ADD COLUMN IF NOT EXISTS campaign_id TEXT;
     `)
 
     // ── Indexes ──────────────────────────────────────────────────────
@@ -176,6 +178,8 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_memberships_campaign_id ON memberships(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_invitations_token ON invitations(token);
       CREATE INDEX IF NOT EXISTS idx_invitations_campaign_id ON invitations(campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_contacts_campaign_id ON contacts(campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_activity_log_campaign_id ON activity_log(campaign_id);
     `)
 
     // ── Seed defaults ────────────────────────────────────────────────
@@ -276,11 +280,26 @@ async function seedDefaults(client: import('pg').PoolClient) {
   if (usersWithoutMembership.length > 0) {
     console.log(`[db] Migrated ${usersWithoutMembership.length} users to memberships`)
   }
+
+  // ── Backfill campaign_id on contacts + activity_log ──────────────
+  const { rowCount: contactsBackfilled } = await client.query(
+    'UPDATE contacts SET campaign_id = $1 WHERE campaign_id IS NULL', [campaignId]
+  )
+  if (contactsBackfilled && contactsBackfilled > 0) {
+    console.log(`[db] Backfilled campaign_id on ${contactsBackfilled} contacts`)
+  }
+
+  const { rowCount: activityBackfilled } = await client.query(
+    'UPDATE activity_log SET campaign_id = $1 WHERE campaign_id IS NULL', [campaignId]
+  )
+  if (activityBackfilled && activityBackfilled > 0) {
+    console.log(`[db] Backfilled campaign_id on ${activityBackfilled} activity_log rows`)
+  }
 }
 
-export async function logActivity(userId: string, action: string, details?: Record<string, unknown>) {
+export async function logActivity(userId: string, action: string, details?: Record<string, unknown>, campaignId?: string) {
   await pool.query(
-    `INSERT INTO activity_log (user_id, action, details) VALUES ($1, $2, $3)`,
-    [userId, action, details ? JSON.stringify(details) : null]
+    `INSERT INTO activity_log (user_id, action, details, campaign_id) VALUES ($1, $2, $3, $4)`,
+    [userId, action, details ? JSON.stringify(details) : null, campaignId || null]
   )
 }

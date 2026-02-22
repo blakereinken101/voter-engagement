@@ -4,12 +4,12 @@ import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 
 export async function GET() {
   try {
-    await requireAdmin()
+    const ctx = await requireAdmin()
     const db = await getDb()
 
     const { rows: volunteers } = await db.query(`
       SELECT
-        u.id, u.email, u.name, u.created_at,
+        u.id, u.email, u.name, m.joined_at as created_at,
         COUNT(DISTINCT c.id) as contact_count,
         COUNT(DISTINCT CASE WHEN mr.status = 'confirmed' THEN mr.id END) as matched_count,
         COUNT(DISTINCT CASE WHEN ai.contacted = 1 THEN ai.id END) as contacted_count,
@@ -17,12 +17,13 @@ export async function GET() {
         COUNT(DISTINCT CASE WHEN ai.contact_outcome = 'undecided' THEN ai.id END) as undecided_count,
         COUNT(DISTINCT CASE WHEN ai.contact_outcome = 'opposed' THEN ai.id END) as opposed_count
       FROM users u
-      LEFT JOIN contacts c ON c.user_id = u.id
+      JOIN memberships m ON m.user_id = u.id AND m.campaign_id = $1 AND m.is_active = true
+      LEFT JOIN contacts c ON c.user_id = u.id AND c.campaign_id = $1
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
-      GROUP BY u.id, u.email, u.name, u.created_at
-      ORDER BY u.created_at DESC
-    `)
+      GROUP BY u.id, u.email, u.name, m.joined_at
+      ORDER BY m.joined_at DESC
+    `, [ctx.campaignId])
 
     return NextResponse.json({ volunteers })
   } catch (error: unknown) {

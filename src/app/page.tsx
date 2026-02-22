@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useRef, useEffect, useState, RefObject } from 'react'
 import { useAppContext } from '@/context/AppContext'
 import { useAuth } from '@/context/AuthContext'
-import campaignConfig from '@/lib/campaign-config'
+import defaultCampaignConfig from '@/lib/campaign-config'
 import { Users, Search, MessageCircle, ArrowRight, Shield } from 'lucide-react'
 
 function useInView(ref: RefObject<HTMLElement | null>, options?: IntersectionObserverInit) {
@@ -33,7 +33,8 @@ function useInView(ref: RefObject<HTMLElement | null>, options?: IntersectionObs
 
 export default function LandingPage() {
   const { state, dispatch } = useAppContext()
-  const { user } = useAuth()
+  const { user, campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
   const hasExistingData = state.personEntries.length > 0 || state.actionPlanState.length > 0
 
   const howRef = useRef<HTMLElement>(null)

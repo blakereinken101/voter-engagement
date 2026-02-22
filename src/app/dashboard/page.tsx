@@ -10,14 +10,15 @@ import VolunteerLeaderboard from '@/components/VolunteerLeaderboard'
 import SocialShareBar from '@/components/SocialShareBar'
 import VoterRegistrationLinks from '@/components/VoterRegistrationLinks'
 import PushNotificationToggle from '@/components/PushNotificationToggle'
-import campaignConfig from '@/lib/campaign-config'
+import defaultCampaignConfig from '@/lib/campaign-config'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown } from 'lucide-react'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
-  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign } = useAuth()
+  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
   const [isAdminMode, setIsAdminMode] = useState(false)
 
   // Stats

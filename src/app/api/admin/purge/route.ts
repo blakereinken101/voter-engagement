@@ -4,14 +4,21 @@ import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 
 export async function GET() {
   try {
-    await requireAdmin()
+    const ctx = await requireAdmin()
     const db = await getDb()
+    const campaignId = ctx.campaignId
 
-    const { rows: activityRows } = await db.query('SELECT COUNT(*) as c FROM activity_log')
-    const { rows: actionRows } = await db.query('SELECT COUNT(*) as c FROM action_items')
-    const { rows: matchRows } = await db.query('SELECT COUNT(*) as c FROM match_results')
-    const { rows: contactRows } = await db.query('SELECT COUNT(*) as c FROM contacts')
-    const { rows: userCountRows } = await db.query("SELECT COUNT(*) as c FROM users WHERE role != 'admin'")
+    const { rows: activityRows } = await db.query('SELECT COUNT(*) as c FROM activity_log WHERE campaign_id = $1', [campaignId])
+    const { rows: actionRows } = await db.query(
+      'SELECT COUNT(*) as c FROM action_items ai JOIN contacts c ON c.id = ai.contact_id WHERE c.campaign_id = $1', [campaignId]
+    )
+    const { rows: matchRows } = await db.query(
+      'SELECT COUNT(*) as c FROM match_results mr JOIN contacts c ON c.id = mr.contact_id WHERE c.campaign_id = $1', [campaignId]
+    )
+    const { rows: contactRows } = await db.query('SELECT COUNT(*) as c FROM contacts WHERE campaign_id = $1', [campaignId])
+    const { rows: userCountRows } = await db.query(
+      "SELECT COUNT(*) as c FROM memberships WHERE campaign_id = $1 AND role = 'volunteer'", [campaignId]
+    )
 
     return NextResponse.json({
       activity_log: parseInt(activityRows[0].c),
@@ -30,25 +37,25 @@ export async function POST(request: Request) {
   try {
     const ctx = await requireAdmin()
     const db = await getDb()
+    const campaignId = ctx.campaignId
 
     const body = await request.json()
     if (body.confirm !== true) {
       return NextResponse.json({ error: 'Confirmation required' }, { status: 400 })
     }
 
-    // Delete all data in order to respect foreign key constraints
-    await db.query('DELETE FROM activity_log')
-    await db.query('DELETE FROM action_items')
-    await db.query('DELETE FROM match_results')
-    await db.query('DELETE FROM contacts')
-    await db.query("DELETE FROM users WHERE role != 'admin'")
+    // Delete only this campaign's data (action_items + match_results cascade from contacts)
+    await db.query('DELETE FROM activity_log WHERE campaign_id = $1', [campaignId])
+    await db.query('DELETE FROM contacts WHERE campaign_id = $1', [campaignId])
+    // Remove volunteer memberships but keep admin memberships
+    await db.query("DELETE FROM memberships WHERE campaign_id = $1 AND role = 'volunteer'", [campaignId])
 
     // Log the purge action
-    await logActivity(ctx.userId, 'data_purge', { deletedBy: ctx.userId })
+    await logActivity(ctx.userId, 'data_purge', { deletedBy: ctx.userId }, campaignId)
 
     return NextResponse.json({
       success: true,
-      message: 'All campaign data purged. Admin accounts preserved.',
+      message: 'Campaign data purged. Admin accounts preserved.',
     })
   } catch (error: unknown) {
     const { error: msg, status } = handleAuthError(error)

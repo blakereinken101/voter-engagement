@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react'
 import { AppState, AppStep, PersonEntry, MatchResult, ActionPlanItem, OutreachMethod, ContactOutcome, SafeVoterRecord } from '@/types'
 import { calculateVoteScore, determineSegment } from '@/lib/voter-segments'
-import campaignConfig from '@/lib/campaign-config'
+import defaultCampaignConfig from '@/lib/campaign-config'
 import { useAuth } from '@/context/AuthContext'
 
 function generateUserId(): string {
@@ -12,8 +12,8 @@ function generateUserId(): string {
 
 const INITIAL_STATE: AppState = {
   userId: '',
-  campaignId: campaignConfig.id,
-  selectedState: campaignConfig.state,
+  campaignId: defaultCampaignConfig.id,
+  selectedState: defaultCampaignConfig.state,
   currentStep: 'landing',
   personEntries: [],
   currentCategoryIndex: 0,
@@ -297,7 +297,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-const STORAGE_KEY = `threshold-${campaignConfig.id}`
+// Storage key is dynamic per campaign — will be set after auth loads
 const STORAGE_VERSION = 1
 
 interface AppContextValue {
@@ -331,8 +331,21 @@ function syncToServer(path: string, method: string, body?: unknown) {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, INITIAL_STATE)
-  const { user } = useAuth()
+  const { user, campaignConfig: authCampaignConfig } = useAuth()
   const hydratedFromServer = useRef(false)
+
+  const activeCampaignConfig = authCampaignConfig || defaultCampaignConfig
+  const STORAGE_KEY = `threshold-${activeCampaignConfig.id}`
+
+  // Update state when campaign config changes
+  useEffect(() => {
+    if (activeCampaignConfig) {
+      dispatch({ type: 'HYDRATE', payload: {
+        campaignId: activeCampaignConfig.id,
+        selectedState: activeCampaignConfig.state,
+      }})
+    }
+  }, [activeCampaignConfig.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hydrate from server when user is authenticated
   useEffect(() => {

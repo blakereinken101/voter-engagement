@@ -4,7 +4,7 @@ import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin()
+    const ctx = await requireAdmin()
     const db = await getDb()
     const { searchParams } = new URL(request.url)
 
@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
     const limit = 100
     const offset = (page - 1) * limit
 
-    let where = 'WHERE 1=1'
-    const params: unknown[] = []
-    let paramIdx = 1
+    let where = 'WHERE c.campaign_id = $1'
+    const params: unknown[] = [ctx.campaignId]
+    let paramIdx = 2
 
     if (volunteer) { where += ` AND c.user_id = $${paramIdx++}`; params.push(volunteer) }
     if (segment) { where += ` AND mr.segment = $${paramIdx++}`; params.push(segment) }

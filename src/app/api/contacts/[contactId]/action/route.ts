@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
-import { getSessionFromRequest } from '@/lib/auth'
+import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 
 export async function PUT(request: NextRequest, { params }: { params: { contactId: string } }) {
   try {
-    const session = getSessionFromRequest()
-    if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    const ctx = await getRequestContext()
 
     const { contactId } = params
     if (!contactId || typeof contactId !== 'string' || contactId.length > 100) {
@@ -21,8 +20,8 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
 
     const db = await getDb()
 
-    // Verify ownership
-    const { rows } = await db.query('SELECT id FROM contacts WHERE id = $1 AND user_id = $2', [contactId, session.userId])
+    // Verify ownership + campaign
+    const { rows } = await db.query('SELECT id FROM contacts WHERE id = $1 AND user_id = $2 AND campaign_id = $3', [contactId, ctx.userId, ctx.campaignId])
     if (!rows[0]) return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
 
     // Valid enum values — must match types in src/types/index.ts
@@ -97,13 +96,17 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
 
     // Log meaningful actions
     if ('contactOutcome' in body) {
-      await logActivity(session.userId, 'record_outcome', { contactId, outcome: body.contactOutcome })
+      await logActivity(ctx.userId, 'record_outcome', { contactId, outcome: body.contactOutcome }, ctx.campaignId)
     } else if ('contacted' in body && body.contacted) {
-      await logActivity(session.userId, 'mark_contacted', { contactId, method: body.outreachMethod })
+      await logActivity(ctx.userId, 'mark_contacted', { contactId, method: body.outreachMethod }, ctx.campaignId)
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof AuthError) {
+      const { error: msg, status } = handleAuthError(error)
+      return NextResponse.json({ error: msg }, { status })
+    }
     console.error('[contacts/action PUT] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -4,7 +4,7 @@ import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 
 export async function GET(request: NextRequest) {
   try {
-    await requireAdmin()
+    const ctx = await requireAdmin()
     const db = await getDb()
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '50')
@@ -14,12 +14,13 @@ export async function GET(request: NextRequest) {
       SELECT al.*, u.name as user_name
       FROM activity_log al
       JOIN users u ON u.id = al.user_id
+      WHERE al.campaign_id = $1
     `
-    const params: unknown[] = []
-    let paramIdx = 1
+    const params: unknown[] = [ctx.campaignId]
+    let paramIdx = 2
 
     if (userId) {
-      query += ` WHERE al.user_id = $${paramIdx++}`
+      query += ` AND al.user_id = $${paramIdx++}`
       params.push(userId)
     }
 

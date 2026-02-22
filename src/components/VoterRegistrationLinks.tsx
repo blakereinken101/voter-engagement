@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import campaignConfig from '@/lib/campaign-config'
+import defaultCampaignConfig from '@/lib/campaign-config'
+import { useAuth } from '@/context/AuthContext'
 import { ClipboardCheck, ExternalLink, ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -45,6 +46,8 @@ function getRegistrationUrl(stateAbbr: string): string {
 const CHECK_REGISTRATION_URL = 'https://www.vote.org/am-i-registered-to-vote/'
 
 export default function VoterRegistrationLinks() {
+  const { campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
   const [isExpanded, setIsExpanded] = useState(false)
 
   const stateAbbr = campaignConfig.state

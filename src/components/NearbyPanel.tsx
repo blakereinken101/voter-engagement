@@ -4,7 +4,8 @@ import dynamic from 'next/dynamic'
 import { useAppContext } from '@/context/AppContext'
 import { SafeVoterRecord } from '@/types'
 import { calculateVoteScore, determineSegment } from '@/lib/voter-segments'
-import campaignConfig from '@/lib/campaign-config'
+import defaultCampaignConfig from '@/lib/campaign-config'
+import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 
 const NearbyMap = dynamic(() => import('./NearbyMap'), { ssr: false })
@@ -15,6 +16,8 @@ function sanitizeInput(input: string): string {
 
 export default function NearbyPanel() {
   const { state, addPerson } = useAppContext()
+  const { campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SafeVoterRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)

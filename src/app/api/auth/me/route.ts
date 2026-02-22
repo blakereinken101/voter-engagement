@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getSessionFromRequest, getActiveCampaignId } from '@/lib/auth'
+import { getCampaignConfig } from '@/lib/campaign-config.server'
 
 export async function GET() {
   try {
@@ -45,6 +46,11 @@ export async function GET() {
       ? memberships.find((m: { campaignId: string }) => m.campaignId === activeCampaignId) || memberships[0] || null
       : memberships[0] || null
 
+    // Load campaign config from DB for the active campaign
+    const campaignConfig = activeMembership
+      ? await getCampaignConfig(activeMembership.campaignId)
+      : null
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -55,6 +61,7 @@ export async function GET() {
       },
       memberships,
       activeMembership,
+      campaignConfig,
     })
   } catch (error) {
     console.error('[auth/me] Error:', error)

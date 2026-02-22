@@ -5,7 +5,7 @@ import { CATEGORIES } from '@/lib/wizard-config'
 import { getVoteHistoryDetail } from '@/lib/voter-segments'
 import { getRelationshipTip } from '@/lib/scripts'
 import { generateSmsLinkForContact } from '@/lib/sms-templates'
-import campaignConfig from '@/lib/campaign-config'
+import defaultCampaignConfig from '@/lib/campaign-config'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 import {
@@ -76,7 +76,8 @@ export default function ContactRow({
   onRemove, onConfirmMatch, onRejectMatch, onVolunteerRecruit, onSurveyChange,
 }: Props) {
   const { person, matchResult, actionItem } = row
-  const { user } = useAuth()
+  const { user, campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
   const [expanded, setExpanded] = useState(false)
   const [showCandidates, setShowCandidates] = useState(false)
   const [localNotes, setLocalNotes] = useState(actionItem?.notes ?? '')
@@ -236,7 +237,8 @@ export default function ContactRow({
                       person.phone,
                       person.firstName,
                       user?.name ?? 'Friend',
-                      segment
+                      segment,
+                      campaignConfig.electionDate
                     )
                     window.open(smsUrl, '_blank')
                     onToggleContacted(person.id, 'text')

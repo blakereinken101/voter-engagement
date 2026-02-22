@@ -7,6 +7,8 @@ import { CONVERSATION_SCRIPTS } from '@/lib/scripts'
 import { getVoteHistoryDetail } from '@/lib/voter-segments'
 import { getRelationshipTip } from '@/lib/scripts'
 import { generateSmsLinkForContact, getSmsTemplate, fillTemplate } from '@/lib/sms-templates'
+import defaultCampaignConfig from '@/lib/campaign-config'
+import { useAuth } from '@/context/AuthContext'
 import ScriptCard from './ScriptCard'
 import clsx from 'clsx'
 
@@ -56,6 +58,8 @@ function sortForRolodex(items: ActionPlanItem[]): ActionPlanItem[] {
 
 export default function RolodexCard() {
   const { state, toggleContacted, setContactOutcome, clearContact, updateNote } = useAppContext()
+  const { campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
   const [currentIndex, setCurrentIndex] = useState(0)
   const [step, setStep] = useState<CardStep>('prep')
   const [selectedMethod, setSelectedMethod] = useState<OutreachMethod | null>(null)
@@ -293,9 +297,9 @@ export default function RolodexCard() {
             {/* Send Text button */}
             {(() => {
               const smsLink = personEntry.phone
-                ? generateSmsLinkForContact(personEntry.phone, personEntry.firstName, 'Volunteer', segment)
+                ? generateSmsLinkForContact(personEntry.phone, personEntry.firstName, 'Volunteer', segment, campaignConfig.electionDate)
                 : null
-              const smsPreview = fillTemplate(getSmsTemplate(segment), personEntry.firstName, 'Volunteer')
+              const smsPreview = fillTemplate(getSmsTemplate(segment, campaignConfig.electionDate), personEntry.firstName, 'Volunteer')
               return (
                 <div className="mb-4">
                   <button

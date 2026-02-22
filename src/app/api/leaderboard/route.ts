@@ -1,18 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { getSessionFromRequest, getActiveCampaignId } from '@/lib/auth'
+import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 
 export async function GET() {
   try {
-    const session = getSessionFromRequest()
-    if (!session) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const campaignId = getActiveCampaignId()
-    if (!campaignId) {
-      return NextResponse.json({ error: 'No campaign selected' }, { status: 400 })
-    }
+    const ctx = await getRequestContext()
 
     const db = await getDb()
 
@@ -30,17 +22,21 @@ export async function GET() {
           ELSE 0 END as conversion_rate
       FROM users u
       JOIN memberships m ON m.user_id = u.id AND m.campaign_id = $1
-      LEFT JOIN contacts c ON c.user_id = u.id
+      LEFT JOIN contacts c ON c.user_id = u.id AND c.campaign_id = $1
       LEFT JOIN action_items ai ON ai.contact_id = c.id
       WHERE m.is_active = true
       GROUP BY u.id, u.name
       HAVING COUNT(DISTINCT c.id) > 0
       ORDER BY supporters DESC, contacted DESC
       LIMIT 50
-    `, [campaignId])
+    `, [ctx.campaignId])
 
-    return NextResponse.json({ leaderboard, currentUserId: session.userId })
-  } catch {
+    return NextResponse.json({ leaderboard, currentUserId: ctx.userId })
+  } catch (error) {
+    if (error instanceof AuthError) {
+      const { error: msg, status } = handleAuthError(error)
+      return NextResponse.json({ error: msg }, { status })
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
