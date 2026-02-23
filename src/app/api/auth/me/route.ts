@@ -71,6 +71,16 @@ export async function GET() {
       organizationId: s.org_id,
     }))
 
+    // Get user's organization slug for vanity URL
+    const { rows: orgSlugRows } = await db.query(`
+      SELECT DISTINCT o.slug
+      FROM memberships m
+      JOIN campaigns c ON c.id = m.campaign_id
+      JOIN organizations o ON o.id = c.org_id
+      WHERE m.user_id = $1 AND m.is_active = true
+      LIMIT 1
+    `, [user.id])
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -83,6 +93,7 @@ export async function GET() {
       activeMembership,
       campaignConfig,
       productSubscriptions,
+      organizationSlug: orgSlugRows[0]?.slug || null,
     })
   } catch (error) {
     console.error('[auth/me] Error:', error)

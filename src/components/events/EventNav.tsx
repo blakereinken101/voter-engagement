@@ -2,11 +2,12 @@
 
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Calendar, Plus, Settings, CreditCard, LogIn, Home } from 'lucide-react'
+import { Calendar, Plus, Settings, CreditCard, LogIn, Home, ExternalLink } from 'lucide-react'
 
 export default function EventNav() {
-  const { user } = useAuth()
+  const { user, organizationSlug } = useAuth()
   const pathname = usePathname()
 
   const isActive = (path: string) =>
@@ -19,8 +20,8 @@ export default function EventNav() {
           {/* Left: Brand + links */}
           <div className="flex items-center gap-1 sm:gap-2">
             <Link href="/events" className="flex items-center gap-2 mr-4">
-              <span className="text-lg">🗳️</span>
-              <span className="font-display font-bold text-white hidden sm:inline">Threshold Events</span>
+              <Image src="/logo.png" alt="Threshold" width={120} height={67} className="h-8 w-auto" />
+              <span className="font-display font-bold text-white hidden sm:inline">Events</span>
               <span className="hidden md:inline-flex ml-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-full">
                 For Progressives
               </span>
@@ -51,6 +52,16 @@ export default function EventNav() {
                   <Settings className="w-4 h-4" />
                   <span className="hidden sm:inline">Manage</span>
                 </Link>
+
+                {organizationSlug && (
+                  <Link
+                    href={`/${organizationSlug}`}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium transition-colors ${isActive(`/${organizationSlug}`)}`}
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span className="hidden sm:inline">My Page</span>
+                  </Link>
+                )}
               </>
             )}
 
@@ -65,7 +76,7 @@ export default function EventNav() {
             <span className="text-white/20 mx-1 hidden sm:inline">|</span>
 
             <a
-              href="https://votethreshold.com"
+              href="https://thresholdvote.com"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium text-vc-purple-light hover:text-white hover:bg-white/5 transition-colors"
             >
               <Home className="w-4 h-4" />

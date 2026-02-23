@@ -31,6 +31,7 @@ interface AuthContextValue {
   activeMembership: Membership | null
   campaignConfig: CampaignConfig | null
   productSubscriptions: ProductSubscriptionInfo[]
+  organizationSlug: string | null
   isLoading: boolean
   isAdmin: boolean
   hasEventsSubscription: boolean
@@ -49,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null)
   const [campaignConfig, setCampaignConfig] = useState<CampaignConfig | null>(null)
   const [productSubscriptions, setProductSubscriptions] = useState<ProductSubscriptionInfo[]>([])
+  const [organizationSlug, setOrganizationSlug] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   // Check session on mount and periodically verify token is still valid
@@ -75,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(data.user)
             setMemberships(data.memberships || [])
             setProductSubscriptions(data.productSubscriptions || [])
+            setOrganizationSlug(data.organizationSlug || null)
             if (data.campaignConfig) {
               setCampaignConfig(data.campaignConfig)
             }
@@ -95,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setActiveMembership(null)
             setCampaignConfig(null)
             setProductSubscriptions([])
+            setOrganizationSlug(null)
           }
         })
         .finally(() => {
@@ -183,6 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setActiveMembership(null)
     setCampaignConfig(null)
     setProductSubscriptions([])
+    setOrganizationSlug(null)
     document.cookie = 'vc-campaign=; Path=/; SameSite=Lax; Max-Age=0'
     window.location.href = '/sign-in'
   }, [])
@@ -207,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, memberships, activeMembership, campaignConfig, productSubscriptions,
+      user, memberships, activeMembership, campaignConfig, productSubscriptions, organizationSlug,
       isLoading, isAdmin, hasEventsSubscription,
       signIn, signOut, switchCampaign, verifyCode, resendCode,
     }}>
