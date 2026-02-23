@@ -405,11 +405,46 @@ export interface ChatToolResult {
   result: Record<string, unknown>
 }
 
+export type CampaignType = 'candidate' | 'ballot-measure' | 'issue-advocacy'
+export type GoalPriority = 'volunteer-recruitment' | 'voter-turnout' | 'persuasion' | 'fundraising'
+
+export interface CandidateInfo {
+  name?: string
+  party?: string
+  office?: string
+}
+
+export interface ElectionInfo {
+  date?: string
+  state?: string
+  district?: string
+}
+
+export interface PartyStrategies {
+  DEM?: string
+  REP?: string
+  UNF?: string
+  OTHER?: string
+}
+
+export interface CustomSurveyQuestion {
+  id: string
+  question: string
+  type: 'text' | 'select'
+  options?: string[]
+}
+
 export interface AICampaignContext {
   goals?: string
   keyIssues?: string[]
   talkingPoints?: string[]
   messagingGuidance?: string
+  campaignType?: CampaignType
+  goalPriorities?: GoalPriority[]
+  candidateInfo?: CandidateInfo
+  electionInfo?: ElectionInfo
+  partyStrategies?: PartyStrategies
+  customSurveyQuestions?: CustomSurveyQuestion[]
 }
 
 export type DashboardView = 'chat' | 'contacts'

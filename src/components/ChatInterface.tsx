@@ -15,6 +15,7 @@ export default function ChatInterface() {
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const hasAutoSent = useRef(false)
   const { state, addPersonLocal, batchMatchResultsLocal, toggleContactedLocal, setContactOutcomeLocal, setSurveyResponsesLocal } = useAppContext()
 
   // Load chat history on mount
@@ -66,6 +67,9 @@ export default function ChatInterface() {
             )
           }
           break
+        case 'update_match_status':
+          // DB is already updated by the tool; no client-side sync needed
+          break
       }
     },
     [addPersonLocal, batchMatchResultsLocal, toggleContactedLocal, setContactOutcomeLocal, setSurveyResponsesLocal],
@@ -76,17 +80,23 @@ export default function ChatInterface() {
       const text = (messageText || input).trim()
       if (!text || isStreaming) return
 
-      setInput('')
+      const isInit = text === '__INIT__'
+
+      if (!isInit) {
+        setInput('')
+      }
       setError(null)
 
-      // Add user message
-      const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: text,
-        createdAt: new Date().toISOString(),
+      // Add user message (skip for __INIT__)
+      if (!isInit) {
+        const userMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'user',
+          content: text,
+          createdAt: new Date().toISOString(),
+        }
+        setMessages(prev => [...prev, userMessage])
       }
-      setMessages(prev => [...prev, userMessage])
 
       // Create placeholder assistant message
       const assistantId = crypto.randomUUID()
@@ -181,6 +191,14 @@ export default function ChatInterface() {
     [input, isStreaming, handleToolResult],
   )
 
+  // Auto-send welcome message when chat is empty
+  useEffect(() => {
+    if (!isLoading && messages.length === 0 && !hasAutoSent.current && !isStreaming) {
+      hasAutoSent.current = true
+      sendMessage('__INIT__')
+    }
+  }, [isLoading, messages.length, isStreaming, sendMessage])
+
   const clearHistory = async () => {
     try {
       await fetch('/api/ai/history', { method: 'DELETE' })
@@ -234,27 +252,13 @@ export default function ChatInterface() {
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-vc-purple/20 ring-2 ring-vc-purple/40 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-vc-purple-light" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white mb-1">Ready to get started?</h2>
-              <p className="text-sm text-white/50 max-w-sm">
-                I&rsquo;ll help you build your contact list and coach you through conversations.
-              </p>
-            </div>
-          </div>
-        ) : (
-          messages.map(msg => (
-            <ChatMessageBubble
-              key={msg.id}
-              message={msg}
-              isStreaming={isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant'}
-            />
-          ))
-        )}
+        {messages.map(msg => (
+          <ChatMessageBubble
+            key={msg.id}
+            message={msg}
+            isStreaming={isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant'}
+          />
+        ))}
         <div ref={messagesEndRef} />
       </div>
 

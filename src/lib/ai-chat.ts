@@ -97,6 +97,7 @@ export function buildSystemPrompt(
   config: CampaignConfig,
   aiContext: AICampaignContext | undefined,
   volunteerState: VolunteerState,
+  volunteerName?: string,
 ): string {
   const parts: string[] = []
 
@@ -105,13 +106,27 @@ export function buildSystemPrompt(
 
 You are the primary interface for volunteers. Be conversational, warm, and supportive. Use their first name when you know it. Keep responses concise but helpful.`)
 
+  // Volunteer identity
+  if (volunteerName) {
+    parts.push(`
+## Volunteer
+- Name: ${volunteerName}`)
+  }
+
   // Campaign context
+  const candidateName = aiContext?.candidateInfo?.name || config.candidateName
+  const candidateParty = aiContext?.candidateInfo?.party || ''
+  const candidateOffice = aiContext?.candidateInfo?.office || ''
+  const electionDate = aiContext?.electionInfo?.date || config.electionDate || ''
+  const electionState = aiContext?.electionInfo?.state || config.state
+
   parts.push(`
 ## Campaign Information
 - Campaign: ${config.name}
-- Candidate: ${config.candidateName}
-- State: ${config.state}
-${config.electionDate ? `- Election Date: ${config.electionDate}` : ''}
+- Candidate: ${candidateName}${candidateParty ? ` (${candidateParty})` : ''}
+${candidateOffice ? `- Office: ${candidateOffice}\n` : ''}- State: ${electionState}
+${electionDate ? `- Election Date: ${electionDate}` : ''}
+${aiContext?.electionInfo?.district ? `- District: ${aiContext.electionInfo.district}` : ''}
 ${config.organizationName ? `- Organization: ${config.organizationName}` : ''}`)
 
   // AI campaign context (admin-configured)
@@ -119,9 +134,42 @@ ${config.organizationName ? `- Organization: ${config.organizationName}` : ''}`)
     parts.push(`
 ## Campaign Goals & Messaging`)
     if (aiContext.goals) parts.push(`**Goals:** ${aiContext.goals}`)
+    if (aiContext.goalPriorities?.length) {
+      parts.push(`**Goal Priorities (in order):**\n${aiContext.goalPriorities.map((g, i) => `${i + 1}. ${g.replace(/-/g, ' ')}`).join('\n')}\n\nFocus volunteer efforts on the highest-priority goal first. When that goal is being met, shift to the next one.`)
+    }
     if (aiContext.keyIssues?.length) parts.push(`**Key Issues:** ${aiContext.keyIssues.join(', ')}`)
     if (aiContext.talkingPoints?.length) parts.push(`**Talking Points:**\n${aiContext.talkingPoints.map(tp => `- ${tp}`).join('\n')}`)
     if (aiContext.messagingGuidance) parts.push(`**Messaging Guidance:** ${aiContext.messagingGuidance}`)
+
+    // Party-based strategies
+    if (aiContext.partyStrategies) {
+      const ps = aiContext.partyStrategies
+      const strategies = [
+        ps.DEM && `- **Democrats (DEM):** ${ps.DEM}`,
+        ps.REP && `- **Republicans (REP):** ${ps.REP}`,
+        ps.UNF && `- **Unaffiliated / Independent (UNF/IND):** ${ps.UNF}`,
+        ps.OTHER && `- **Other parties:** ${ps.OTHER}`,
+      ].filter(Boolean).join('\n')
+      if (strategies) {
+        parts.push(`
+## Party-Based Strategy
+
+When coaching conversations, tailor the approach based on the contact's party affiliation from voter file match data:
+${strategies}
+
+Use the party_affiliation field from voter file matches to determine which strategy to use for each contact.`)
+      }
+    }
+
+    // Custom survey questions
+    if (aiContext.customSurveyQuestions?.length) {
+      parts.push(`
+## Custom Survey Questions
+When logging conversations, also try to gather answers to these campaign-specific questions:
+${aiContext.customSurveyQuestions.map(q => `- ${q.question}${q.type === 'select' && q.options?.length ? ` (Options: ${q.options.join(', ')})` : ''}`).join('\n')}
+
+Record these as surveyResponses when using the log_conversation tool.`)
+    }
   }
 
   // Volunteer state
@@ -154,6 +202,24 @@ When they mention a person:
 After adding several contacts in a category, naturally transition to the next one. You don't have to go in order — follow the conversation.
 
 When you've collected contacts, periodically use run_matching to match them against the voter file. Do this after every 5-10 new contacts.`)
+
+  // Match confirmation flow
+  parts.push(`
+## Match Confirmation Flow
+
+After running voter file matching, present each match to the volunteer for confirmation. For each matched person, say something like:
+
+"I found a match for [Name]. They're at [address] in [city], born in [birth_year], registered as [party_affiliation]. Does that sound right?"
+
+Key rules:
+- Present key identifying info: address, city, birth year, party affiliation
+- Confirm one at a time or in small batches (2-3 at a time if there are many)
+- If the volunteer confirms, use update_match_status with status 'confirmed'
+- If the volunteer says it's wrong, use update_match_status with status 'unmatched'
+- If there's no match (no bestMatch data), just note the person is unmatched
+- Be conversational about it — don't read off a data dump
+- After confirming matches, briefly summarize: "Great, we confirmed X matches. Y people didn't match — that's okay, we can still reach out to them."`)
+
 
   // Transition logic
   parts.push(`
@@ -211,6 +277,7 @@ Use the log_conversation tool to record the results.`)
 - **get_contact_details**: Use when the volunteer asks about a specific person.
 - **get_contacts_summary**: Use when the volunteer asks how many contacts they have, wants a summary, or you need to check their progress.
 - **log_conversation**: Use after the volunteer reports how a conversation went. Always record outcome and method.
+- **update_match_status**: Use after the volunteer confirms or denies a voter file match. Status is 'confirmed' or 'unmatched'.
 
 Important: After using tools, incorporate the results naturally into your response. Don't just dump raw data — summarize it conversationally.`)
 
@@ -306,6 +373,22 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       properties: {},
     },
   },
+  {
+    name: 'update_match_status',
+    description: 'Confirm or reject a voter file match for a contact. Use after the volunteer confirms or denies a match.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: { type: 'string', description: 'The ID of the contact' },
+        status: {
+          type: 'string',
+          enum: ['confirmed', 'unmatched'],
+          description: 'Whether the match is confirmed or rejected',
+        },
+      },
+      required: ['contactId', 'status'],
+    },
+  },
 ]
 
 // =============================================
@@ -335,6 +418,8 @@ export async function executeTool(
       return executeGetContactDetails(input, ctx)
     case 'get_contacts_summary':
       return executeGetContactsSummary(ctx)
+    case 'update_match_status':
+      return executeUpdateMatchStatus(input, ctx)
     default:
       return { error: `Unknown tool: ${name}` }
   }
@@ -660,6 +745,45 @@ async function executeGetContactsSummary(ctx: ToolContext): Promise<Record<strin
   }
 }
 
+async function executeUpdateMatchStatus(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<Record<string, unknown>> {
+  const db = await getDb()
+  const contactId = input.contactId as string
+  const status = input.status as string
+
+  if (!contactId || !['confirmed', 'unmatched'].includes(status)) {
+    return { error: 'contactId and valid status (confirmed/unmatched) are required' }
+  }
+
+  // Verify ownership
+  const { rows } = await db.query(
+    'SELECT id FROM contacts WHERE id = $1 AND user_id = $2 AND campaign_id = $3',
+    [contactId, ctx.userId, ctx.campaignId],
+  )
+  if (!rows[0]) return { error: 'Contact not found' }
+
+  if (status === 'unmatched') {
+    await db.query(
+      `UPDATE match_results SET status = 'unmatched', best_match_data = NULL,
+       vote_score = NULL, segment = NULL, updated_at = NOW()
+       WHERE contact_id = $1`,
+      [contactId],
+    )
+  } else {
+    await db.query(
+      `UPDATE match_results SET status = 'confirmed', updated_at = NOW()
+       WHERE contact_id = $1`,
+      [contactId],
+    )
+  }
+
+  await logActivity(ctx.userId, 'match_status_update', { contactId, status, source: 'ai_chat' }, ctx.campaignId)
+
+  return { success: true, contactId, status }
+}
+
 // =============================================
 // STREAMING CHAT
 // =============================================
@@ -675,9 +799,17 @@ export async function* streamChat(
   options: ChatStreamOptions,
 ): AsyncGenerator<{ type: string; [key: string]: unknown }> {
   const client = getAnthropicClient()
+  const db = await getDb()
   const config = await getCampaignConfig(options.campaignId)
   const volunteerState = await loadVolunteerState(options.userId, options.campaignId)
-  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState)
+
+  // Load volunteer name
+  const { rows: userRows } = await db.query(
+    'SELECT name FROM users WHERE id = $1', [options.userId],
+  )
+  const volunteerName = userRows[0]?.name || undefined
+
+  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName)
 
   const ctx: ToolContext = { userId: options.userId, campaignId: options.campaignId }
 

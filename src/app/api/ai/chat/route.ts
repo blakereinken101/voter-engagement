@@ -38,13 +38,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const message = typeof body.message === 'string'
+    const rawMessage = typeof body.message === 'string'
       ? body.message.replace(/<[^>]*>/g, '').trim().slice(0, 4000)
       : ''
 
-    if (!message) {
+    if (!rawMessage) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
+
+    const isInit = rawMessage === '__INIT__'
+    const message = isInit
+      ? '[System: The volunteer just opened the chat for the first time. Introduce yourself, greet them by name, explain what you\'ll be doing together (building a contact list from their personal network to support the campaign), and be warm and encouraging. Keep it concise — 3-4 sentences.]'
+      : rawMessage
 
     const db = await getDb()
 
@@ -62,12 +67,14 @@ export async function POST(request: NextRequest) {
       content: row.content as string,
     }))
 
-    // Save user message to DB
-    await db.query(
-      `INSERT INTO chat_messages (id, user_id, campaign_id, role, content)
-       VALUES ($1, $2, $3, 'user', $4)`,
-      [crypto.randomUUID(), ctx.userId, ctx.campaignId, message],
-    )
+    // Save user message to DB (skip for __INIT__ sentinel)
+    if (!isInit) {
+      await db.query(
+        `INSERT INTO chat_messages (id, user_id, campaign_id, role, content)
+         VALUES ($1, $2, $3, 'user', $4)`,
+        [crypto.randomUUID(), ctx.userId, ctx.campaignId, rawMessage],
+      )
+    }
 
     // Stream the AI response
     const encoder = new TextEncoder()

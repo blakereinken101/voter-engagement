@@ -1,6 +1,6 @@
 'use client'
 
-import { UserPlus, Search, MessageCircle, CheckCircle } from 'lucide-react'
+import { UserPlus, Search, MessageCircle, CheckCircle, ShieldCheck, ShieldX } from 'lucide-react'
 import type { ChatMessage } from '@/types'
 
 function ToolResultChip({ name, result }: { name: string; result: Record<string, unknown> }) {
@@ -9,6 +9,9 @@ function ToolResultChip({ name, result }: { name: string; result: Record<string,
     run_matching: <Search className="w-3 h-3" />,
     log_conversation: <MessageCircle className="w-3 h-3" />,
     get_next_contact: <CheckCircle className="w-3 h-3" />,
+    update_match_status: result.status === 'confirmed'
+      ? <ShieldCheck className="w-3 h-3" />
+      : <ShieldX className="w-3 h-3" />,
   }
 
   const labels: Record<string, string> = {
@@ -20,6 +23,7 @@ function ToolResultChip({ name, result }: { name: string; result: Record<string,
     get_next_contact: result.name ? `Next: ${result.name}` : 'Checked contacts',
     get_contact_details: 'Looked up contact',
     get_contacts_summary: 'Checked summary',
+    update_match_status: result.status === 'confirmed' ? 'Match confirmed' : 'Match rejected',
   }
 
   return (
@@ -57,7 +61,7 @@ export default function ChatMessageBubble({ message, isStreaming }: ChatMessageB
         )}
 
         {/* Message content */}
-        <div className="text-sm leading-relaxed whitespace-pre-wrap">
+        <div className="text-base leading-relaxed whitespace-pre-wrap">
           {message.content}
           {isStreaming && !message.content && (
             <span className="inline-flex gap-1 ml-1">

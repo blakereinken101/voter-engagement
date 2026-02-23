@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
-import type { AICampaignContext } from '@/types'
+import type { AICampaignContext, CampaignType, GoalPriority } from '@/types'
 
 export async function GET() {
   try {
@@ -55,15 +55,58 @@ export async function PUT(request: NextRequest) {
     const sanitize = (val: unknown, maxLen = 5000): string | undefined =>
       typeof val === 'string' ? val.replace(/<[^>]*>/g, '').trim().slice(0, maxLen) || undefined : undefined
 
+    const validCampaignTypes: CampaignType[] = ['candidate', 'ballot-measure', 'issue-advocacy']
+    const validGoalPriorities: GoalPriority[] = ['volunteer-recruitment', 'voter-turnout', 'persuasion', 'fundraising']
+
+    const bc = body.aiContext as Record<string, unknown>
+
     const aiContext: AICampaignContext = {
-      goals: sanitize(body.aiContext.goals),
-      keyIssues: Array.isArray(body.aiContext.keyIssues)
-        ? body.aiContext.keyIssues.filter((i): i is string => typeof i === 'string').map(i => i.slice(0, 200)).slice(0, 20)
+      goals: sanitize(bc.goals),
+      keyIssues: Array.isArray(bc.keyIssues)
+        ? bc.keyIssues.filter((i): i is string => typeof i === 'string').map(i => i.slice(0, 200)).slice(0, 20)
         : undefined,
-      talkingPoints: Array.isArray(body.aiContext.talkingPoints)
-        ? body.aiContext.talkingPoints.filter((i): i is string => typeof i === 'string').map(i => i.slice(0, 500)).slice(0, 20)
+      talkingPoints: Array.isArray(bc.talkingPoints)
+        ? bc.talkingPoints.filter((i): i is string => typeof i === 'string').map(i => i.slice(0, 500)).slice(0, 20)
         : undefined,
-      messagingGuidance: sanitize(body.aiContext.messagingGuidance),
+      messagingGuidance: sanitize(bc.messagingGuidance),
+      campaignType: validCampaignTypes.includes(bc.campaignType as CampaignType)
+        ? bc.campaignType as CampaignType
+        : undefined,
+      goalPriorities: Array.isArray(bc.goalPriorities)
+        ? (bc.goalPriorities as string[]).filter((g): g is GoalPriority => validGoalPriorities.includes(g as GoalPriority)).slice(0, 4)
+        : undefined,
+      candidateInfo: bc.candidateInfo && typeof bc.candidateInfo === 'object'
+        ? {
+            name: sanitize((bc.candidateInfo as Record<string, unknown>).name, 200),
+            party: sanitize((bc.candidateInfo as Record<string, unknown>).party, 50),
+            office: sanitize((bc.candidateInfo as Record<string, unknown>).office, 200),
+          }
+        : undefined,
+      electionInfo: bc.electionInfo && typeof bc.electionInfo === 'object'
+        ? {
+            date: sanitize((bc.electionInfo as Record<string, unknown>).date, 20),
+            state: sanitize((bc.electionInfo as Record<string, unknown>).state, 5),
+            district: sanitize((bc.electionInfo as Record<string, unknown>).district, 100),
+          }
+        : undefined,
+      partyStrategies: bc.partyStrategies && typeof bc.partyStrategies === 'object'
+        ? {
+            DEM: sanitize((bc.partyStrategies as Record<string, unknown>).DEM, 500),
+            REP: sanitize((bc.partyStrategies as Record<string, unknown>).REP, 500),
+            UNF: sanitize((bc.partyStrategies as Record<string, unknown>).UNF, 500),
+            OTHER: sanitize((bc.partyStrategies as Record<string, unknown>).OTHER, 500),
+          }
+        : undefined,
+      customSurveyQuestions: Array.isArray(bc.customSurveyQuestions)
+        ? (bc.customSurveyQuestions as Record<string, unknown>[]).slice(0, 10).map(q => ({
+            id: sanitize(q.id, 50) || crypto.randomUUID(),
+            question: sanitize(q.question, 500) || '',
+            type: q.type === 'select' ? 'select' as const : 'text' as const,
+            options: Array.isArray(q.options)
+              ? (q.options as unknown[]).filter((o): o is string => typeof o === 'string').slice(0, 10)
+              : undefined,
+          }))
+        : undefined,
     }
 
     const db = await getDb()

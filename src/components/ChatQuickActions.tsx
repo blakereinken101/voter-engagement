@@ -17,11 +17,7 @@ export default function ChatQuickActions({ onSend, contactCount, contactedCount,
   const actions: { label: string; message: string; icon: React.ReactNode }[] = []
 
   if (!hasContacts) {
-    actions.push({
-      label: "Let's get started",
-      message: "I'm ready to start building my contact list!",
-      icon: <ArrowRight className="w-3.5 h-3.5" />,
-    })
+    // AI auto-sends welcome message, no starter action needed
   } else if (!hasEnoughContacts) {
     actions.push({
       label: 'Add more people',
