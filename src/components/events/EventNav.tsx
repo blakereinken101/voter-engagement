@@ -3,7 +3,7 @@
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Calendar, Plus, Settings, CreditCard, LogIn } from 'lucide-react'
+import { Calendar, Plus, Settings, CreditCard, LogIn, Home } from 'lucide-react'
 
 export default function EventNav() {
   const { user } = useAuth()
@@ -60,6 +60,16 @@ export default function EventNav() {
             >
               <CreditCard className="w-4 h-4" />
               <span className="hidden sm:inline">Pricing</span>
+            </Link>
+
+            <span className="text-white/20 mx-1 hidden sm:inline">|</span>
+
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium text-vc-purple-light hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Threshold</span>
             </Link>
           </div>
 

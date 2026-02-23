@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRef, useEffect, useState, RefObject, FormEvent } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { ArrowRight, CheckCircle, Mail, Phone, Users, BarChart3, Settings, Send } from 'lucide-react'
+import { ArrowRight, CheckCircle, Mail, Phone, Users, BarChart3, Settings, Send, Calendar, Sparkles } from 'lucide-react'
 
 function useInView(ref: RefObject<HTMLElement | null>, options?: IntersectionObserverInit) {
   const [isInView, setIsInView] = useState(false)
@@ -67,6 +67,9 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-20 md:h-28 w-auto" priority />
           <div className="flex items-center gap-4">
+            <Link href="/events" className="text-sm font-bold text-white/60 hover:text-white transition-colors">
+              Events
+            </Link>
             {user ? (
               <Link
                 href="/dashboard"
@@ -239,11 +242,69 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Events Platform CTA */}
+      <section className="px-6 py-16">
+        <div className="max-w-3xl mx-auto">
+          <div className="glass-card p-8 md:p-10 relative overflow-hidden">
+            {/* Background accent */}
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-vc-purple/15 rounded-full blur-3xl" />
+            <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-vc-teal/10 rounded-full blur-3xl" />
+
+            <div className="relative">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-vc-purple/10 border border-vc-purple/20 text-vc-purple-light text-sm mb-4">
+                <Calendar className="w-4 h-4" />
+                <span>Now Live</span>
+              </div>
+              <h2 className="font-display text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight">
+                Threshold Events
+              </h2>
+              <p className="text-white/60 leading-relaxed mb-6 max-w-xl">
+                Our events platform is built for progressive organizing. Create and discover canvassing shifts, phone banks, rallies, voter registration drives, and more. Coordinate your team, track RSVPs, and keep your movement connected.
+              </p>
+              <Link
+                href="/events"
+                className="inline-flex items-center gap-2 bg-vc-purple text-white font-bold font-display text-base px-8 py-3 rounded-btn transition-all hover:bg-vc-purple-light hover:shadow-glow"
+              >
+                <Calendar className="w-4 h-4" />
+                Explore Events
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Photo divider 3 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
         <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a] via-transparent to-[#0a0a1a]" />
       </div>
+
+      {/* Waitlist CTA for Relational Organizing Tool */}
+      <section className="px-6 py-20">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-vc-teal/10 border border-vc-teal/20 text-vc-teal text-sm mb-4">
+            <Sparkles className="w-4 h-4" />
+            <span>Coming Soon</span>
+          </div>
+          <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
+            The relational organizing tool your campaign needs
+          </h2>
+          <p className="text-white/50 max-w-xl mx-auto mb-4 leading-relaxed">
+            Threshold&rsquo;s relational organizing platform helps your volunteers turn their personal networks into your most powerful voter contact program. AI-assisted contact building, automatic voter file matching, and real-time outreach tracking &mdash; all in one place.
+          </p>
+          <p className="text-white/40 max-w-lg mx-auto mb-8 text-sm leading-relaxed">
+            We&rsquo;re onboarding campaigns now. Join the waitlist to get early access and work directly with our team to build a program tailored to your race.
+          </p>
+          <a
+            href="#contact"
+            className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
+          >
+            Join the Waitlist
+            <ArrowRight className="w-5 h-5" />
+          </a>
+        </div>
+      </section>
 
       {/* Contact / Get in Touch */}
       <section
