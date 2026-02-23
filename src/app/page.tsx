@@ -329,7 +329,7 @@ export default function LandingPage() {
       {/* Events Platform CTA */}
       <section
         ref={eventsRef}
-        className={`px-6 py-16 opacity-0 ${eventsInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 pt-16 pb-8 opacity-0 ${eventsInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-3xl mx-auto">
           <div className="glass-card p-8 md:p-10 relative overflow-hidden">
@@ -348,7 +348,7 @@ export default function LandingPage() {
                 A purpose-built events platform for progressive campaigns and organizations. Host canvassing shifts, phone banks, rallies, voter registration drives, house parties, and more &mdash; all with tools designed for organizers, not generic event software.
               </p>
               <p className="text-white/40 leading-relaxed mb-6 max-w-xl text-sm">
-                Create an account in minutes. Get your own custom events page, manage RSVPs, and coordinate volunteers. Free trial included.
+                Create an account in minutes. Get your own custom events page, manage RSVPs, and coordinate volunteers. Start free with 2 events &mdash; no credit card required.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link
@@ -360,10 +360,10 @@ export default function LandingPage() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
-                  href="/sign-up"
+                  href="/events/pricing"
                   className="inline-flex items-center gap-2 glass text-white font-bold font-display text-base px-8 py-3 rounded-btn transition-all hover:bg-white/10"
                 >
-                  Create Your Page
+                  View Pricing
                 </Link>
               </div>
             </div>
@@ -375,7 +375,7 @@ export default function LandingPage() {
       <section
         id="waitlist"
         ref={contactRef}
-        className={`px-6 py-20 opacity-0 ${contactInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 pt-10 pb-20 opacity-0 ${contactInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">

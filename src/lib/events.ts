@@ -1,7 +1,7 @@
 import { getPool } from '@/lib/db'
 import { getSessionFromRequest, SessionPayload, AuthError } from '@/lib/auth'
 import type { ProductSubscription, PlanLimits, EventsPlan } from '@/types/events'
-import { PLAN_LIMITS } from '@/types/events'
+import { PLAN_LIMITS, FREE_EVENT_LIMIT } from '@/types/events'
 
 // ── Event Context (like getRequestContext but for events product) ───
 
@@ -11,12 +11,27 @@ export interface EventsContext {
   organizationId: string
   subscription: ProductSubscription
   isPlatformAdmin: boolean
+  isFreeEvent: boolean
+  freeEventsUsed: number
+  freeEventsRemaining: number
+}
+
+/**
+ * Count events (published + draft) for an organization.
+ */
+export async function getOrgEventCount(orgId: string): Promise<number> {
+  const pool = getPool()
+  const { rows } = await pool.query(
+    `SELECT COUNT(*) FROM events WHERE organization_id = $1 AND status IN ('published', 'draft')`,
+    [orgId]
+  )
+  return parseInt(rows[0].count, 10)
 }
 
 /**
  * Get events context for the current user.
- * Requires: logged in + belongs to an org with active events subscription.
- * Use for event creation/management endpoints.
+ * Requires: logged in + belongs to an org.
+ * Allows event creation if org has an active subscription OR is under the free event limit.
  */
 export async function getEventsContext(): Promise<EventsContext> {
   const session = getSessionFromRequest()
@@ -51,8 +66,17 @@ export async function getEventsContext(): Promise<EventsContext> {
 
   // Check events subscription
   const subscription = await getEventsSubscription(orgId)
-  if (!subscription && !isPlatformAdmin) {
-    throw new AuthError('No active events subscription', 403)
+  const eventCount = await getOrgEventCount(orgId)
+  const isFreeEvent = !subscription && eventCount < FREE_EVENT_LIMIT
+  const freeEventsUsed = eventCount
+  const freeEventsRemaining = Math.max(0, FREE_EVENT_LIMIT - eventCount)
+
+  // Allow if: has subscription, is under free limit, or is platform admin
+  if (!subscription && !isFreeEvent && !isPlatformAdmin) {
+    throw new AuthError(
+      `You've used all ${FREE_EVENT_LIMIT} free events. Upgrade to a paid plan for unlimited events.`,
+      403
+    )
   }
 
   return {
@@ -60,19 +84,22 @@ export async function getEventsContext(): Promise<EventsContext> {
     email: session.email,
     organizationId: orgId,
     subscription: subscription || {
-      id: 'platform-admin-override',
+      id: isFreeEvent ? 'free-tier' : 'platform-admin-override',
       organizationId: orgId,
       product: 'events',
-      plan: 'scale',
+      plan: isFreeEvent ? 'free' : 'scale',
       status: 'active',
       stripeSubscriptionId: null,
       stripeCustomerId: null,
       currentPeriodStart: null,
       currentPeriodEnd: null,
-      limits: PLAN_LIMITS.scale,
+      limits: isFreeEvent ? PLAN_LIMITS.grassroots : PLAN_LIMITS.scale,
       createdAt: new Date().toISOString(),
     },
     isPlatformAdmin,
+    isFreeEvent,
+    freeEventsUsed,
+    freeEventsRemaining,
   }
 }
 
@@ -284,11 +311,11 @@ export function mapEventRow(row: any) {
     updatedAt: row.updated_at,
     creatorName: row.creator_name || undefined,
     organizationName: row.org_name || undefined,
-    rsvpCounts: row.going_count !== undefined ? {
-      going: parseInt(row.going_count, 10) || 0,
-      maybe: parseInt(row.maybe_count, 10) || 0,
-      notGoing: parseInt(row.not_going_count, 10) || 0,
-    } : undefined,
+    rsvpCounts: {
+      going: row.going_count ? parseInt(row.going_count, 10) : 0,
+      maybe: row.maybe_count ? parseInt(row.maybe_count, 10) : 0,
+      notGoing: row.not_going_count ? parseInt(row.not_going_count, 10) : 0,
+    },
   }
 }
 

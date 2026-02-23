@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getSessionFromRequest, getActiveCampaignId } from '@/lib/auth'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
+import { FREE_EVENT_LIMIT } from '@/types/events'
 
 export async function GET() {
   try {
@@ -71,15 +72,27 @@ export async function GET() {
       organizationId: s.org_id,
     }))
 
-    // Get user's organization slug for vanity URL
+    // Get user's organization slug and ID for vanity URL + event count
     const { rows: orgSlugRows } = await db.query(`
-      SELECT DISTINCT o.slug
+      SELECT DISTINCT o.slug, o.id as org_id
       FROM memberships m
       JOIN campaigns c ON c.id = m.campaign_id
       JOIN organizations o ON o.id = c.org_id
       WHERE m.user_id = $1 AND m.is_active = true
       LIMIT 1
     `, [user.id])
+
+    // Count org's events for free tier tracking
+    let freeEventsUsed = 0
+    let freeEventsRemaining = FREE_EVENT_LIMIT
+    if (orgSlugRows[0]?.org_id) {
+      const { rows: eventCountRows } = await db.query(
+        `SELECT COUNT(*) FROM events WHERE organization_id = $1 AND status IN ('published', 'draft')`,
+        [orgSlugRows[0].org_id]
+      )
+      freeEventsUsed = parseInt(eventCountRows[0].count, 10)
+      freeEventsRemaining = Math.max(0, FREE_EVENT_LIMIT - freeEventsUsed)
+    }
 
     return NextResponse.json({
       user: {
@@ -94,6 +107,8 @@ export async function GET() {
       campaignConfig,
       productSubscriptions,
       organizationSlug: orgSlugRows[0]?.slug || null,
+      freeEventsUsed,
+      freeEventsRemaining,
     })
   } catch (error) {
     console.error('[auth/me] Error:', error)

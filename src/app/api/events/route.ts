@@ -126,6 +126,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Event type is required' }, { status: 400 })
     }
 
+    // Validate 15-minute intervals
+    const startMinutes = new Date(startTime).getMinutes()
+    if (startMinutes % 15 !== 0) {
+      return NextResponse.json({ error: 'Start time must be on a 15-minute interval (e.g. :00, :15, :30, :45)' }, { status: 400 })
+    }
+    if (endTime) {
+      const endMinutes = new Date(endTime).getMinutes()
+      if (endMinutes % 15 !== 0) {
+        return NextResponse.json({ error: 'End time must be on a 15-minute interval (e.g. :00, :15, :30, :45)' }, { status: 400 })
+      }
+    }
+
     const id = crypto.randomUUID()
     const slug = generateSlug(title)
 

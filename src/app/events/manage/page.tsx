@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import EventManageTable from '@/components/events/EventManageTable'
 import type { Event } from '@/types/events'
-import { Plus, Lock } from 'lucide-react'
+import { FREE_EVENT_LIMIT } from '@/types/events'
+import { Plus, Lock, Sparkles, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function EventManagePage() {
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading, hasEventsSubscription, freeEventsUsed, freeEventsRemaining } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'cancelled'>('all')
@@ -96,7 +97,7 @@ export default function EventManagePage() {
         <h2 className="font-display text-2xl font-bold text-white mb-2">Sign in to manage events</h2>
         <p className="text-white/50 mb-6">You need an account to manage events.</p>
         <Link
-          href="/sign-in"
+          href="/sign-in?product=events"
           className="inline-flex bg-vc-purple hover:bg-vc-purple-light text-white px-6 py-3 rounded-btn font-medium shadow-glow transition-all"
         >
           Sign In
@@ -125,6 +126,26 @@ export default function EventManagePage() {
           Create Event
         </Link>
       </div>
+
+      {/* Subscription status */}
+      {!hasEventsSubscription && (
+        <div className="glass-card p-4 mb-6 border-vc-purple/20 bg-vc-purple/5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-white">
+              Free plan &mdash; {freeEventsUsed} of {FREE_EVENT_LIMIT} events used
+            </p>
+            <p className="text-xs text-white/50 mt-0.5">Upgrade for unlimited events, analytics, and custom branding</p>
+          </div>
+          <Link
+            href="/events/pricing"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-vc-purple hover:bg-vc-purple-light text-white text-sm font-medium rounded-btn shadow-glow transition-all shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Upgrade
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-1 mb-6 p-1 bg-white/5 rounded-btn w-fit">

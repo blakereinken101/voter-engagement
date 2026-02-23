@@ -289,6 +289,18 @@ async function initSchema() {
       );
     `)
 
+    // ── Event Reminder Log ──────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS event_reminder_log (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        reminder_type TEXT NOT NULL,
+        recipient_email TEXT NOT NULL,
+        sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(event_id, reminder_type, recipient_email)
+      );
+    `)
+
     // ── Indexes ──────────────────────────────────────────────────────
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_contacts_user_id ON contacts(user_id);
@@ -315,6 +327,7 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_event_rsvps_user_id ON event_rsvps(user_id);
       CREATE INDEX IF NOT EXISTS idx_event_comments_event_id ON event_comments(event_id);
       CREATE INDEX IF NOT EXISTS idx_event_reactions_event_id ON event_reactions(event_id);
+      CREATE INDEX IF NOT EXISTS idx_event_reminder_log_event_id ON event_reminder_log(event_id);
     `)
 
     // ── Seed defaults ────────────────────────────────────────────────

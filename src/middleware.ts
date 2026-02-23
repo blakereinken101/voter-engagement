@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   '/api/events',
   '/api/subscriptions',
   '/api/stripe/webhook',
+  '/api/cron/',
 ]
 
 // Routes that require authentication — prevents vanity URL passthrough
@@ -50,8 +51,12 @@ export async function middleware(request: NextRequest) {
   }
 
   const token = request.cookies.get('vc-session')?.value
+  const signInUrl = pathname.startsWith('/events')
+    ? new URL('/sign-in?product=events', request.url)
+    : new URL('/sign-in', request.url)
+
   if (!token) {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
+    return NextResponse.redirect(signInUrl)
   }
 
   try {
@@ -59,7 +64,7 @@ export async function middleware(request: NextRequest) {
     await jwtVerify(token, secret)
     return NextResponse.next()
   } catch {
-    return NextResponse.redirect(new URL('/sign-in', request.url))
+    return NextResponse.redirect(signInUrl)
   }
 }
 

@@ -69,7 +69,7 @@ export default function PricingCard({ plan, isPopular }: Props) {
 
     if (!user) {
       // Redirect to sign-up with plan param
-      window.location.href = `/sign-up?plan=${plan}`
+      window.location.href = `/sign-up?plan=${plan}&product=events`
       return
     }
 

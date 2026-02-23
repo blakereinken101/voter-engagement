@@ -8,9 +8,11 @@ interface Props {
   counts?: RSVPCounts
 }
 
+const DEFAULT_COUNTS: RSVPCounts = { going: 0, maybe: 0, notGoing: 0 }
+
 export default function EventGuestList({ eventId, counts: initialCounts }: Props) {
   const [rsvps, setRsvps] = useState<EventRSVP[]>([])
-  const [counts, setCounts] = useState<RSVPCounts>(initialCounts || { going: 0, maybe: 0, notGoing: 0 })
+  const [counts, setCounts] = useState<RSVPCounts>(initialCounts || DEFAULT_COUNTS)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export default function EventGuestList({ eventId, counts: initialCounts }: Props
       .then(data => {
         if (data) {
           setRsvps(data.rsvps || [])
-          setCounts(data.counts || counts)
+          setCounts(data.counts || DEFAULT_COUNTS)
         }
         setLoaded(true)
       })

@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { EVENT_TYPE_CONFIG } from '@/types/events'
 import type { EventType, EventFormData, EventVisibility, EventStatus } from '@/types/events'
 import EventCoverImage from './EventCoverImage'
-import { Save, Eye, Globe, Lock, Users } from 'lucide-react'
+import { Save, Eye, Globe, Lock, Users, Upload, X } from 'lucide-react'
 
 interface Props {
   initialData?: Partial<EventFormData>
@@ -24,10 +24,23 @@ const TIMEZONES = [
 
 const EMOJI_OPTIONS = ['🗳️', '📢', '🎉', '🤝', '🔥', '💪', '🇺🇸', '🏛️', '📞', '🚪', '🍻', '📺', '💰', '📋', '🌟', '❤️']
 
+function snapTo15Minutes(datetime: string): string {
+  if (!datetime) return datetime
+  const [datePart, timePart] = datetime.split('T')
+  if (!timePart) return datetime
+  const [hours, minutes] = timePart.split(':').map(Number)
+  const snapped = Math.round(minutes / 15) * 15
+  const finalMinutes = snapped === 60 ? 0 : snapped
+  const finalHours = snapped === 60 ? hours + 1 : hours
+  return `${datePart}T${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`
+}
+
 export default function EventForm({ initialData, eventId, mode }: Props) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState<EventFormData>({
     title: initialData?.title || '',
@@ -54,6 +67,39 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
 
   function updateForm(updates: Partial<EventFormData>) {
     setForm(prev => ({ ...prev, ...updates }))
+  }
+
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file (JPG, PNG, WebP, etc.)')
+      return
+    }
+
+    // Limit to 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Image must be under 2MB. Try compressing it first.')
+      return
+    }
+
+    setUploadingImage(true)
+    setError('')
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      updateForm({ coverImageUrl: reader.result as string })
+      setUploadingImage(false)
+    }
+    reader.onerror = () => {
+      setError('Failed to read image file')
+      setUploadingImage(false)
+    }
+    reader.readAsDataURL(file)
+
+    // Reset input so the same file can be re-selected
+    e.target.value = ''
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -160,7 +206,8 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
             <input
               type="datetime-local"
               value={form.startTime}
-              onChange={e => updateForm({ startTime: e.target.value })}
+              onChange={e => updateForm({ startTime: snapTo15Minutes(e.target.value) })}
+              step={900}
               className="glass-input w-full px-4 py-3 text-white"
               required
             />
@@ -170,7 +217,8 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
             <input
               type="datetime-local"
               value={form.endTime}
-              onChange={e => updateForm({ endTime: e.target.value })}
+              onChange={e => updateForm({ endTime: snapTo15Minutes(e.target.value) })}
+              step={900}
               className="glass-input w-full px-4 py-3 text-white"
             />
           </div>
@@ -208,12 +256,13 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
           <div>
             <label className="block text-sm text-white/60 mb-1.5">Virtual Event URL</label>
             <input
-              type="url"
+              type="text"
               value={form.virtualUrl}
               onChange={e => updateForm({ virtualUrl: e.target.value })}
               placeholder="https://zoom.us/j/..."
               className="glass-input w-full px-4 py-3 text-white"
             />
+            <p className="text-xs text-white/40 mt-1">Zoom, Google Meet, or any video call link</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -277,15 +326,37 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
         <h2 className="font-display font-bold text-lg text-white">Appearance</h2>
 
         <div>
-          <label className="block text-sm text-white/60 mb-1.5">Cover Image URL</label>
+          <label className="block text-sm text-white/60 mb-1.5">Cover Image</label>
           <input
-            type="url"
-            value={form.coverImageUrl}
-            onChange={e => updateForm({ coverImageUrl: e.target.value })}
-            placeholder="https://images.unsplash.com/..."
-            className="glass-input w-full px-4 py-3 text-white"
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
           />
-          <p className="text-xs text-white/40 mt-1">Leave empty for a gradient background with your emoji</p>
+          {form.coverImageUrl ? (
+            <div className="relative group">
+              <img src={form.coverImageUrl} alt="Cover preview" className="w-full h-32 object-cover rounded-btn border border-white/10" />
+              <button
+                type="button"
+                onClick={() => updateForm({ coverImageUrl: '' })}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white/80 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="w-full flex items-center justify-center gap-2 px-4 py-6 border-2 border-dashed border-white/15 rounded-btn text-sm text-white/50 hover:border-white/30 hover:text-white/70 transition-all disabled:opacity-50"
+            >
+              <Upload className="w-5 h-5" />
+              {uploadingImage ? 'Processing...' : 'Upload cover image'}
+            </button>
+          )}
+          <p className="text-xs text-white/40 mt-1">JPG, PNG, or WebP up to 2MB. Leave empty for a gradient with your emoji.</p>
         </div>
 
         <div>

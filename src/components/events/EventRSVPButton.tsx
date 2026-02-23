@@ -26,7 +26,7 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
 
   async function handleRsvp(newStatus: RSVPStatus) {
     if (!user && !isPublic) {
-      window.location.href = '/sign-in'
+      window.location.href = '/sign-in?product=events'
       return
     }
 

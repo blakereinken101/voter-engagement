@@ -116,3 +116,136 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
 }
+
+// ── Event Reminder Emails ──────────────────────────────────────────
+
+function formatEventTime(dateStr: string, timezone?: string): string {
+  const d = new Date(dateStr)
+  const opts: Intl.DateTimeFormatOptions = {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: timezone || 'America/New_York',
+  }
+  return d.toLocaleString('en-US', opts)
+}
+
+interface ReminderEventInfo {
+  title: string
+  startTime: string
+  endTime?: string | null
+  timezone?: string
+  locationName?: string | null
+  locationAddress?: string | null
+  locationCity?: string | null
+  locationState?: string | null
+  isVirtual?: boolean
+  virtualUrl?: string | null
+  slug: string
+}
+
+function getAppUrl(): string {
+  return process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
+}
+
+function buildLocationHtml(event: ReminderEventInfo): string {
+  if (event.isVirtual) {
+    const linkHtml = event.virtualUrl
+      ? `<a href="${escapeHtml(event.virtualUrl)}" style="color: #7c3aed; text-decoration: none;">Join virtual event</a>`
+      : 'Virtual event'
+    return `<p style="color: #666; font-size: 14px; margin: 0;">${linkHtml}</p>`
+  }
+  const parts = [event.locationName, event.locationAddress, event.locationCity, event.locationState].filter(Boolean)
+  if (parts.length === 0) return ''
+  return `<p style="color: #666; font-size: 14px; margin: 0;">${escapeHtml(parts.join(', '))}</p>`
+}
+
+export async function sendEventReminderToHost(
+  email: string,
+  event: ReminderEventInfo,
+  reminderType: '24h' | '6h',
+  rsvpCounts: { going: number; maybe: number }
+): Promise<void> {
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const appUrl = getAppUrl()
+  const eventUrl = `${appUrl}/events/${event.slug}`
+  const timeLabel = reminderType === '24h' ? 'is tomorrow' : 'is in 6 hours'
+  const formattedTime = formatEventTime(event.startTime, event.timezone)
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold Events <${FROM_EMAIL}>`,
+    to: email,
+    subject: `Your event "${event.title}" ${timeLabel}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="color: #1a1a2e; margin: 0 0 8px;">Your event ${timeLabel}!</h2>
+        <p style="color: #666; margin: 0 0 20px; font-size: 15px;">Here's a quick update on your upcoming event.</p>
+
+        <div style="background: #f5f5ff; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <h3 style="color: #1a1a2e; margin: 0 0 8px; font-size: 18px;">${escapeHtml(event.title)}</h3>
+          <p style="color: #7c3aed; font-size: 14px; margin: 0 0 8px; font-weight: 600;">${escapeHtml(formattedTime)}</p>
+          ${buildLocationHtml(event)}
+        </div>
+
+        <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+          <p style="color: #1a1a2e; font-size: 14px; font-weight: 600; margin: 0 0 4px;">RSVP Summary</p>
+          <p style="color: #666; font-size: 14px; margin: 0;">${rsvpCounts.going} going &middot; ${rsvpCounts.maybe} maybe</p>
+        </div>
+
+        <a href="${eventUrl}" style="display: inline-block; background: #7c3aed; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Event</a>
+
+        <p style="color: #999; font-size: 12px; margin-top: 24px;">You're receiving this because you're the host of this event on Threshold.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send host reminder:', error)
+    throw new Error('Failed to send host reminder email')
+  }
+}
+
+export async function sendEventReminderToGuest(
+  email: string,
+  event: ReminderEventInfo,
+  reminderType: '24h' | '6h',
+  guestName?: string | null
+): Promise<void> {
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const appUrl = getAppUrl()
+  const eventUrl = `${appUrl}/events/${event.slug}`
+  const timeLabel = reminderType === '24h' ? 'is tomorrow' : 'is in 6 hours'
+  const formattedTime = formatEventTime(event.startTime, event.timezone)
+  const greeting = guestName ? `Hi ${escapeHtml(guestName)},` : 'Hi there,'
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold Events <${FROM_EMAIL}>`,
+    to: email,
+    subject: `Reminder: "${event.title}" ${timeLabel}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        <p style="color: #666; margin: 0 0 16px; font-size: 15px;">${greeting}</p>
+        <h2 style="color: #1a1a2e; margin: 0 0 8px;">Your event ${timeLabel}!</h2>
+        <p style="color: #666; margin: 0 0 20px; font-size: 15px;">Just a friendly heads up about an event you signed up for.</p>
+
+        <div style="background: #f5f5ff; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <h3 style="color: #1a1a2e; margin: 0 0 8px; font-size: 18px;">${escapeHtml(event.title)}</h3>
+          <p style="color: #7c3aed; font-size: 14px; margin: 0 0 8px; font-weight: 600;">${escapeHtml(formattedTime)}</p>
+          ${buildLocationHtml(event)}
+        </div>
+
+        <a href="${eventUrl}" style="display: inline-block; background: #7c3aed; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Event Details</a>
+
+        <p style="color: #999; font-size: 12px; margin-top: 24px;">You're receiving this because you RSVP'd to this event on Threshold.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send guest reminder:', error)
+    throw new Error('Failed to send guest reminder email')
+  }
+}
