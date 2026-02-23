@@ -13,7 +13,8 @@ export async function GET(
     const db = await getDb()
 
     // Support lookup by either ID or slug
-    const isUUID = eventId.includes('-') && eventId.length > 10
+    // UUIDs are exactly 36 chars with pattern xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId)
     const lookupField = isUUID ? 'e.id' : 'e.slug'
 
     const { rows } = await db.query(`
