@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const isInit = rawMessage === '__INIT__'
     const message = isInit
-      ? '[System: The volunteer just opened the chat. Greet them by name. In 2-3 sentences: tell them you\'re going to help them build a list of people they know, match them to the voter file, and coach conversations. Explicitly state the geographic focus: "We\'re focused on people who live in [state/district]." Then ask your first question — start with household: "Who do you live with?" Do NOT describe your own process, tone, or style. Do NOT say things like "let\'s move fast" or "I\'ll keep this quick." Just do it.]'
+      ? '[System: The volunteer just opened the chat. Greet them by name. In 2-3 sentences: mention the campaign name, tell them you\'re going to help them build a list of people they know who live in the state/district, match them to the voter file, and coach conversations. Say the state or district name explicitly. Then ask your first question — start with household: "Who do you live with?" Do NOT use markdown formatting (no ** or * or headers). Do NOT describe your own process or tone. Do NOT say "let\'s move fast" or "I\'ll keep this quick." Just do it.]'
       : rawMessage
 
     const db = await getDb()
