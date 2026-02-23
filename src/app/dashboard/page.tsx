@@ -103,7 +103,7 @@ export default function DashboardPage() {
             }`}
           >
             <Table className="w-4 h-4" />
-            My Contacts
+            Rolodex
           </button>
           {isAdmin && (
             <button
