@@ -380,13 +380,13 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
-              Join the waitlist
+              Get early access to our relational organizing tool
             </h2>
             <p className="text-white/50 max-w-xl mx-auto mb-4 leading-relaxed">
-              Threshold&rsquo;s relational organizing platform helps your volunteers turn their personal networks into your most powerful voter contact program &mdash; with guided contact building, AI-powered voter matching, and real-time outreach tracking all in one place.
+              Guided contact building, AI-powered voter matching, smart rolodex, and real-time outreach tracking &mdash; all in one platform built for the way your campaign actually runs.
             </p>
             <p className="text-white/40 max-w-lg mx-auto leading-relaxed text-sm">
-              Sign up below and our team will reach out to build a program tailored to your race.
+              Join the waitlist and our team will reach out to build a program tailored to your race.
             </p>
           </div>
 
