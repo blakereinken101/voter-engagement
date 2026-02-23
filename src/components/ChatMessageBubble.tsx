@@ -18,16 +18,31 @@ function ToolResultChip({ name, result }: { name: string; result: Record<string,
     add_contact: result.contact
       ? `Added ${(result.contact as Record<string, string>).firstName} ${(result.contact as Record<string, string>).lastName}`
       : 'Added contact',
-    run_matching: result.message as string || 'Ran matching',
+    run_matching: result.matched !== undefined
+      ? `Matched ${result.matched} of ${result.total} to voter file`
+      : 'Ran voter file matching',
     log_conversation: `Logged: ${result.outcome || 'conversation'}`,
     get_next_contact: result.name ? `Next: ${result.name}` : 'Checked contacts',
     get_contact_details: 'Looked up contact',
     get_contacts_summary: 'Checked summary',
-    update_match_status: result.status === 'confirmed' ? 'Match confirmed' : 'Match rejected',
+    update_match_status: result.status === 'confirmed' ? 'Voter file match confirmed' : 'Voter file match rejected',
+  }
+
+  // Different colors for different actions
+  const colorClasses: Record<string, string> = {
+    add_contact: 'bg-blue-500/20 text-blue-300',
+    run_matching: 'bg-vc-teal/20 text-vc-teal',
+    log_conversation: 'bg-amber-500/20 text-amber-300',
+    get_next_contact: 'bg-vc-purple/20 text-vc-purple-light',
+    get_contact_details: 'bg-white/10 text-white/60',
+    get_contacts_summary: 'bg-white/10 text-white/60',
+    update_match_status: result.status === 'confirmed'
+      ? 'bg-green-500/20 text-green-300'
+      : 'bg-red-500/20 text-red-300',
   }
 
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-vc-teal/20 text-vc-teal text-xs font-medium mr-1 mb-1">
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mr-1 mb-1 ${colorClasses[name] || 'bg-white/10 text-white/60'}`}>
       {icons[name] || <CheckCircle className="w-3 h-3" />}
       {labels[name] || name}
     </span>
