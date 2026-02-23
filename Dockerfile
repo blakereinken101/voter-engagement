@@ -1,9 +1,10 @@
 # ─── Stage 1: Build ────────────────────────────────────────────────
+# Force rebuild: 2026-02-23v2
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files and install
+# Copy package files and install dependencies
 COPY package.json package-lock.json* .npmrc* ./
 RUN npm ci
 
@@ -34,6 +35,11 @@ RUN apk add --no-cache curl su-exec && \
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
+
+# Copy sharp native bindings from builder into standalone node_modules
+# (Next.js standalone trace doesn't always include sharp)
+COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
+COPY --from=builder /app/node_modules/@img ./node_modules/@img
 
 # Create data directory for voter file volume
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
