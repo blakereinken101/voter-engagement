@@ -24,43 +24,44 @@ export default function EditEventPage() {
         const res = await fetch(`/api/events/${slug}`)
         if (!res.ok) {
           setError('Event not found')
-          return
+        } else {
+          const data = await res.json()
+          if (!data.canManage) {
+            setError('Not authorized to edit this event')
+          } else {
+            const e = data.event
+            setEvent({
+              id: e.id,
+              data: {
+                title: e.title,
+                description: e.description || '',
+                eventType: e.eventType,
+                startTime: e.startTime ? new Date(e.startTime).toISOString().slice(0, 16) : '',
+                endTime: e.endTime ? new Date(e.endTime).toISOString().slice(0, 16) : '',
+                timezone: e.timezone,
+                locationName: e.locationName || '',
+                locationAddress: e.locationAddress || '',
+                locationCity: e.locationCity || '',
+                locationState: e.locationState || '',
+                locationZip: e.locationZip || '',
+                isVirtual: e.isVirtual,
+                virtualUrl: e.virtualUrl || '',
+                coverImageUrl: e.coverImageUrl || '',
+                emoji: e.emoji,
+                themeColor: e.themeColor,
+                visibility: e.visibility,
+                maxAttendees: e.maxAttendees?.toString() || '',
+                rsvpEnabled: e.rsvpEnabled,
+                status: e.status,
+              },
+            })
+          }
         }
-        const data = await res.json()
-        if (!data.canManage) {
-          setError('Not authorized to edit this event')
-          return
-        }
-        const e = data.event
-        setEvent({
-          id: e.id,
-          data: {
-            title: e.title,
-            description: e.description || '',
-            eventType: e.eventType,
-            startTime: e.startTime ? new Date(e.startTime).toISOString().slice(0, 16) : '',
-            endTime: e.endTime ? new Date(e.endTime).toISOString().slice(0, 16) : '',
-            timezone: e.timezone,
-            locationName: e.locationName || '',
-            locationAddress: e.locationAddress || '',
-            locationCity: e.locationCity || '',
-            locationState: e.locationState || '',
-            locationZip: e.locationZip || '',
-            isVirtual: e.isVirtual,
-            virtualUrl: e.virtualUrl || '',
-            coverImageUrl: e.coverImageUrl || '',
-            emoji: e.emoji,
-            themeColor: e.themeColor,
-            visibility: e.visibility,
-            maxAttendees: e.maxAttendees?.toString() || '',
-            rsvpEnabled: e.rsvpEnabled,
-            status: e.status,
-          },
-        })
       } catch {
         setError('Failed to load event')
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
     load()
   }, [slug])

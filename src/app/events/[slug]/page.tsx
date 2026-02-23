@@ -51,24 +51,21 @@ export default function EventDetailPage() {
         const res = await fetch(`/api/events/${slug}`)
         if (res.status === 404) {
           setError('Event not found')
-          return
-        }
-        if (res.status === 401) {
+        } else if (res.status === 401) {
           setError('signin')
-          return
-        }
-        if (!res.ok) {
+        } else if (!res.ok) {
           setError('Failed to load event')
-          return
+        } else {
+          const data = await res.json()
+          setEvent(data.event)
+          setUserRsvp(data.userRsvp)
+          setCanManage(data.canManage)
         }
-        const data = await res.json()
-        setEvent(data.event)
-        setUserRsvp(data.userRsvp)
-        setCanManage(data.canManage)
       } catch {
         setError('Failed to load event')
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
     load()
   }, [slug])
