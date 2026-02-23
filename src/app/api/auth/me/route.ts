@@ -51,6 +51,26 @@ export async function GET() {
       ? await getCampaignConfig(activeMembership.campaignId)
       : null
 
+    // Load product subscriptions for user's organizations
+    const orgIds = [...new Set(memberRows.map(m => m.orgName ? memberRows.find(mr => mr.orgName === m.orgName) : null).filter(Boolean))]
+    const { rows: subRows } = await db.query(`
+      SELECT ps.product, ps.plan, ps.status, o.id as org_id
+      FROM product_subscriptions ps
+      JOIN organizations o ON o.id = ps.organization_id
+      JOIN campaigns c ON c.org_id = o.id
+      JOIN memberships m ON m.campaign_id = c.id
+      WHERE m.user_id = $1 AND m.is_active = true
+        AND ps.status IN ('active', 'trialing')
+      GROUP BY ps.id, o.id
+    `, [user.id])
+
+    const productSubscriptions = subRows.map(s => ({
+      product: s.product,
+      plan: s.plan,
+      status: s.status,
+      organizationId: s.org_id,
+    }))
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -62,6 +82,7 @@ export async function GET() {
       memberships,
       activeMembership,
       campaignConfig,
+      productSubscriptions,
     })
   } catch (error) {
     console.error('[auth/me] Error:', error)

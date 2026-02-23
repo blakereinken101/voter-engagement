@@ -18,13 +18,22 @@ interface SignInResult {
   requiresVerification?: boolean
 }
 
+export interface ProductSubscriptionInfo {
+  product: string
+  plan: string
+  status: string
+  organizationId: string
+}
+
 interface AuthContextValue {
   user: AuthUser | null
   memberships: Membership[]
   activeMembership: Membership | null
   campaignConfig: CampaignConfig | null
+  productSubscriptions: ProductSubscriptionInfo[]
   isLoading: boolean
   isAdmin: boolean
+  hasEventsSubscription: boolean
   signIn: (email: string, password: string) => Promise<SignInResult | void>
   signOut: () => Promise<void>
   switchCampaign: (campaignId: string) => void
@@ -39,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null)
   const [campaignConfig, setCampaignConfig] = useState<CampaignConfig | null>(null)
+  const [productSubscriptions, setProductSubscriptions] = useState<ProductSubscriptionInfo[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   // Check session on mount and periodically verify token is still valid
@@ -55,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setMemberships([])
             setActiveMembership(null)
             setCampaignConfig(null)
+            setProductSubscriptions([])
             return null
           }
           throw new Error('Not authenticated')
@@ -63,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (isMounted && data) {
             setUser(data.user)
             setMemberships(data.memberships || [])
+            setProductSubscriptions(data.productSubscriptions || [])
             if (data.campaignConfig) {
               setCampaignConfig(data.campaignConfig)
             }
@@ -82,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setMemberships([])
             setActiveMembership(null)
             setCampaignConfig(null)
+            setProductSubscriptions([])
           }
         })
         .finally(() => {
@@ -169,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setMemberships([])
     setActiveMembership(null)
     setCampaignConfig(null)
+    setProductSubscriptions([])
     document.cookie = 'vc-campaign=; Path=/; SameSite=Lax; Max-Age=0'
     window.location.href = '/sign-in'
   }, [])
@@ -187,9 +201,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (activeMembership && ADMIN_ROLES.includes(activeMembership.role))
   )
 
+  const hasEventsSubscription = productSubscriptions.some(
+    s => s.product === 'events' && (s.status === 'active' || s.status === 'trialing')
+  ) || !!user?.isPlatformAdmin
+
   return (
     <AuthContext.Provider value={{
-      user, memberships, activeMembership, campaignConfig, isLoading, isAdmin,
+      user, memberships, activeMembership, campaignConfig, productSubscriptions,
+      isLoading, isAdmin, hasEventsSubscription,
       signIn, signOut, switchCampaign, verifyCode, resendCode,
     }}>
       {children}

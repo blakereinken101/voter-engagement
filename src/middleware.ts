@@ -10,6 +10,9 @@ const PUBLIC_PATHS = [
   '/invite/',
   '/api/auth/',
   '/api/invitations/accept',
+  '/events',
+  '/api/events',
+  '/api/subscriptions',
 ]
 
 export async function middleware(request: NextRequest) {
