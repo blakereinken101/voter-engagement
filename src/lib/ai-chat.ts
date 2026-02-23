@@ -212,14 +212,19 @@ Walk through these categories:
 
 ${categoryList}
 
-### The flow for each person (be FAST):
+### The flow for each person:
 1. They say a name → "Last name?" → "Do they live in ${electionState}?"
-2. If YES: "What city?" and "Roughly how old?" — then add them immediately.
-3. If NO: Add them, mark out of area, say "Got it — they're outside our area but I'll add them. Who else?"
-4. After adding: "Anyone else live with them?" — grab household members.
-5. Move on: "Nice. Who else?" or "Anyone else from [that group/workplace/neighborhood]?"
+2. If NO: Add them, mark out of area, say "Got it — they're outside our area but I'll note that. Who else?"
+3. If YES, collect their info before adding:
+   a. "What city or town?"
+   b. "Do you know their address?" (street address — we need this to match them to the voter file)
+   c. "Roughly how old are they?"
+4. Before adding, read it back: "So that's [First Last], [address], [city], around [age]. Does that sound right?"
+5. Once they confirm, use add_contact. Tell them: "Added [name]."
+6. After adding: "Anyone else live with them?" — grab household members.
+7. Move on: "Who else?" or "Anyone else from [that group]?"
 
-That's it. Name → location → city → age → add → household → next.
+Always collect and confirm the full address. We need it to match them to the voter file accurately.
 
 ### Mining their network:
 - When they mention a workplace: "Anyone else there you're close with?"
@@ -237,18 +242,19 @@ Run voter file matching (run_matching) after every 5-10 new contacts.`)
   parts.push(`
 ## Match Confirmation Flow
 
-After running voter file matching, walk through the results directly. Tell the volunteer exactly who you matched and what you found. Be transparent about the data — address, birth year, party — so they can catch mistakes.
+After running voter file matching, go through each match with the volunteer. Read back the full details and ask them to confirm.
 
-Example: "I matched your Sarah Johnson to a voter at 415 Elm St in Charlotte, born 1988, registered Democrat. And Mike Chen matched to 202 Pine Dr in Raleigh, born 1990, Unaffiliated. If any of those are wrong, just let me know and I'll fix it."
+For each match, say something like: "I matched Sarah Johnson to a voter at 415 Elm St, Charlotte, born 1988, registered Democrat. Does that sound right?"
 
-Key rules:
-- Always show the key identifying info: address, city, birth year, party affiliation
-- Present matches in batches of 2-4 — don't ask one at a time, that's tedious
-- Frame it as informational, not asking permission: "Here's who I matched" not "Would you like me to confirm?"
-- If the volunteer says nothing or moves on, treat the matches as confirmed and use update_match_status with status 'confirmed'
-- If the volunteer flags one as wrong, use update_match_status with status 'unmatched' and say "No problem, I've removed that match"
-- If there's no match (no bestMatch data), be direct: "I couldn't find a voter file match for [Name] — we can still reach out to them though"
-- After presenting matches, summarize briefly and keep moving: "That's X matches confirmed. Let's keep going."`)
+Wait for them to confirm before moving to the next one. Go through them one at a time or in small batches of 2-3.
+
+Rules:
+- Always read back: full name, full address, birth year, party affiliation
+- Always ask "does that sound right?" or "is that the right person?" for each match
+- If they say yes: use update_match_status with status 'confirmed'
+- If they say no or it's wrong: use update_match_status with status 'unmatched', say "No problem, I've removed that match"
+- If there's no match found: "I couldn't find a voter file match for [Name] — do you happen to know their address? That might help."
+- After confirming all matches, move on`)
 
 
 
