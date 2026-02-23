@@ -108,31 +108,31 @@ export default function LandingPage() {
 
         <div className="max-w-3xl mx-auto relative">
           <h1 className="font-display text-4xl sm:text-5xl md:text-7xl font-extrabold mb-6 leading-[0.95] tracking-tight">
-            Progressive tech<br />
-            that meets you<br />
-            <span className="text-gradient">where you are.</span>
+            Built for the way<br />
+            campaigns<br />
+            <span className="text-gradient">actually run.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-6 leading-relaxed">
-            Threshold builds organizing tools for progressive campaigns and organizations &mdash; powered by best-in-class AI, designed for people who&rsquo;d rather be out knocking doors than learning new software.
+            Every campaign is different. Our relational organizing platform gives your team the tools to build a voter contact program that fits your strategy, your voters, and your people &mdash; powered by best-in-class AI, designed for people who&rsquo;d rather be out knocking doors than learning new software.
           </p>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed">
-            From our live events platform to our upcoming relational organizing software, we help your team scale what works: real relationships and real conversations.
+            We also built a full events platform you can use right now &mdash; purpose-built for progressive organizing.
           </p>
           <div className="flex flex-wrap gap-4">
-            <Link
-              href="/events"
-              className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
-            >
-              <Calendar className="w-5 h-5" />
-              Try the Events Platform
-            </Link>
             <a
               href="#waitlist"
-              className="inline-flex items-center gap-2 glass text-white font-bold font-display text-lg px-10 py-4 rounded-btn transition-all hover:bg-white/10"
+              className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
             >
               Join the Waitlist
               <ArrowRight className="w-5 h-5" />
             </a>
+            <Link
+              href="/events"
+              className="inline-flex items-center gap-2 glass text-white font-bold font-display text-lg px-10 py-4 rounded-btn transition-all hover:bg-white/10"
+            >
+              <Calendar className="w-5 h-5" />
+              Try the Events Platform
+            </Link>
           </div>
         </div>
       </section>
@@ -147,10 +147,10 @@ export default function LandingPage() {
           <span>Relational Organizing Tool</span>
         </div>
         <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 text-center tracking-tight">
-          Built for the way campaigns actually run
+          Everything your team needs to organize
         </h2>
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-14">
-          Every campaign is different. Our relational organizing platform gives your team the tools to build a voter contact program that fits your strategy, your voters, and your people.
+          From building contact lists to tracking conversations and matching against voter files &mdash; one platform that keeps your whole operation moving.
         </p>
         <div className="grid md:grid-cols-3 gap-6 text-left">
           {[
