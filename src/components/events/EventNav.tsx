@@ -64,13 +64,13 @@ export default function EventNav() {
 
             <span className="text-white/20 mx-1 hidden sm:inline">|</span>
 
-            <Link
-              href="/"
+            <a
+              href="https://votethreshold.com"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium text-vc-purple-light hover:text-white hover:bg-white/5 transition-colors"
             >
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Threshold</span>
-            </Link>
+            </a>
           </div>
 
           {/* Right: Auth */}
