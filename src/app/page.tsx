@@ -360,7 +360,7 @@ export default function LandingPage() {
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
-                  href="/sign-up"
+                  href="/sign-up?product=events"
                   className="inline-flex items-center gap-2 glass text-white font-bold font-display text-base px-8 py-3 rounded-btn transition-all hover:bg-white/10"
                 >
                   Create Your Page

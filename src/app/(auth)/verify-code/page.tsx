@@ -7,6 +7,15 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react'
 
+function getPostAuthRedirect(): string {
+  if (typeof document === 'undefined') return '/dashboard'
+  const match = document.cookie.match(/(?:^|;\s*)vc-product=(\w+)/)
+  const product = match?.[1]
+  // Clear the cookie after reading
+  document.cookie = 'vc-product=; Path=/; SameSite=Lax; Max-Age=0'
+  return product === 'events' ? '/events/manage' : '/dashboard'
+}
+
 export default function VerifyCodePage() {
   const router = useRouter()
   const { verifyCode, resendCode, user } = useAuth()
@@ -17,9 +26,9 @@ export default function VerifyCodePage() {
   const [resendMessage, setResendMessage] = useState('')
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
-  // If already signed in, redirect to dashboard
+  // If already signed in, redirect to the correct product
   useEffect(() => {
-    if (user) router.push('/dashboard')
+    if (user) router.push(getPostAuthRedirect())
   }, [user, router])
 
   // Start cooldown timer on mount (just sent a code)
@@ -45,7 +54,7 @@ export default function VerifyCodePage() {
     setLoading(true)
     try {
       await verifyCode(code)
-      router.push('/dashboard')
+      router.push(getPostAuthRedirect())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed')
       // Clear inputs on error

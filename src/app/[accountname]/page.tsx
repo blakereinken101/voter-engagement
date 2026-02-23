@@ -68,7 +68,7 @@ export default async function AccountPage({ params }: Props) {
             <span className="font-display font-bold text-white hidden sm:inline">Threshold Events</span>
           </Link>
           <Link
-            href="/sign-in"
+            href="/sign-in?product=events"
             className="text-sm text-white/60 hover:text-white transition-colors"
           >
             Sign In

@@ -181,6 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    const isEvents = window.location.pathname.startsWith('/events')
     await fetch('/api/auth/sign-out', { method: 'POST' })
     setUser(null)
     setMemberships([])
@@ -189,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProductSubscriptions([])
     setOrganizationSlug(null)
     document.cookie = 'vc-campaign=; Path=/; SameSite=Lax; Max-Age=0'
-    window.location.href = '/sign-in'
+    window.location.href = isEvents ? '/sign-in?product=events' : '/sign-in'
   }, [])
 
   const switchCampaign = useCallback((campaignId: string) => {

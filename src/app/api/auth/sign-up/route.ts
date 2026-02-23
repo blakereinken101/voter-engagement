@@ -8,7 +8,7 @@ import { PLAN_LIMITS } from '@/types/events'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, password, organizationName, slug: rawSlug } = body
+    const { name, email, password, organizationName, slug: rawSlug, product } = body
 
     // ── Validate inputs ──────────────────────────────────────────────
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -95,16 +95,19 @@ export async function POST(request: NextRequest) {
         [membershipId, userId, campaignId]
       )
 
-      // Create 14-day trial subscription (grassroots tier)
-      const now = new Date()
-      const trialEnd = new Date(now)
-      trialEnd.setDate(trialEnd.getDate() + 14)
+      // Create 14-day events trial subscription (grassroots tier)
+      // Only for events sign-ups or when no product specified (backward compat)
+      if (product !== 'relational') {
+        const now = new Date()
+        const trialEnd = new Date(now)
+        trialEnd.setDate(trialEnd.getDate() + 14)
 
-      await client.query(
-        `INSERT INTO product_subscriptions (id, organization_id, product, plan, status, current_period_start, current_period_end, limits)
-         VALUES ($1, $2, 'events', 'grassroots', 'trialing', $3, $4, $5)`,
-        [subscriptionId, orgId, now.toISOString(), trialEnd.toISOString(), JSON.stringify(PLAN_LIMITS.grassroots)]
-      )
+        await client.query(
+          `INSERT INTO product_subscriptions (id, organization_id, product, plan, status, current_period_start, current_period_end, limits)
+           VALUES ($1, $2, 'events', 'grassroots', 'trialing', $3, $4, $5)`,
+          [subscriptionId, orgId, now.toISOString(), trialEnd.toISOString(), JSON.stringify(PLAN_LIMITS.grassroots)]
+        )
+      }
 
       await client.query('COMMIT')
     } catch (txError) {

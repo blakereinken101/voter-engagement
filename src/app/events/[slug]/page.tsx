@@ -95,7 +95,7 @@ export default function EventDetailPage() {
         <h2 className="font-display text-2xl font-bold text-white mb-2">Sign in required</h2>
         <p className="text-white/50 mb-6">This event is only visible to members. Sign in to view it.</p>
         <Link
-          href="/sign-in"
+          href="/sign-in?product=events"
           className="inline-flex bg-vc-purple hover:bg-vc-purple-light text-white px-6 py-3 rounded-btn font-medium shadow-glow transition-all"
         >
           Sign In

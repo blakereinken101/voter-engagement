@@ -96,7 +96,7 @@ export default function EventManagePage() {
         <h2 className="font-display text-2xl font-bold text-white mb-2">Sign in to manage events</h2>
         <p className="text-white/50 mb-6">You need an account to manage events.</p>
         <Link
-          href="/sign-in"
+          href="/sign-in?product=events"
           className="inline-flex bg-vc-purple hover:bg-vc-purple-light text-white px-6 py-3 rounded-btn font-medium shadow-glow transition-all"
         >
           Sign In

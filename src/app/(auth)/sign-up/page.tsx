@@ -10,6 +10,14 @@ function SignUpForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planFromUrl = searchParams.get('plan')
+  const productFromUrl = searchParams.get('product') || (planFromUrl ? 'events' : null)
+
+  // Set vc-product cookie so it persists through 2FA verification
+  useEffect(() => {
+    if (productFromUrl) {
+      document.cookie = `vc-product=${productFromUrl}; Path=/; SameSite=Lax; Max-Age=600`
+    }
+  }, [productFromUrl])
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -105,6 +113,7 @@ function SignUpForm() {
           password,
           organizationName: organizationName.trim(),
           slug,
+          product: productFromUrl || undefined,
         }),
       })
 
@@ -144,7 +153,11 @@ function SignUpForm() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Create your account</h2>
-              <p className="text-white/50 text-sm">Start organizing events in minutes</p>
+              <p className="text-white/50 text-sm">
+                {productFromUrl === 'relational'
+                  ? 'Start building your voter contact program'
+                  : 'Start organizing events in minutes'}
+              </p>
             </div>
           </div>
 
@@ -300,7 +313,7 @@ function SignUpForm() {
 
         <p className="text-center mt-6 text-sm text-white/50">
           Already have an account?{' '}
-          <Link href="/sign-in" className="text-vc-purple-light font-bold hover:underline">
+          <Link href={productFromUrl ? `/sign-in?product=${productFromUrl}` : '/sign-in'} className="text-vc-purple-light font-bold hover:underline">
             Sign in
           </Link>
         </p>
