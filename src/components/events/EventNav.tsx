@@ -4,10 +4,10 @@ import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Calendar, Plus, Settings, CreditCard, LogIn, ExternalLink } from 'lucide-react'
+import { Calendar, Plus, Settings, CreditCard, LogIn, LogOut, ExternalLink } from 'lucide-react'
 
 export default function EventNav() {
-  const { user, organizationSlug } = useAuth()
+  const { user, organizationSlug, signOut } = useAuth()
   const pathname = usePathname()
 
   const isActive = (path: string) =>
@@ -82,6 +82,13 @@ export default function EventNav() {
                 <div className="w-8 h-8 rounded-full bg-vc-purple/30 ring-2 ring-vc-purple/50 flex items-center justify-center text-xs font-bold text-white">
                   {user.name?.charAt(0).toUpperCase() || '?'}
                 </div>
+                <button
+                  onClick={signOut}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
               </div>
             ) : (
               <Link
