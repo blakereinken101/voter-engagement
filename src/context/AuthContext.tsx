@@ -37,10 +37,10 @@ interface AuthContextValue {
   hasEventsSubscription: boolean
   freeEventsUsed: number
   freeEventsRemaining: number
-  signIn: (email: string, password: string) => Promise<SignInResult | void>
+  signIn: (email: string, password: string, product?: string) => Promise<SignInResult | void>
   signOut: () => Promise<void>
   switchCampaign: (campaignId: string) => void
-  verifyCode: (code: string) => Promise<void>
+  verifyCode: (code: string) => Promise<string | undefined>
   resendCode: () => Promise<void>
 }
 
@@ -126,11 +126,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const signIn = useCallback(async (email: string, password: string): Promise<SignInResult | void> => {
+  const signIn = useCallback(async (email: string, password: string, product?: string): Promise<SignInResult | void> => {
     const res = await fetch('/api/auth/sign-in', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, product }),
     })
     if (!res.ok) {
       let errorMsg = 'Sign in failed'
@@ -161,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const verifyCode = useCallback(async (code: string) => {
+  const verifyCode = useCallback(async (code: string): Promise<string | undefined> => {
     const res = await fetch('/api/auth/verify-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -180,6 +180,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setActiveMembership(m)
       document.cookie = `vc-campaign=${m.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
     }
+
+    return data.redirect
   }, [])
 
   const resendCode = useCallback(async () => {

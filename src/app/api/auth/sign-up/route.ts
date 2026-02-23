@@ -7,7 +7,7 @@ import { sanitizeSlug, validateSlug } from '@/lib/slugs'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, password, organizationName, slug: rawSlug, product } = body
+    const { name, email, password, organizationName, slug: rawSlug, product, plan } = body
 
     // ── Validate inputs ──────────────────────────────────────────────
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
       await sendVerificationCode(normalizedEmail, code)
 
-      const pendingToken = createPendingToken(existing.id, normalizedEmail)
+      const pendingToken = createPendingToken(existing.id, normalizedEmail, { product, plan })
 
       // Look up the org slug so the client can store it
       const { rows: orgRows } = await db.query(
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 600,
+        maxAge: 1800,
       })
 
       return response
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     await sendVerificationCode(normalizedEmail, code)
 
-    const pendingToken = createPendingToken(userId, normalizedEmail)
+    const pendingToken = createPendingToken(userId, normalizedEmail, { product, plan })
 
     const response = NextResponse.json({
       requiresVerification: true,
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 600,
+      maxAge: 1800,
     })
 
     return response

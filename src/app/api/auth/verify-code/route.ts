@@ -88,6 +88,14 @@ export async function POST(request: NextRequest) {
     // Issue full session
     const sessionToken = createSessionToken({ userId: user.id, email: user.email })
 
+    // Compute redirect from JWT claims (product/plan encoded at sign-up/sign-in)
+    let redirect = '/dashboard'
+    if (pending.product === 'events') {
+      redirect = pending.plan
+        ? `/events/manage?checkout=${pending.plan}`
+        : '/events/manage'
+    }
+
     const response = NextResponse.json({
       user: {
         id: user.id,
@@ -97,6 +105,7 @@ export async function POST(request: NextRequest) {
       },
       memberships,
       activeMembership: memberships[0] || null,
+      redirect,
     })
 
     // Set session cookie, clear pending cookie

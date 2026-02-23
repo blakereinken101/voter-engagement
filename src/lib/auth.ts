@@ -66,16 +66,30 @@ export function clearSessionCookie(): HeadersInit {
 
 // ── 2FA Pending Session ──────────────────────────────────────────
 
-export function createPendingToken(userId: string, email: string): string {
-  return jwt.sign({ userId, email, pending2fa: true }, JWT_SECRET, { expiresIn: '10m' })
+export interface PendingSession extends SessionPayload {
+  pending2fa: boolean
+  product?: string
+  plan?: string
 }
 
-export function getPendingSession(): SessionPayload | null {
+export function createPendingToken(
+  userId: string,
+  email: string,
+  options?: { product?: string; plan?: string }
+): string {
+  return jwt.sign(
+    { userId, email, pending2fa: true, product: options?.product, plan: options?.plan },
+    JWT_SECRET,
+    { expiresIn: '30m' }
+  )
+}
+
+export function getPendingSession(): PendingSession | null {
   const cookieStore = cookies()
   const token = cookieStore.get('vc-2fa-pending')?.value
   if (!token) return null
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as SessionPayload & { pending2fa?: boolean }
+    const decoded = jwt.verify(token, JWT_SECRET) as PendingSession
     if (!decoded.pending2fa) return null
     return decoded
   } catch {

@@ -12,13 +12,6 @@ function SignUpForm() {
   const planFromUrl = searchParams.get('plan')
   const productFromUrl = searchParams.get('product') || (planFromUrl ? 'events' : null)
 
-  // Set vc-product cookie so it persists through 2FA verification
-  useEffect(() => {
-    if (productFromUrl) {
-      document.cookie = `vc-product=${productFromUrl}; Path=/; SameSite=Lax; Max-Age=600`
-    }
-  }, [productFromUrl])
-
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -114,6 +107,7 @@ function SignUpForm() {
           organizationName: organizationName.trim(),
           slug,
           product: productFromUrl || undefined,
+          plan: planFromUrl || undefined,
         }),
       })
 
@@ -126,9 +120,7 @@ function SignUpForm() {
       }
 
       if (data.requiresVerification) {
-        // Store slug and plan for post-verification redirect
-        if (data.slug) sessionStorage.setItem('signup-slug', data.slug)
-        if (planFromUrl) sessionStorage.setItem('signup-plan', planFromUrl)
+        // Product and plan are now encoded in the vc-2fa-pending JWT by the server
         router.push('/verify-code')
       }
     } catch {

@@ -7,17 +7,15 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { LogIn, AlertCircle, CheckCircle } from 'lucide-react'
 
-function getProductRedirect(): string {
-  if (typeof document === 'undefined') return '/dashboard'
-  const match = document.cookie.match(/(?:^|;\s*)vc-product=(\w+)/)
-  return match?.[1] === 'events' ? '/events/manage' : '/dashboard'
-}
-
 export default function SignInPage() {
   const router = useRouter()
   const redirectTo = useMemo(() => {
     if (typeof window === 'undefined') return null
     return new URLSearchParams(window.location.search).get('redirect')
+  }, [])
+  const productFromUrl = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    return new URLSearchParams(window.location.search).get('product')
   }, [])
   const wasReset = useMemo(() => {
     if (typeof window === 'undefined') return false
@@ -29,21 +27,13 @@ export default function SignInPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Set vc-product cookie from query param so it persists through 2FA
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const product = new URLSearchParams(window.location.search).get('product')
-    if (product) {
-      document.cookie = `vc-product=${product}; Path=/; SameSite=Lax; Max-Age=600`
-    }
-  }, [])
-
-  // If already signed in, redirect to the correct product
+  // If already signed in, redirect based on URL params
   useEffect(() => {
     if (!authLoading && user) {
-      router.push(redirectTo || getProductRedirect())
+      const dest = redirectTo || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')
+      router.push(dest)
     }
-  }, [authLoading, user, router, redirectTo])
+  }, [authLoading, user, router, redirectTo, productFromUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,12 +52,14 @@ export default function SignInPage() {
     setLoading(true)
 
     try {
-      const result = await signIn(email, password)
+      // Pass product so the server encodes it into the 2FA pending JWT
+      const result = await signIn(email, password, productFromUrl || undefined)
       if (result?.requiresVerification) {
         router.push('/verify-code')
         return
       }
-      router.push(redirectTo || getProductRedirect())
+      const dest = redirectTo || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')
+      router.push(dest)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Sign in failed'
       // Provide more user-friendly error messages

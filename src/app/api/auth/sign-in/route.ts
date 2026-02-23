@@ -6,7 +6,7 @@ import { sendVerificationCode } from '@/lib/email'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password } = body
+    const { email, password, product } = body
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     await sendVerificationCode(user.email, code)
 
     // Create pending 2FA token (short-lived, can't access dashboard)
-    const pendingToken = createPendingToken(user.id, user.email)
+    const pendingToken = createPendingToken(user.id, user.email, { product })
 
     const response = NextResponse.json({
       requiresVerification: true,
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 600, // 10 minutes
+      maxAge: 1800, // 30 minutes
     })
 
     return response

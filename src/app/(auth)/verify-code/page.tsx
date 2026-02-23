@@ -7,27 +7,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react'
 
-function readPostAuthRedirect(): string {
-  if (typeof document === 'undefined') return '/dashboard'
-  const match = document.cookie.match(/(?:^|;\s*)vc-product=(\w+)/)
-  const product = match?.[1]
-
-  if (product === 'events') {
-    // Check if user selected a plan during signup — pass it along so
-    // /events/manage can auto-trigger Stripe checkout
-    const plan = typeof sessionStorage !== 'undefined'
-      ? sessionStorage.getItem('signup-plan')
-      : null
-    return plan ? `/events/manage?checkout=${plan}` : '/events/manage'
-  }
-
-  return '/dashboard'
-}
-
-function clearPostAuthCookies() {
-  document.cookie = 'vc-product=; Path=/; SameSite=Lax; Max-Age=0'
-}
-
 export default function VerifyCodePage() {
   const router = useRouter()
   const { verifyCode, resendCode, user } = useAuth()
@@ -37,20 +16,13 @@ export default function VerifyCodePage() {
   const [resendCooldown, setResendCooldown] = useState(0)
   const [resendMessage, setResendMessage] = useState('')
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-
-  // Read redirect destination once on mount so it's stable across renders
-  const redirectRef = useRef<string | null>(null)
   const didRedirectRef = useRef(false)
-  useEffect(() => {
-    redirectRef.current = readPostAuthRedirect()
-  }, [])
 
-  // If already signed in, redirect to the correct product
+  // If already signed in, redirect to dashboard
   useEffect(() => {
     if (user && !didRedirectRef.current) {
       didRedirectRef.current = true
-      clearPostAuthCookies()
-      router.push(redirectRef.current || readPostAuthRedirect())
+      router.push('/dashboard')
     }
   }, [user, router])
 
@@ -76,12 +48,10 @@ export default function VerifyCodePage() {
     setError('')
     setLoading(true)
     try {
-      await verifyCode(code)
-      // Mark as redirecting so the useEffect doesn't race with us
+      // Server returns the redirect URL computed from the JWT claims
+      const redirect = await verifyCode(code)
       didRedirectRef.current = true
-      clearPostAuthCookies()
-      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('signup-plan')
-      router.push(redirectRef.current || readPostAuthRedirect())
+      router.push(redirect || '/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed')
       // Clear inputs on error
