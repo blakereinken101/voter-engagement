@@ -123,7 +123,7 @@ export default function DashboardPage() {
             className="text-sm text-white/60 hover:text-white transition-colors px-5 py-2.5 rounded-btn glass hover:border-white/20 flex items-center gap-2 font-bold"
           >
             <BookOpen className="w-4 h-4" />
-            Rolodex
+            Action Plan
           </Link>
           {state.actionPlanState.length > 0 && (
             <button

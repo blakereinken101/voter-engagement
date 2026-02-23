@@ -24,7 +24,7 @@ export default function RolodexPage() {
     <div className="min-h-screen cosmic-bg constellation text-white">
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-4">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <h1 className="font-display text-xl font-extrabold tracking-tight">Rolodex</h1>
+          <h1 className="font-display text-xl font-extrabold tracking-tight">Action Plan</h1>
           <Link
             href="/dashboard"
             className="text-white/60 text-sm hover:text-white transition-colors flex items-center gap-1"

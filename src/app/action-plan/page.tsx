@@ -87,7 +87,7 @@ export default function ActionPlanPage() {
             href="/rolodex"
             className="px-4 py-2 rounded-btn text-sm font-bold bg-white/10 text-white/70 hover:bg-white/20 transition-colors"
           >
-            Rolodex View
+            Card View
           </Link>
         </div>
       </div>
