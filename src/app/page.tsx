@@ -202,10 +202,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo divider 1 — lighter overlay */}
+      {/* Photo divider 1 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-3.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover brightness-90" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a]/70 via-transparent to-[#0a0a1a]/70" />
+        <Image src="/hero-3.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
       </div>
 
       {/* AI-Powered Section */}
@@ -286,10 +285,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo divider 2 — lighter overlay */}
+      {/* Photo divider 2 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-2.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover brightness-90" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a]/70 via-transparent to-[#0a0a1a]/70" />
+        <Image src="/hero-2.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
       </div>
 
       {/* Why relational organizing */}
@@ -320,10 +318,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo divider 3 — lighter overlay */}
+      {/* Photo divider 3 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover brightness-90" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a1a]/70 via-transparent to-[#0a0a1a]/70" />
+        <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
       </div>
 
       {/* Events Platform CTA */}

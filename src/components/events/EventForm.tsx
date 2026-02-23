@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { EVENT_TYPE_CONFIG } from '@/types/events'
 import type { EventType, EventFormData, EventVisibility, EventStatus } from '@/types/events'
 import EventCoverImage from './EventCoverImage'
 import { Save, Eye, Globe, Lock, Users, Upload, X } from 'lucide-react'
+import AISuggestButton from './AISuggestButton'
 
 interface Props {
   initialData?: Partial<EventFormData>
@@ -41,6 +42,11 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
   const [error, setError] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const [aiEnabled, setAiEnabled] = useState(false)
+  useEffect(() => {
+    fetch('/api/ai/status').then(r => r.json()).then(d => setAiEnabled(d.enabled)).catch(() => {})
+  }, [])
 
   const [form, setForm] = useState<EventFormData>({
     title: initialData?.title || '',
@@ -152,7 +158,20 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
         <h2 className="font-display font-bold text-lg text-white">Basic Info</h2>
 
         <div>
-          <label className="block text-sm text-white/60 mb-1.5">Event Title *</label>
+          <label className="flex items-center gap-1.5 text-sm text-white/60 mb-1.5">
+            Event Title *
+            {aiEnabled && (
+              <AISuggestButton
+                field="title"
+                eventType={form.eventType}
+                title={form.title}
+                locationName={form.locationName}
+                locationCity={form.locationCity}
+                isVirtual={form.isVirtual}
+                onSuggestion={(s) => updateForm({ title: s })}
+              />
+            )}
+          </label>
           <input
             type="text"
             value={form.title}
@@ -164,7 +183,21 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
         </div>
 
         <div>
-          <label className="block text-sm text-white/60 mb-1.5">Description</label>
+          <label className="flex items-center gap-1.5 text-sm text-white/60 mb-1.5">
+            Description
+            {aiEnabled && (
+              <AISuggestButton
+                field="description"
+                eventType={form.eventType}
+                title={form.title}
+                description={form.description}
+                locationName={form.locationName}
+                locationCity={form.locationCity}
+                isVirtual={form.isVirtual}
+                onSuggestion={(s) => updateForm({ description: s })}
+              />
+            )}
+          </label>
           <textarea
             value={form.description}
             onChange={e => updateForm({ description: e.target.value })}

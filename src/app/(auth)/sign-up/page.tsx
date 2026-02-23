@@ -144,7 +144,11 @@ function SignUpForm() {
               <UserPlus className="w-5 h-5 text-vc-purple-light" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Create your account</h2>
+              <h2 className="text-lg font-bold text-white">
+                Create your {productFromUrl === 'relational'
+                  ? <span className="text-vc-purple-light">relational</span>
+                  : <span className="text-vc-purple-light">events</span>} account
+              </h2>
               <p className="text-white/50 text-sm">
                 {productFromUrl === 'relational'
                   ? 'Start building your voter contact program'
