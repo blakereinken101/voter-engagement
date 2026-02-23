@@ -140,7 +140,7 @@ export default function LandingPage() {
       {/* Relational Organizing Features — the big draw */}
       <section
         ref={featuresRef}
-        className={`px-6 py-20 max-w-5xl mx-auto opacity-0 ${featuresInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 py-20 max-w-5xl mx-auto text-center opacity-0 ${featuresInView ? 'animate-slide-up' : ''}`}
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-vc-teal/10 border border-vc-teal/20 text-vc-teal text-sm mb-4 mx-auto">
           <Sparkles className="w-4 h-4" />
@@ -152,7 +152,7 @@ export default function LandingPage() {
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-14">
           Every campaign is different. Our relational organizing platform gives your team the tools to build a voter contact program that fits your strategy, your voters, and your people.
         </p>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-3 gap-6 text-left">
           {[
             {
               icon: Users,
