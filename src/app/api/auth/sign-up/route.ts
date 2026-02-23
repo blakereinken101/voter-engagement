@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { hashPassword, createPendingToken, generateVerificationCode } from '@/lib/auth'
+import { hashPassword, verifyPassword, createPendingToken, generateVerificationCode } from '@/lib/auth'
 import { sendVerificationCode } from '@/lib/email'
 import { sanitizeSlug, validateSlug } from '@/lib/slugs'
 
@@ -37,10 +37,63 @@ export async function POST(request: NextRequest) {
 
     // ── Check uniqueness ─────────────────────────────────────────────
     const { rows: existingUser } = await db.query(
-      'SELECT id FROM users WHERE email = $1', [normalizedEmail]
+      'SELECT id, password_hash FROM users WHERE email = $1', [normalizedEmail]
     )
     if (existingUser.length > 0) {
-      return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
+      // If the user already exists, check if they simply abandoned verification.
+      // If the password matches, re-send a new verification code so they can finish.
+      const existing = existingUser[0]
+      if (!verifyPassword(password, existing.password_hash)) {
+        return NextResponse.json(
+          { error: 'An account with this email already exists. Try signing in instead.' },
+          { status: 409 }
+        )
+      }
+
+      // Password matches — expire any old codes and re-send a fresh one
+      await db.query(
+        `UPDATE verification_codes SET used = true WHERE user_id = $1 AND used = false`,
+        [existing.id]
+      )
+
+      const code = generateVerificationCode()
+      const codeId = crypto.randomUUID()
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+
+      await db.query(
+        `INSERT INTO verification_codes (id, user_id, code, expires_at, type)
+         VALUES ($1, $2, $3, $4, 'two_factor')`,
+        [codeId, existing.id, code, expiresAt.toISOString()]
+      )
+
+      await sendVerificationCode(normalizedEmail, code)
+
+      const pendingToken = createPendingToken(existing.id, normalizedEmail)
+
+      // Look up the org slug so the client can store it
+      const { rows: orgRows } = await db.query(
+        `SELECT o.slug FROM organizations o
+         JOIN campaigns c ON c.org_id = o.id
+         JOIN memberships m ON m.campaign_id = c.id
+         WHERE m.user_id = $1 LIMIT 1`,
+        [existing.id]
+      )
+
+      const response = NextResponse.json({
+        requiresVerification: true,
+        email: normalizedEmail,
+        slug: orgRows[0]?.slug || null,
+      })
+
+      response.cookies.set('vc-2fa-pending', pendingToken, {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 600,
+      })
+
+      return response
     }
 
     const { rows: existingSlug } = await db.query(
