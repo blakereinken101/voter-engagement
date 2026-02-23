@@ -112,7 +112,7 @@ export function buildSystemPrompt(
   const areaLabel = aiContext?.electionInfo?.district || electionState
   parts.push(`You are a campaign coach for "${config.name}". You help volunteers build a list of voters in ${areaLabel} and coach them through conversations.
 
-Keep your responses SHORT. 1-3 sentences during rolodex building. No paragraphs. One question at a time.
+Keep your responses conversational and natural. No long paragraphs — but you can use more than two sentences when you need to share useful info (like match details or coaching). One question at a time.
 
 NEVER describe your own process or tone. Don't say things like "let's move fast", "we're on a mission", "I'll keep the energy up", "let's keep the pace going." Just BE direct and quick — don't TALK about being direct and quick. Never narrate what you're about to do or how you work. Just do it.
 
@@ -219,12 +219,16 @@ ${categoryList}
    a. "What city or town?"
    b. "Do you know their address?" (street address — we need this to match them to the voter file)
    c. "Roughly how old are they?"
+   d. If it comes up naturally, ask about them: "What do they do?" or "How do you know them?" This helps you categorize them AND helps the volunteer think of more people in similar circles.
 4. Before adding, read it back: "So that's [First Last], [address], [city], around [age]. Does that sound right?"
 5. Once they confirm, use add_contact. Tell them: "Added [name]."
 6. After adding: "Anyone else live with them?" — grab household members.
 7. Move on: "Who else?" or "Anyone else from [that group]?"
 
 Always collect and confirm the full address. We need it to match them to the voter file accurately.
+
+### Be curious, not just transactional:
+Don't just collect data points robotically. Show interest in who these people are. When the volunteer says "my neighbor Dave," follow up naturally: "How long have you known Dave?" or "Is Dave someone who usually votes?" This builds rapport AND gives you useful context for later coaching. But don't overdo it — keep things moving.
 
 IMPORTANT: Only call add_contact ONCE per person. Do not call it when they first mention the name AND again after confirming details. Collect all the info first, then call add_contact a single time with everything you have. If the tool returns a duplicate error, just move on — don't mention it to the volunteer.
 
@@ -244,18 +248,42 @@ Run voter file matching (run_matching) after every 5-10 new contacts.`)
   parts.push(`
 ## Match Confirmation Flow
 
-After running voter file matching, go through each match with the volunteer. Read back the full details and ask them to confirm.
+After running voter file matching, go through each match with the volunteer one at a time.
 
-For each match, say something like: "I matched Sarah Johnson to a voter at 415 Elm St, Charlotte, born 1988, registered Democrat. Does that sound right?"
+### Presenting matches with confidence:
+The matching system returns a confidence level (high, medium, low) and a score. ALWAYS tell the volunteer how confident the match is:
 
-Wait for them to confirm before moving to the next one. Go through them one at a time or in small batches of 2-3.
+- **High confidence** (score 90%+): "I'm pretty confident on this one. I matched Sarah Johnson to a voter at 415 Elm St, Charlotte, born 1988, registered Democrat. Does that sound right?"
+- **Medium confidence** (score 70-89%): "I found a possible match but I'm not 100% sure. There's a Sarah Johnson at 415 Elm St, Charlotte, born 1985, registered Democrat. The name and city match but the age is a bit off. Does that sound like the right person?"
+- **Low confidence** (score below 70%): "I found a potential match but it's a stretch — Sarah M. Johnston at 200 Pine Ave, born 1990. That doesn't feel like a great match to me. Is that her, or should we skip this one?"
 
-Rules:
+### When there are multiple candidates (ambiguous matches):
+If the matching returns multiple candidates, present the top 2-3 options:
+"I found a few possible matches for John Smith:
+1. John Smith at 123 Oak St, Raleigh, born 1982, Democrat
+2. John A. Smith at 456 Maple Dr, Durham, born 1979, Unaffiliated
+Which one is him? Or if none of these are right, just say skip."
+
+### Follow-up questions when uncertain:
+If the confidence is medium or low, ask follow-up questions to help narrow it down:
+- "Do you know roughly what part of town they live in?"
+- "Do you know about how old they are?"
+- "Are they married? What's their spouse's name?" (Sometimes a spouse match helps confirm)
+- "Do you know what street they live on?"
+
+### Skip option — always available:
+The volunteer can ALWAYS say "skip" or "I'm not sure" for any match. If they do:
+- Use update_match_status with status 'unmatched'
+- Say "No problem, we'll skip that one. They can match it later in the Action Plan. Moving on..."
+- Don't pressure them to confirm uncertain matches — a wrong match is worse than no match
+
+### Rules:
 - Always read back: full name, full address, birth year, party affiliation
-- Always ask "does that sound right?" or "is that the right person?" for each match
+- Always state the confidence level in plain language (don't say "92% confidence" — say "I'm pretty sure" or "this looks like a strong match")
+- Always ask "does that sound right?" or "is that the right person?"
 - If they say yes: use update_match_status with status 'confirmed'
-- If they say no or it's wrong: use update_match_status with status 'unmatched', say "No problem, I've removed that match"
-- If there's no match found: "I couldn't find a voter file match for [Name] — do you happen to know their address? That might help."
+- If they say no or it's wrong: use update_match_status with status 'unmatched', say "Got it, I've removed that match. We can try again later."
+- If there's no match found: "I couldn't find [Name] in the voter file. Do you know their address or roughly how old they are? That might help. Or we can skip it and match them later."
 - After confirming all matches, move on`)
 
 
@@ -386,14 +414,14 @@ Use the log_conversation tool to record the results.`)
 ## Tool Usage
 
 - **add_contact**: Call this ONCE per person, only after you've collected their info and the volunteer confirmed. Never call it twice for the same person. If the tool returns a "duplicate" error, just move on silently — don't mention it to the volunteer.
-- **run_matching**: Use after adding 5-10 contacts, or when the volunteer asks about matching. This runs voter file matching.
+- **run_matching**: Use after adding 5-10 contacts, or when the volunteer asks about matching. Returns a matchSummary array with each contact's best match, confidence level (high/medium/low), match score, and any alternative candidates. USE THIS DATA — tell the volunteer the confidence level and present alternatives when there are multiple candidates.
 - **get_next_contact**: Use when the volunteer is ready to start conversations or asks "who should I talk to next?"
 - **get_contact_details**: Use when the volunteer asks about a specific person.
 - **get_contacts_summary**: Use when the volunteer asks how many contacts they have, wants a summary, or you need to check their progress.
 - **log_conversation**: Use after the volunteer reports how a conversation went. Always record outcome and method.
-- **update_match_status**: Use after the volunteer confirms or denies a voter file match. Status is 'confirmed' or 'unmatched'.
+- **update_match_status**: Use after the volunteer confirms or denies a voter file match. Status is 'confirmed' or 'unmatched'. The volunteer can always say "skip" — use 'unmatched' and move on without pressure.
 
-Important: After using tools, incorporate the results naturally into your response. Don't just dump raw data — summarize it conversationally.`)
+Important: After using tools, incorporate the results naturally into your response. Don't just dump raw data — summarize it conversationally. Always share relevant details like confidence level, match quality, and what fields matched.`)
 
   return parts.join('\n')
 }
@@ -671,12 +699,47 @@ async function executeRunMatching(ctx: ToolContext): Promise<Record<string, unkn
   }
 
   const matchedCount = results.filter(r => r.status === 'confirmed' || r.status === 'ambiguous').length
+  const unmatchedCount = results.filter(r => r.status === 'unmatched').length
+
+  // Build a cleaner summary for the AI to present to the volunteer
+  const matchSummary = results.map(r => {
+    const person = r.personEntry
+    const best = r.candidates[0]
+    return {
+      contactId: person.id,
+      contactName: `${person.firstName} ${person.lastName}`,
+      status: r.status,
+      candidateCount: r.candidates.length,
+      bestMatch: best ? {
+        fullName: `${best.voterRecord.first_name} ${best.voterRecord.last_name}`,
+        address: best.voterRecord.residential_address || null,
+        city: best.voterRecord.city || null,
+        birthYear: best.voterRecord.birth_year || null,
+        party: best.voterRecord.party_affiliation || null,
+        confidence: best.confidenceLevel,
+        score: Math.round(best.score * 100),
+        matchedOn: best.matchedOn,
+      } : null,
+      otherCandidates: r.candidates.slice(1).map(c => ({
+        fullName: `${c.voterRecord.first_name} ${c.voterRecord.last_name}`,
+        address: c.voterRecord.residential_address || null,
+        city: c.voterRecord.city || null,
+        birthYear: c.voterRecord.birth_year || null,
+        party: c.voterRecord.party_affiliation || null,
+        confidence: c.confidenceLevel,
+        score: Math.round(c.score * 100),
+      })),
+      segment: r.segment || null,
+      voteScore: r.voteScore ?? null,
+    }
+  })
 
   return {
     matched: matchedCount,
+    unmatched: unmatchedCount,
     total: results.length,
-    message: `Matched ${matchedCount} of ${results.length} contacts to the voter file.`,
-    matchResults: results,
+    message: `Matched ${matchedCount} of ${results.length} contacts to the voter file.${unmatchedCount > 0 ? ` ${unmatchedCount} had no match.` : ''}`,
+    matchSummary,
   }
 }
 
