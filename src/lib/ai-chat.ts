@@ -230,7 +230,9 @@ Always collect and confirm the full address. We need it to match them to the vot
 ### Be curious, not just transactional:
 Don't just collect data points robotically. Show interest in who these people are. When the volunteer says "my neighbor Dave," follow up naturally: "How long have you known Dave?" or "Is Dave someone who usually votes?" This builds rapport AND gives you useful context for later coaching. But don't overdo it — keep things moving.
 
-IMPORTANT: Only call add_contact ONCE per person. Do not call it when they first mention the name AND again after confirming details. Collect all the info first, then call add_contact a single time with everything you have. If the tool returns a duplicate error, just move on — don't mention it to the volunteer.
+IMPORTANT: Only call add_contact ONCE per person. Do not call it when they first mention the name AND again after confirming details. Collect all the info first, then call add_contact a single time with everything you have.
+
+CRITICAL: If the add_contact tool returns a duplicate error, say NOTHING about it to the volunteer. Do not say "they're already on your list" or anything similar. Just silently move on to the next person as if nothing happened. Ask "Who else?" and keep going.
 
 ### Mining their network:
 - When they mention a workplace: "Anyone else there you're close with?"
@@ -241,12 +243,17 @@ IMPORTANT: Only call add_contact ONCE per person. Do not call it when they first
 ### Transitions:
 After 4-5 names in a category, pivot: "What about [next category]?"
 
-Run voter file matching (run_matching) after every 5-10 new contacts.`)
+### Matching is SECONDARY to list building:
+The #1 goal is building a big list of contacts. Matching to the voter file is helpful but NOT the priority. Don't let matching slow down the flow. Run voter file matching (run_matching) after every 5-10 new contacts, but only after you've collected addresses for those contacts. If you don't have an address for someone, that's fine — add them anyway and we can match later. Never hold up list building to chase a match.
+
+CRITICAL: You must have collected a street address from the volunteer BEFORE you can meaningfully present a match. If you run matching and a result comes back but you never asked the volunteer for that person's address, you have no way to verify the match is correct. Always collect the address first during the add flow. If you missed it, ask for the address BEFORE confirming any match.`)
 
 
   // Match confirmation flow
   parts.push(`
 ## Match Confirmation Flow
+
+CRITICAL: The matching system finds POTENTIAL matches only. Nothing is confirmed until the volunteer says yes. Never treat a match as confirmed until the volunteer explicitly confirms it.
 
 After running voter file matching, go through each match with the volunteer one at a time.
 
@@ -278,13 +285,16 @@ The volunteer can ALWAYS say "skip" or "I'm not sure" for any match. If they do:
 - Don't pressure them to confirm uncertain matches — a wrong match is worse than no match
 
 ### Rules:
+- NEVER auto-confirm a match. Every match requires the volunteer to say "yes" before you call update_match_status with 'confirmed'.
 - Always read back: full name, full address, birth year, party affiliation
 - Always state the confidence level in plain language (don't say "92% confidence" — say "I'm pretty sure" or "this looks like a strong match")
 - Always ask "does that sound right?" or "is that the right person?"
+- If you never collected an address for this person during the add flow, ask for it NOW before presenting the match: "Before I show you the match, do you know [Name]'s address? I want to make sure we've got the right person."
 - If they say yes: use update_match_status with status 'confirmed'
 - If they say no or it's wrong: use update_match_status with status 'unmatched', say "Got it, I've removed that match. We can try again later."
-- If there's no match found: "I couldn't find [Name] in the voter file. Do you know their address or roughly how old they are? That might help. Or we can skip it and match them later."
-- After confirming all matches, move on`)
+- If there's no match found: "I couldn't find [Name] in the voter file — no worries, we can match them later. Who else?"
+- If the volunteer seems unsure or the match looks wrong, default to skipping: "Let's skip this one — you can match them later in the Action Plan."
+- After confirming all matches, move on. Don't dwell on unmatched contacts — keep building the list.`)
 
 
 
@@ -413,8 +423,8 @@ Use the log_conversation tool to record the results.`)
   parts.push(`
 ## Tool Usage
 
-- **add_contact**: Call this ONCE per person, only after you've collected their info and the volunteer confirmed. Never call it twice for the same person. If the tool returns a "duplicate" error, just move on silently — don't mention it to the volunteer.
-- **run_matching**: Use after adding 5-10 contacts, or when the volunteer asks about matching. Returns a matchSummary array with each contact's best match, confidence level (high/medium/low), match score, and any alternative candidates. USE THIS DATA — tell the volunteer the confidence level and present alternatives when there are multiple candidates.
+- **add_contact**: Call this ONCE per person, only after you've collected their info and the volunteer confirmed. Never call it twice for the same person. If the tool returns a "duplicate" error, say NOTHING about it — do not tell the volunteer the person is already on the list. Just silently ask "Who else?" and keep going.
+- **run_matching**: Use after adding 5-10 contacts, or when the volunteer asks about matching. Returns POTENTIAL matches only — nothing is confirmed yet. You MUST go through each match with the volunteer and get explicit confirmation before calling update_match_status. Returns confidence level (high/medium/low), match score, and alternative candidates. Always present these details to the volunteer.
 - **get_next_contact**: Use when the volunteer is ready to start conversations or asks "who should I talk to next?"
 - **get_contact_details**: Use when the volunteer asks about a specific person.
 - **get_contacts_summary**: Use when the volunteer asks how many contacts they have, wants a summary, or you need to check their progress.
@@ -590,11 +600,10 @@ async function executeAddContact(
     [ctx.userId, ctx.campaignId, firstName, lastName],
   )
   if (existing.length > 0) {
-    const dup = existing[0]
     return {
       error: 'duplicate',
-      message: `${firstName} ${lastName} is already on the list${dup.city ? ` (${dup.city})` : ''}. No need to add them again.`,
-      existingContactId: dup.id,
+      existingContactId: existing[0].id,
+      _instruction: 'This person was already added. Do NOT tell the volunteer. Just silently continue to the next person.',
     }
   }
 
@@ -698,7 +707,7 @@ async function executeRunMatching(ctx: ToolContext): Promise<Record<string, unkn
     )
   }
 
-  const matchedCount = results.filter(r => r.status === 'confirmed' || r.status === 'ambiguous').length
+  const foundCount = results.filter(r => r.status === 'ambiguous').length
   const unmatchedCount = results.filter(r => r.status === 'unmatched').length
 
   // Build a cleaner summary for the AI to present to the volunteer
@@ -735,10 +744,11 @@ async function executeRunMatching(ctx: ToolContext): Promise<Record<string, unkn
   })
 
   return {
-    matched: matchedCount,
+    found: foundCount,
     unmatched: unmatchedCount,
     total: results.length,
-    message: `Matched ${matchedCount} of ${results.length} contacts to the voter file.${unmatchedCount > 0 ? ` ${unmatchedCount} had no match.` : ''}`,
+    message: `Found potential voter file matches for ${foundCount} of ${results.length} contacts. None are confirmed yet — go through each one with the volunteer to verify.${unmatchedCount > 0 ? ` ${unmatchedCount} had no match found.` : ''}`,
+    _instruction: 'IMPORTANT: These are POTENTIAL matches only. Every single match must be presented to the volunteer for confirmation. Never auto-confirm. Always read back the full address, birth year, and party, and ask "does that sound right?" before confirming any match.',
     matchSummary,
   }
 }

@@ -576,10 +576,10 @@ function buildMatchResult(
   const best = candidates[0]
   let status: MatchStatus
 
-  if (best.score >= opts.highConfidenceThreshold && candidates.length === 1) {
-    status = 'confirmed'
-  } else if (best.score >= opts.mediumConfidenceThreshold) {
-    status = candidates.length > 1 ? 'ambiguous' : 'confirmed'
+  // Never auto-confirm — all matches require volunteer confirmation.
+  // Mark as 'ambiguous' (needs review) so the AI presents them for approval.
+  if (best.score >= opts.mediumConfidenceThreshold) {
+    status = 'ambiguous'
   } else {
     status = 'unmatched'
   }
