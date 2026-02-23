@@ -1,5 +1,6 @@
 import { Pool } from 'pg'
 import { hashSync } from 'bcryptjs'
+import { PLAN_LIMITS } from '@/types/events'
 
 // Railway internal connections (*.railway.internal) don't use SSL.
 // Only enable SSL for external connections.
@@ -190,6 +191,98 @@ async function initSchema() {
       );
     `)
 
+    // ── Product Subscriptions (events SaaS gating) ──────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS product_subscriptions (
+        id TEXT PRIMARY KEY,
+        organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        product TEXT NOT NULL,
+        plan TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        stripe_subscription_id TEXT,
+        stripe_customer_id TEXT,
+        current_period_start TIMESTAMPTZ,
+        current_period_end TIMESTAMPTZ,
+        limits JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(organization_id, product)
+      );
+    `)
+
+    // ── Events ──────────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS events (
+        id TEXT PRIMARY KEY,
+        organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        description TEXT,
+        event_type TEXT NOT NULL DEFAULT 'community',
+        start_time TIMESTAMPTZ NOT NULL,
+        end_time TIMESTAMPTZ,
+        timezone TEXT NOT NULL DEFAULT 'America/New_York',
+        location_name TEXT,
+        location_address TEXT,
+        location_city TEXT,
+        location_state TEXT,
+        location_zip TEXT,
+        is_virtual BOOLEAN DEFAULT false,
+        virtual_url TEXT,
+        cover_image_url TEXT,
+        emoji TEXT DEFAULT '🗳️',
+        theme_color TEXT DEFAULT '#6C3CE1',
+        visibility TEXT NOT NULL DEFAULT 'public',
+        max_attendees INTEGER,
+        rsvp_enabled BOOLEAN DEFAULT true,
+        status TEXT NOT NULL DEFAULT 'published',
+        slug TEXT UNIQUE NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `)
+
+    // ── Event RSVPs ─────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS event_rsvps (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+        guest_name TEXT,
+        guest_email TEXT,
+        status TEXT NOT NULL DEFAULT 'going',
+        guest_count INTEGER NOT NULL DEFAULT 1,
+        note TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(event_id, user_id)
+      );
+    `)
+
+    // ── Event Comments ──────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS event_comments (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        parent_id TEXT REFERENCES event_comments(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `)
+
+    // ── Event Reactions ─────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS event_reactions (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        emoji TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(event_id, user_id, emoji)
+      );
+    `)
+
     // ── Indexes ──────────────────────────────────────────────────────
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_contacts_user_id ON contacts(user_id);
@@ -205,6 +298,17 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_activity_log_campaign_id ON activity_log(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_verification_codes_user_id ON verification_codes(user_id);
       CREATE INDEX IF NOT EXISTS idx_chat_messages_user_campaign ON chat_messages(user_id, campaign_id, created_at);
+
+      CREATE INDEX IF NOT EXISTS idx_product_subscriptions_org ON product_subscriptions(organization_id);
+      CREATE INDEX IF NOT EXISTS idx_events_org_id ON events(organization_id);
+      CREATE INDEX IF NOT EXISTS idx_events_start_time ON events(start_time);
+      CREATE INDEX IF NOT EXISTS idx_events_slug ON events(slug);
+      CREATE INDEX IF NOT EXISTS idx_events_visibility ON events(visibility);
+      CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
+      CREATE INDEX IF NOT EXISTS idx_event_rsvps_event_id ON event_rsvps(event_id);
+      CREATE INDEX IF NOT EXISTS idx_event_rsvps_user_id ON event_rsvps(user_id);
+      CREATE INDEX IF NOT EXISTS idx_event_comments_event_id ON event_comments(event_id);
+      CREATE INDEX IF NOT EXISTS idx_event_reactions_event_id ON event_reactions(event_id);
     `)
 
     // ── Seed defaults ────────────────────────────────────────────────
@@ -320,6 +424,152 @@ async function seedDefaults(client: import('pg').PoolClient) {
   if (activityBackfilled && activityBackfilled > 0) {
     console.log(`[db] Backfilled campaign_id on ${activityBackfilled} activity_log rows`)
   }
+
+  // ── Seed events subscription for default org ─────────────────
+  const { rows: existingSub } = await client.query(
+    "SELECT id FROM product_subscriptions WHERE organization_id = $1 AND product = 'events'",
+    [orgId]
+  )
+  if (existingSub.length === 0) {
+    const now = new Date()
+    const periodEnd = new Date(now)
+    periodEnd.setMonth(periodEnd.getMonth() + 1)
+    await client.query(
+      `INSERT INTO product_subscriptions (id, organization_id, product, plan, status, current_period_start, current_period_end, limits)
+       VALUES ($1, $2, 'events', 'scale', 'active', $3, $4, $5)`,
+      [crypto.randomUUID(), orgId, now.toISOString(), periodEnd.toISOString(), JSON.stringify(PLAN_LIMITS.scale)]
+    )
+    console.log(`[db] Seeded default events subscription (scale) for org: ${orgId}`)
+  }
+
+  // ── Seed placeholder events ──────────────────────────────────
+  await seedEvents(client, orgId, adminId)
+}
+
+async function seedEvents(client: import('pg').PoolClient, orgId: string, adminId: string) {
+  const { rows: existing } = await client.query(
+    'SELECT COUNT(*) FROM events WHERE organization_id = $1',
+    [orgId]
+  )
+  if (parseInt(existing[0].count, 10) > 0) return
+
+  function seedSlug(title: string): string {
+    const base = title.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 50)
+    const suffix = crypto.randomUUID().slice(0, 6)
+    return `${base}-${suffix}`
+  }
+
+  function futureDate(daysFromNow: number, hour: number, minute = 0): string {
+    const d = new Date()
+    d.setDate(d.getDate() + daysFromNow)
+    d.setHours(hour, minute, 0, 0)
+    return d.toISOString()
+  }
+
+  function endDate(daysFromNow: number, hour: number, minute = 0): string {
+    return futureDate(daysFromNow, hour, minute)
+  }
+
+  const events = [
+    {
+      title: 'New Volunteer Orientation',
+      description: 'New to organizing? Start here! This orientation covers everything you need to know to get involved: how to canvass, phone bank, register voters, and make a real impact in your community. Snacks and materials provided.',
+      event_type: 'volunteer_training',
+      start_time: futureDate(4, 17, 30),
+      end_time: endDate(4, 19, 30),
+      location_name: 'Downtown Organizing HQ',
+      location_city: 'Charlotte',
+      location_state: 'NC',
+      location_zip: '28202',
+      is_virtual: false,
+      emoji: '📋',
+      theme_color: '#6C3CE1',
+      max_attendees: 40,
+    },
+    {
+      title: 'Community Cleanup & Voter Contact',
+      description: 'Make a visible difference in your neighborhood! We\'ll spend the morning cleaning up the park and the afternoon talking to neighbors about upcoming elections. Community service meets civic engagement.',
+      event_type: 'community',
+      start_time: futureDate(12, 9, 0),
+      end_time: endDate(12, 15, 0),
+      location_name: 'Riverside Park',
+      location_city: 'Milwaukee',
+      location_state: 'WI',
+      location_zip: '53212',
+      is_virtual: false,
+      emoji: '🌟',
+      theme_color: '#14B8A6',
+      max_attendees: 50,
+    },
+    {
+      title: 'Voter Registration Drive',
+      description: 'Every vote counts — and it starts with registration. Join us to register new voters, check registrations, and make sure every eligible citizen can make their voice heard. Volunteers will be stationed at community centers, libraries, and college campuses.',
+      event_type: 'voter_registration',
+      start_time: futureDate(9, 9, 0),
+      end_time: endDate(9, 17, 0),
+      location_name: 'Multiple Locations',
+      location_city: 'Phoenix',
+      location_state: 'AZ',
+      location_zip: '85001',
+      is_virtual: false,
+      emoji: '📝',
+      theme_color: '#14B8A6',
+      max_attendees: 100,
+    },
+    {
+      title: 'Ballot Party: Know Your Candidates',
+      description: 'Don\'t show up to the polls unprepared! Join us for an interactive ballot walkthrough. We\'ll cover every race on the ballot, research candidates together, and make sure you\'re ready to vote informed all the way down-ballot.',
+      event_type: 'ballot_party',
+      start_time: futureDate(16, 18, 0),
+      end_time: endDate(16, 20, 30),
+      location_name: 'Community Library',
+      location_city: 'Atlanta',
+      location_state: 'GA',
+      location_zip: '30303',
+      is_virtual: false,
+      emoji: '🗳️',
+      theme_color: '#F59E0B',
+      max_attendees: 60,
+    },
+  ]
+
+  for (const event of events) {
+    const id = crypto.randomUUID()
+    const slug = seedSlug(event.title)
+    await client.query(
+      `INSERT INTO events (
+        id, organization_id, created_by, title, description, event_type,
+        start_time, end_time, timezone,
+        location_name, location_address, location_city, location_state, location_zip,
+        is_virtual, virtual_url,
+        cover_image_url, emoji, theme_color,
+        visibility, max_attendees, rsvp_enabled, status, slug
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, 'America/New_York',
+        $9, $10, $11, $12, $13,
+        $14, $15,
+        NULL, $16, $17,
+        'public', $18, true, 'published', $19
+      )`,
+      [
+        id, orgId, adminId, event.title, event.description, event.event_type,
+        event.start_time, event.end_time || null,
+        event.location_name || null, (event as Record<string, unknown>).location_address as string || null,
+        event.location_city || null, event.location_state || null, event.location_zip || null,
+        event.is_virtual, (event as Record<string, unknown>).virtual_url as string || null,
+        event.emoji, event.theme_color,
+        event.max_attendees || null, slug
+      ]
+    )
+  }
+
+  console.log(`[db] Seeded ${events.length} placeholder events`)
 }
 
 export async function logActivity(userId: string, action: string, details?: Record<string, unknown>, campaignId?: string) {
