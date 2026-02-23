@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     const isInit = rawMessage === '__INIT__'
     const message = isInit
-      ? '[System: The volunteer just opened the chat for the first time. Greet them by name, introduce yourself briefly, and get right into it. Tell them the plan: you\'re going to help them build a list of people they know, match those people to the voter file, and then coach them on conversations. Be confident and direct — not overly formal or deferential. Keep it to 3-4 sentences, then ask your first rolodex question to get started.]'
+      ? '[System: The volunteer just opened the chat. Greet them by name. Be quick — 2-3 sentences max. Tell them the plan: you\'re building a list of people they know who live in the state/district, matching them to the voter file, then coaching conversations. Make it clear you\'re looking for people in the campaign\'s area. Then immediately ask your first question — start with household: "Who do you live with?" Keep it fast and assertive.]'
       : rawMessage
 
     const db = await getDb()
