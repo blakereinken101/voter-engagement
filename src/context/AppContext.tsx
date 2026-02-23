@@ -316,6 +316,12 @@ interface AppContextValue {
   setVolunteerProspect: (personId: string, isProspect: boolean) => void
   setSurveyResponses: (personId: string, responses: Record<string, string>) => void
   removePerson: (personId: string) => void
+  // Local-only dispatches for AI tool results (already synced server-side)
+  addPersonLocal: (person: PersonEntry) => void
+  batchMatchResultsLocal: (results: MatchResult[]) => void
+  toggleContactedLocal: (personId: string, method?: OutreachMethod) => void
+  setContactOutcomeLocal: (personId: string, outcome: ContactOutcome) => void
+  setSurveyResponsesLocal: (personId: string, responses: Record<string, string>) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -571,10 +577,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.selectedState, state.personEntries, state.matchResults, user])
 
+  // Local-only dispatches — used by AI chat when tools already wrote to DB
+  const addPersonLocal = useCallback((person: PersonEntry) => {
+    dispatch({ type: 'ADD_PERSON', payload: person })
+  }, [])
+
+  const batchMatchResultsLocal = useCallback((results: MatchResult[]) => {
+    dispatch({ type: 'BATCH_MATCH_RESULTS', payload: results })
+  }, [])
+
+  const toggleContactedLocal = useCallback((personId: string, method?: OutreachMethod) => {
+    dispatch({ type: 'TOGGLE_CONTACTED', payload: { personId, method } })
+  }, [])
+
+  const setContactOutcomeLocal = useCallback((personId: string, outcome: ContactOutcome) => {
+    dispatch({ type: 'SET_CONTACT_OUTCOME', payload: { personId, outcome } })
+  }, [])
+
+  const setSurveyResponsesLocal = useCallback((personId: string, responses: Record<string, string>) => {
+    dispatch({ type: 'SET_SURVEY_RESPONSES', payload: { personId, responses } })
+  }, [])
+
   return (
     <AppContext.Provider value={{
       state, dispatch, addPerson, confirmMatch, rejectMatch,
-      toggleContacted, setOutreachMethod, setContactOutcome, clearContact, updateNote, runMatching, runMatchingForUnmatched, setVolunteerProspect, setSurveyResponses, removePerson
+      toggleContacted, setOutreachMethod, setContactOutcome, clearContact, updateNote, runMatching, runMatchingForUnmatched, setVolunteerProspect, setSurveyResponses, removePerson,
+      addPersonLocal, batchMatchResultsLocal, toggleContactedLocal, setContactOutcomeLocal, setSurveyResponsesLocal,
     }}>
       {children}
     </AppContext.Provider>

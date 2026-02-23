@@ -1,3 +1,5 @@
+import type { AICampaignContext } from '@/types'
+
 export interface SurveyQuestionConfig {
   id: string
   label: string
@@ -15,6 +17,7 @@ export interface CampaignConfig {
   privacyText?: string
   voterFile?: string
   surveyQuestions: SurveyQuestionConfig[]
+  aiContext?: AICampaignContext
 }
 
 /**

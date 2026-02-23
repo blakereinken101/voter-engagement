@@ -1,5 +1,6 @@
 import { getPool } from './db'
 import campaignConfig, { type CampaignConfig, type SurveyQuestionConfig } from './campaign-config'
+import type { AICampaignContext } from '@/types'
 
 /**
  * Load campaign config from the database by campaign ID.
@@ -35,5 +36,6 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
     privacyText: (settings.privacyText as string) || campaignConfig.privacyText,
     voterFile: (settings.voterFile as string) || undefined,
     surveyQuestions: (settings.surveyQuestions as SurveyQuestionConfig[]) || campaignConfig.surveyQuestions,
+    aiContext: (settings.aiContext as AICampaignContext) || undefined,
   }
 }

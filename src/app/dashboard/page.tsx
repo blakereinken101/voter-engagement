@@ -4,6 +4,7 @@ import { useAppContext } from '@/context/AppContext'
 import { useAuth } from '@/context/AuthContext'
 import ContactSpreadsheet from '@/components/ContactSpreadsheet'
 import AdminPanel from '@/components/admin/AdminPanel'
+import ChatInterface from '@/components/ChatInterface'
 import { generateVoteBuilderCSV, downloadCSV } from '@/lib/votebuilder-export'
 import ConversionStats from '@/components/ConversionStats'
 import VolunteerLeaderboard from '@/components/VolunteerLeaderboard'
@@ -13,13 +14,14 @@ import PushNotificationToggle from '@/components/PushNotificationToggle'
 import defaultCampaignConfig from '@/lib/campaign-config'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown } from 'lucide-react'
+import type { DashboardView } from '@/types'
+import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Bot, Table } from 'lucide-react'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
   const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig } = useAuth()
   const campaignConfig = authConfig || defaultCampaignConfig
-  const [isAdminMode, setIsAdminMode] = useState(false)
+  const [view, setView] = useState<DashboardView | 'admin'>('chat')
 
   // Stats
   const totalPeople = state.personEntries.length
@@ -30,7 +32,6 @@ export default function DashboardPage() {
   const undecided = outcomes.filter(i => i.contactOutcome === 'undecided').length
   const needsFollowUp = outcomes.filter(i => i.contactOutcome === 'left-message' || i.contactOutcome === 'no-answer').length
   const opposed = outcomes.filter(i => i.contactOutcome === 'opposed').length
-  const volunteerProspects = state.actionPlanState.filter(i => i.isVolunteerProspect).length
 
   // Derive initials from user name
   const userInitials = user?.name
@@ -82,11 +83,33 @@ export default function DashboardPage() {
 
         {/* Nav bar */}
         <div className="max-w-6xl mx-auto px-6 pb-4 flex flex-wrap items-center gap-2 md:gap-3">
+          <button
+            onClick={() => setView('chat')}
+            className={`text-sm px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+              view === 'chat'
+                ? 'bg-vc-purple text-white shadow-glow'
+                : 'text-white/60 hover:text-white glass hover:border-white/20'
+            }`}
+          >
+            <Bot className="w-4 h-4" />
+            Chat
+          </button>
+          <button
+            onClick={() => setView('contacts')}
+            className={`text-sm px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+              view === 'contacts'
+                ? 'bg-vc-purple text-white shadow-glow'
+                : 'text-white/60 hover:text-white glass hover:border-white/20'
+            }`}
+          >
+            <Table className="w-4 h-4" />
+            My Contacts
+          </button>
           {isAdmin && (
             <button
-              onClick={() => setIsAdminMode(!isAdminMode)}
+              onClick={() => setView('admin')}
               className={`text-sm px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
-                isAdminMode
+                view === 'admin'
                   ? 'bg-vc-purple text-white shadow-glow'
                   : 'text-white/60 hover:text-white glass hover:border-white/20'
               }`}
@@ -123,7 +146,7 @@ export default function DashboardPage() {
           )}
 
           {/* Stats — pushed right, hidden on small screens */}
-          {!isAdminMode && totalPeople > 0 && (
+          {view !== 'admin' && totalPeople > 0 && (
             <div className="hidden md:flex flex-wrap items-center gap-4 text-sm ml-auto font-display tabular-nums">
               <span className="flex items-center gap-1.5 text-white/70">
                 <Users className="w-4 h-4" />
@@ -155,8 +178,8 @@ export default function DashboardPage() {
         )}
       </header>
 
-      {/* Personal stats + leaderboard */}
-      {!isAdminMode && totalPeople > 0 && (
+      {/* Personal stats + leaderboard — shown on contacts view */}
+      {view === 'contacts' && totalPeople > 0 && (
         <div className="max-w-6xl mx-auto w-full px-4 md:px-8 pt-4 space-y-3">
           <ConversionStats />
           <VolunteerLeaderboard />
@@ -170,7 +193,13 @@ export default function DashboardPage() {
 
       {/* Main content */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-4">
-        {isAdminMode ? <AdminPanel /> : <ContactSpreadsheet />}
+        {view === 'admin' ? (
+          <AdminPanel />
+        ) : view === 'contacts' ? (
+          <ContactSpreadsheet />
+        ) : (
+          <ChatInterface />
+        )}
       </main>
 
       {/* Footer */}

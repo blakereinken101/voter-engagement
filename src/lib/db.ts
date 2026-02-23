@@ -177,6 +177,17 @@ async function initSchema() {
       );
 
       ALTER TABLE verification_codes ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'two_factor';
+
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+        role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+        content TEXT NOT NULL,
+        tool_calls JSONB,
+        tool_results JSONB,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `)
 
     // ── Indexes ──────────────────────────────────────────────────────
@@ -193,6 +204,7 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_contacts_campaign_id ON contacts(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_activity_log_campaign_id ON activity_log(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_verification_codes_user_id ON verification_codes(user_id);
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_user_campaign ON chat_messages(user_id, campaign_id, created_at);
     `)
 
     // ── Seed defaults ────────────────────────────────────────────────

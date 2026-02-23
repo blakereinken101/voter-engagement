@@ -10,7 +10,8 @@ import ExportPanel from './ExportPanel'
 import Leaderboard from './Leaderboard'
 import DataPurge from './DataPurge'
 import TeamManagement from './TeamManagement'
-import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus } from 'lucide-react'
+import AICampaignContext from './AICampaignContext'
+import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Bot } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
@@ -22,6 +23,7 @@ const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'leaderboard', label: 'Leaderboard', Icon: Trophy },
   { id: 'export', label: 'Export', Icon: Download },
   { id: 'purge', label: 'Purge', Icon: Trash2 },
+  { id: 'ai-context', label: 'AI Coach', Icon: Bot },
 ]
 
 export default function AdminPanel() {
@@ -58,6 +60,7 @@ export default function AdminPanel() {
         {activeTab === 'leaderboard' && <Leaderboard />}
         {activeTab === 'export' && <ExportPanel />}
         {activeTab === 'purge' && <DataPurge />}
+        {activeTab === 'ai-context' && <AICampaignContext />}
       </div>
     </div>
   )

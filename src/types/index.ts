@@ -378,4 +378,38 @@ export interface ActivityLogEntry {
   createdAt: string
 }
 
-export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge' | 'team'
+export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge' | 'team' | 'ai-context'
+
+// =============================================
+// AI CHAT TYPES
+// =============================================
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  toolCalls?: ChatToolCall[]
+  toolResults?: ChatToolResult[]
+  createdAt: string
+}
+
+export interface ChatToolCall {
+  id: string
+  name: string
+  input: Record<string, unknown>
+}
+
+export interface ChatToolResult {
+  toolCallId: string
+  name: string
+  result: Record<string, unknown>
+}
+
+export interface AICampaignContext {
+  goals?: string
+  keyIssues?: string[]
+  talkingPoints?: string[]
+  messagingGuidance?: string
+}
+
+export type DashboardView = 'chat' | 'contacts'
