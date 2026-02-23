@@ -7,13 +7,25 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react'
 
-function getPostAuthRedirect(): string {
+function readPostAuthRedirect(): string {
   if (typeof document === 'undefined') return '/dashboard'
   const match = document.cookie.match(/(?:^|;\s*)vc-product=(\w+)/)
   const product = match?.[1]
-  // Clear the cookie after reading
+
+  if (product === 'events') {
+    // Check if user selected a plan during signup — pass it along so
+    // /events/manage can auto-trigger Stripe checkout
+    const plan = typeof sessionStorage !== 'undefined'
+      ? sessionStorage.getItem('signup-plan')
+      : null
+    return plan ? `/events/manage?checkout=${plan}` : '/events/manage'
+  }
+
+  return '/dashboard'
+}
+
+function clearPostAuthCookies() {
   document.cookie = 'vc-product=; Path=/; SameSite=Lax; Max-Age=0'
-  return product === 'events' ? '/events/manage' : '/dashboard'
 }
 
 export default function VerifyCodePage() {
@@ -26,9 +38,20 @@ export default function VerifyCodePage() {
   const [resendMessage, setResendMessage] = useState('')
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
+  // Read redirect destination once on mount so it's stable across renders
+  const redirectRef = useRef<string | null>(null)
+  const didRedirectRef = useRef(false)
+  useEffect(() => {
+    redirectRef.current = readPostAuthRedirect()
+  }, [])
+
   // If already signed in, redirect to the correct product
   useEffect(() => {
-    if (user) router.push(getPostAuthRedirect())
+    if (user && !didRedirectRef.current) {
+      didRedirectRef.current = true
+      clearPostAuthCookies()
+      router.push(redirectRef.current || readPostAuthRedirect())
+    }
   }, [user, router])
 
   // Start cooldown timer on mount (just sent a code)
@@ -54,7 +77,11 @@ export default function VerifyCodePage() {
     setLoading(true)
     try {
       await verifyCode(code)
-      router.push(getPostAuthRedirect())
+      // Mark as redirecting so the useEffect doesn't race with us
+      didRedirectRef.current = true
+      clearPostAuthCookies()
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('signup-plan')
+      router.push(redirectRef.current || readPostAuthRedirect())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed')
       // Clear inputs on error

@@ -1,18 +1,48 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useSearchParams } from 'next/navigation'
 import EventManageTable from '@/components/events/EventManageTable'
 import type { Event } from '@/types/events'
 import { FREE_EVENT_LIMIT } from '@/types/events'
 import { Plus, Lock, Sparkles, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
-export default function EventManagePage() {
+function EventManageContent() {
   const { user, isLoading: authLoading, hasEventsSubscription, freeEventsUsed, freeEventsRemaining } = useAuth()
+  const searchParams = useSearchParams()
   const [events, setEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'cancelled'>('all')
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const didCheckoutRef = useRef(false)
+
+  // Auto-trigger Stripe checkout if redirected here after signup with a plan
+  useEffect(() => {
+    const checkoutPlan = searchParams.get('checkout')
+    if (!user || !checkoutPlan || didCheckoutRef.current) return
+    if (checkoutPlan !== 'grassroots' && checkoutPlan !== 'growth') return
+
+    didCheckoutRef.current = true
+    setCheckoutLoading(true)
+
+    fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: checkoutPlan }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.url) {
+          window.location.href = data.url
+        } else {
+          console.error('No checkout URL returned:', data.error)
+          setCheckoutLoading(false)
+        }
+      })
+      .catch(() => setCheckoutLoading(false))
+  }, [user, searchParams])
 
   useEffect(() => {
     if (user) fetchEvents()
@@ -79,10 +109,13 @@ export default function EventManagePage() {
     } catch { /* ignore */ }
   }
 
-  if (authLoading) {
+  if (authLoading || checkoutLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="glass-card p-8 animate-pulse">
+          {checkoutLoading && (
+            <p className="text-white/70 text-center mb-4">Redirecting to checkout...</p>
+          )}
           <div className="h-8 bg-white/5 rounded w-1/4 mb-4" />
           <div className="h-64 bg-white/5 rounded" />
         </div>
@@ -184,5 +217,20 @@ export default function EventManagePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function EventManagePage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="glass-card p-8 animate-pulse">
+          <div className="h-8 bg-white/5 rounded w-1/4 mb-4" />
+          <div className="h-64 bg-white/5 rounded" />
+        </div>
+      </div>
+    }>
+      <EventManageContent />
+    </Suspense>
   )
 }
