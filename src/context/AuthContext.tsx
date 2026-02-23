@@ -35,6 +35,8 @@ interface AuthContextValue {
   isLoading: boolean
   isAdmin: boolean
   hasEventsSubscription: boolean
+  freeEventsUsed: number
+  freeEventsRemaining: number
   signIn: (email: string, password: string) => Promise<SignInResult | void>
   signOut: () => Promise<void>
   switchCampaign: (campaignId: string) => void
@@ -51,6 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [campaignConfig, setCampaignConfig] = useState<CampaignConfig | null>(null)
   const [productSubscriptions, setProductSubscriptions] = useState<ProductSubscriptionInfo[]>([])
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(null)
+  const [freeEventsUsed, setFreeEventsUsed] = useState(0)
+  const [freeEventsRemaining, setFreeEventsRemaining] = useState(2)
   const [isLoading, setIsLoading] = useState(true)
 
   // Check session on mount and periodically verify token is still valid
@@ -68,6 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setActiveMembership(null)
             setCampaignConfig(null)
             setProductSubscriptions([])
+            setFreeEventsUsed(0)
+            setFreeEventsRemaining(2)
             return null
           }
           throw new Error('Not authenticated')
@@ -78,6 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setMemberships(data.memberships || [])
             setProductSubscriptions(data.productSubscriptions || [])
             setOrganizationSlug(data.organizationSlug || null)
+            setFreeEventsUsed(data.freeEventsUsed ?? 0)
+            setFreeEventsRemaining(data.freeEventsRemaining ?? 2)
             if (data.campaignConfig) {
               setCampaignConfig(data.campaignConfig)
             }
@@ -99,6 +107,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setCampaignConfig(null)
             setProductSubscriptions([])
             setOrganizationSlug(null)
+            setFreeEventsUsed(0)
+            setFreeEventsRemaining(2)
           }
         })
         .finally(() => {
@@ -189,6 +199,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCampaignConfig(null)
     setProductSubscriptions([])
     setOrganizationSlug(null)
+    setFreeEventsUsed(0)
+    setFreeEventsRemaining(2)
     document.cookie = 'vc-campaign=; Path=/; SameSite=Lax; Max-Age=0'
     window.location.href = isEvents ? '/sign-in?product=events' : '/sign-in'
   }, [])
@@ -214,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, memberships, activeMembership, campaignConfig, productSubscriptions, organizationSlug,
-      isLoading, isAdmin, hasEventsSubscription,
+      isLoading, isAdmin, hasEventsSubscription, freeEventsUsed, freeEventsRemaining,
       signIn, signOut, switchCampaign, verifyCode, resendCode,
     }}>
       {children}

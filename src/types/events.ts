@@ -242,3 +242,6 @@ export const EVENT_TYPE_CONFIG: Record<EventType, EventTypeConfig> = {
 }
 
 export const DEFAULT_REACTION_EMOJIS = ['🔥', '❤️', '🙌', '🎉', '⭐', '💯']
+
+// Free tier: organizations can create this many events without a paid subscription
+export const FREE_EVENT_LIMIT = 2

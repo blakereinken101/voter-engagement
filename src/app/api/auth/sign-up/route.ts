@@ -3,7 +3,6 @@ import { getDb } from '@/lib/db'
 import { hashPassword, createPendingToken, generateVerificationCode } from '@/lib/auth'
 import { sendVerificationCode } from '@/lib/email'
 import { sanitizeSlug, validateSlug } from '@/lib/slugs'
-import { PLAN_LIMITS } from '@/types/events'
 
 export async function POST(request: NextRequest) {
   try {
@@ -63,7 +62,6 @@ export async function POST(request: NextRequest) {
       const orgId = crypto.randomUUID()
       campaignId = crypto.randomUUID()
       const membershipId = crypto.randomUUID()
-      const subscriptionId = crypto.randomUUID()
 
       const passwordHash = hashPassword(password)
 
@@ -95,19 +93,8 @@ export async function POST(request: NextRequest) {
         [membershipId, userId, campaignId]
       )
 
-      // Create 14-day events trial subscription (grassroots tier)
-      // Only for events sign-ups or when no product specified (backward compat)
-      if (product !== 'relational') {
-        const now = new Date()
-        const trialEnd = new Date(now)
-        trialEnd.setDate(trialEnd.getDate() + 14)
-
-        await client.query(
-          `INSERT INTO product_subscriptions (id, organization_id, product, plan, status, current_period_start, current_period_end, limits)
-           VALUES ($1, $2, 'events', 'grassroots', 'trialing', $3, $4, $5)`,
-          [subscriptionId, orgId, now.toISOString(), trialEnd.toISOString(), JSON.stringify(PLAN_LIMITS.grassroots)]
-        )
-      }
+      // No subscription created — users start on the free tier (2 events free)
+      // They can upgrade via /events/pricing when they need more
 
       await client.query('COMMIT')
     } catch (txError) {

@@ -24,6 +24,17 @@ const TIMEZONES = [
 
 const EMOJI_OPTIONS = ['🗳️', '📢', '🎉', '🤝', '🔥', '💪', '🇺🇸', '🏛️', '📞', '🚪', '🍻', '📺', '💰', '📋', '🌟', '❤️']
 
+function snapTo15Minutes(datetime: string): string {
+  if (!datetime) return datetime
+  const [datePart, timePart] = datetime.split('T')
+  if (!timePart) return datetime
+  const [hours, minutes] = timePart.split(':').map(Number)
+  const snapped = Math.round(minutes / 15) * 15
+  const finalMinutes = snapped === 60 ? 0 : snapped
+  const finalHours = snapped === 60 ? hours + 1 : hours
+  return `${datePart}T${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`
+}
+
 export default function EventForm({ initialData, eventId, mode }: Props) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -195,7 +206,8 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
             <input
               type="datetime-local"
               value={form.startTime}
-              onChange={e => updateForm({ startTime: e.target.value })}
+              onChange={e => updateForm({ startTime: snapTo15Minutes(e.target.value) })}
+              step={900}
               className="glass-input w-full px-4 py-3 text-white"
               required
             />
@@ -205,7 +217,8 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
             <input
               type="datetime-local"
               value={form.endTime}
-              onChange={e => updateForm({ endTime: e.target.value })}
+              onChange={e => updateForm({ endTime: snapTo15Minutes(e.target.value) })}
+              step={900}
               className="glass-input w-full px-4 py-3 text-white"
             />
           </div>

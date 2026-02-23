@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   '/api/events',
   '/api/subscriptions',
   '/api/stripe/webhook',
+  '/api/cron/',
 ]
 
 // Routes that require authentication — prevents vanity URL passthrough

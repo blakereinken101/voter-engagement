@@ -23,7 +23,35 @@ export default function EventsPricingPage() {
       </div>
 
       {/* Pricing cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        {/* Free tier card */}
+        <div className="glass-card p-6 relative transition-all hover:-translate-y-1">
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-display font-bold text-xl text-white">Free</h3>
+              <p className="text-sm text-white/50 mt-1">Try it out — no credit card required</p>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="font-display text-4xl font-bold text-white">$0</span>
+              <span className="text-white/50">/forever</span>
+            </div>
+            <Link
+              href="/sign-up?product=events"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-btn font-medium text-sm text-center transition-all bg-white/10 hover:bg-white/15 text-white border border-white/15"
+            >
+              Get Started Free
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <div className="border-t border-white/10 pt-4 space-y-2.5">
+              {['2 events', 'Public event pages', 'RSVP management', 'Comment threads', 'Event reminders'].map(feature => (
+                <div key={feature} className="flex items-start gap-2">
+                  <svg className="w-4 h-4 text-vc-teal shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <span className="text-sm text-white/70">{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
         <PricingCard plan="grassroots" />
         <PricingCard plan="growth" isPopular />
         <PricingCard plan="scale" />

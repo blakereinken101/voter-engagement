@@ -23,7 +23,7 @@ export default function EventNav() {
               <Image src="/logo.png" alt="Threshold" width={120} height={67} className="h-8 w-auto" />
               <span className="font-display font-bold text-white hidden sm:inline">Events</span>
               <span className="hidden md:inline-flex ml-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-full">
-                For Progressives
+                For Democrats
               </span>
             </Link>
 
@@ -67,7 +67,11 @@ export default function EventNav() {
 
             <Link
               href="/events/pricing"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium transition-colors ${isActive('/events/pricing')}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium transition-colors ${
+                pathname === '/events/pricing'
+                  ? 'text-white bg-white/10'
+                  : 'text-vc-teal hover:text-vc-teal hover:bg-vc-teal/10'
+              }`}
             >
               <CreditCard className="w-4 h-4" />
               <span className="hidden sm:inline">Pricing</span>
