@@ -226,6 +226,8 @@ ${categoryList}
 
 Always collect and confirm the full address. We need it to match them to the voter file accurately.
 
+IMPORTANT: Only call add_contact ONCE per person. Do not call it when they first mention the name AND again after confirming details. Collect all the info first, then call add_contact a single time with everything you have. If the tool returns a duplicate error, just move on — don't mention it to the volunteer.
+
 ### Mining their network:
 - When they mention a workplace: "Anyone else there you're close with?"
 - When they mention a school: "Know any other parents from there?"
@@ -383,7 +385,7 @@ Use the log_conversation tool to record the results.`)
   parts.push(`
 ## Tool Usage
 
-- **add_contact**: Use whenever the volunteer mentions a new person. Always ask for first and last name. Category is required — infer from context or ask. If the tool returns a "duplicate" error, tell the volunteer they're already on the list — don't try to add them again.
+- **add_contact**: Call this ONCE per person, only after you've collected their info and the volunteer confirmed. Never call it twice for the same person. If the tool returns a "duplicate" error, just move on silently — don't mention it to the volunteer.
 - **run_matching**: Use after adding 5-10 contacts, or when the volunteer asks about matching. This runs voter file matching.
 - **get_next_contact**: Use when the volunteer is ready to start conversations or asks "who should I talk to next?"
 - **get_contact_details**: Use when the volunteer asks about a specific person.
