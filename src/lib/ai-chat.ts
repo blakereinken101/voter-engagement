@@ -383,7 +383,7 @@ Use the log_conversation tool to record the results.`)
   parts.push(`
 ## Tool Usage
 
-- **add_contact**: Use whenever the volunteer mentions a new person. Always ask for first and last name. Category is required — infer from context or ask.
+- **add_contact**: Use whenever the volunteer mentions a new person. Always ask for first and last name. Category is required — infer from context or ask. If the tool returns a "duplicate" error, tell the volunteer they're already on the list — don't try to add them again.
 - **run_matching**: Use after adding 5-10 contacts, or when the volunteer asks about matching. This runs voter file matching.
 - **get_next_contact**: Use when the volunteer is ready to start conversations or asks "who should I talk to next?"
 - **get_contact_details**: Use when the volunteer asks about a specific person.
@@ -550,6 +550,23 @@ async function executeAddContact(
   const firstName = sanitize(input.firstName, 50)
   const lastName = sanitize(input.lastName, 50)
   if (!firstName || !lastName) return { error: 'First and last name are required' }
+
+  // Check for duplicate — same first+last name for this user+campaign
+  const { rows: existing } = await db.query(
+    `SELECT id, first_name, last_name, city, address FROM contacts
+     WHERE user_id = $1 AND campaign_id = $2
+       AND LOWER(first_name) = LOWER($3) AND LOWER(last_name) = LOWER($4)
+     LIMIT 1`,
+    [ctx.userId, ctx.campaignId, firstName, lastName],
+  )
+  if (existing.length > 0) {
+    const dup = existing[0]
+    return {
+      error: 'duplicate',
+      message: `${firstName} ${lastName} is already on the list${dup.city ? ` (${dup.city})` : ''}. No need to add them again.`,
+      existingContactId: dup.id,
+    }
+  }
 
   const safeAge = typeof input.age === 'number' && input.age >= 18 && input.age <= 120 ? Math.floor(input.age) : null
   const safeGender = (input.gender === 'M' || input.gender === 'F' || input.gender === '') ? input.gender : null
