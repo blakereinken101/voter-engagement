@@ -91,6 +91,12 @@ export async function getEventsSubscription(orgId: string): Promise<ProductSubsc
   if (rows.length === 0) return null
 
   const row = rows[0]
+
+  // Check if trial has expired
+  if (row.status === 'trialing' && row.current_period_end && new Date(row.current_period_end) < new Date()) {
+    return null
+  }
+
   return {
     id: row.id,
     organizationId: row.organization_id,

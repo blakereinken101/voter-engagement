@@ -63,6 +63,12 @@ async function initSchema() {
       );
     `)
 
+    // Add description + logo_url to organizations (for vanity URL pages)
+    await client.query(`
+      ALTER TABLE organizations ADD COLUMN IF NOT EXISTS description TEXT;
+      ALTER TABLE organizations ADD COLUMN IF NOT EXISTS logo_url TEXT;
+    `)
+
     // ── Campaigns ────────────────────────────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS campaigns (

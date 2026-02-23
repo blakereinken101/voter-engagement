@@ -13,6 +13,14 @@ const PUBLIC_PATHS = [
   '/events',
   '/api/events',
   '/api/subscriptions',
+  '/api/stripe/webhook',
+]
+
+// Routes that require authentication — prevents vanity URL passthrough
+// from accidentally opening these to unauthenticated users
+const PROTECTED_ROOT_ROUTES = [
+  '/dashboard', '/action-plan', '/matching', '/questionnaire',
+  '/results', '/rolodex', '/change-password',
 ]
 
 export async function middleware(request: NextRequest) {
@@ -26,6 +34,17 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/api/contact') ||
     PUBLIC_PATHS.some(p => pathname.startsWith(p))
+  ) {
+    return NextResponse.next()
+  }
+
+  // Allow potential vanity URL paths (single segment, e.g. /team-blue)
+  // The [accountname] page handles 404 for non-existent slugs
+  const segments = pathname.split('/').filter(Boolean)
+  if (
+    segments.length === 1 &&
+    !PROTECTED_ROOT_ROUTES.includes(pathname) &&
+    !pathname.includes('.')
   ) {
     return NextResponse.next()
   }
