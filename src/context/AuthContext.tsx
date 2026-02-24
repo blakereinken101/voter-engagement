@@ -31,9 +31,12 @@ interface AuthContextValue {
   activeMembership: Membership | null
   campaignConfig: CampaignConfig | null
   productSubscriptions: ProductSubscriptionInfo[]
+  userProducts: string[]
   organizationSlug: string | null
   isLoading: boolean
   isAdmin: boolean
+  hasEventsAccess: boolean
+  hasRelationalAccess: boolean
   hasEventsSubscription: boolean
   freeEventsUsed: number
   freeEventsRemaining: number
@@ -52,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeMembership, setActiveMembership] = useState<Membership | null>(null)
   const [campaignConfig, setCampaignConfig] = useState<CampaignConfig | null>(null)
   const [productSubscriptions, setProductSubscriptions] = useState<ProductSubscriptionInfo[]>([])
+  const [userProducts, setUserProducts] = useState<string[]>([])
   const [organizationSlug, setOrganizationSlug] = useState<string | null>(null)
   const [freeEventsUsed, setFreeEventsUsed] = useState(0)
   const [freeEventsRemaining, setFreeEventsRemaining] = useState(2)
@@ -72,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setActiveMembership(null)
             setCampaignConfig(null)
             setProductSubscriptions([])
+            setUserProducts([])
             setFreeEventsUsed(0)
             setFreeEventsRemaining(2)
             return null
@@ -83,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(data.user)
             setMemberships(data.memberships || [])
             setProductSubscriptions(data.productSubscriptions || [])
+            setUserProducts(data.userProducts || [])
             setOrganizationSlug(data.organizationSlug || null)
             setFreeEventsUsed(data.freeEventsUsed ?? 0)
             setFreeEventsRemaining(data.freeEventsRemaining ?? 2)
@@ -106,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setActiveMembership(null)
             setCampaignConfig(null)
             setProductSubscriptions([])
+            setUserProducts([])
             setOrganizationSlug(null)
             setFreeEventsUsed(0)
             setFreeEventsRemaining(2)
@@ -200,6 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setActiveMembership(null)
     setCampaignConfig(null)
     setProductSubscriptions([])
+    setUserProducts([])
     setOrganizationSlug(null)
     setFreeEventsUsed(0)
     setFreeEventsRemaining(2)
@@ -221,14 +229,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (activeMembership && ADMIN_ROLES.includes(activeMembership.role))
   )
 
+  const hasEventsAccess = userProducts.includes('events') || !!user?.isPlatformAdmin
+  const hasRelationalAccess = userProducts.includes('relational') || !!user?.isPlatformAdmin
+
   const hasEventsSubscription = productSubscriptions.some(
     s => s.product === 'events' && (s.status === 'active' || s.status === 'trialing')
   ) || !!user?.isPlatformAdmin
 
   return (
     <AuthContext.Provider value={{
-      user, memberships, activeMembership, campaignConfig, productSubscriptions, organizationSlug,
-      isLoading, isAdmin, hasEventsSubscription, freeEventsUsed, freeEventsRemaining,
+      user, memberships, activeMembership, campaignConfig, productSubscriptions, userProducts, organizationSlug,
+      isLoading, isAdmin, hasEventsAccess, hasRelationalAccess, hasEventsSubscription, freeEventsUsed, freeEventsRemaining,
       signIn, signOut, switchCampaign, verifyCode, resendCode,
     }}>
       {children}

@@ -30,7 +30,7 @@ export async function getOrgEventCount(orgId: string): Promise<number> {
 
 /**
  * Get events context for the current user.
- * Requires: logged in + belongs to an org.
+ * Requires: logged in + has events product access + belongs to an org.
  * Allows event creation if org has an active subscription OR is under the free event limit.
  */
 export async function getEventsContext(): Promise<EventsContext> {
@@ -47,22 +47,44 @@ export async function getEventsContext(): Promise<EventsContext> {
   if (userRows.length === 0) throw new AuthError('User not found', 401)
   const isPlatformAdmin = !!userRows[0].is_platform_admin
 
-  // Find the user's organization via their memberships → campaigns → org
-  const { rows: orgRows } = await pool.query(`
-    SELECT DISTINCT o.id as org_id
-    FROM memberships m
-    JOIN campaigns c ON c.id = m.campaign_id
-    JOIN organizations o ON o.id = c.org_id
-    WHERE m.user_id = $1 AND m.is_active = true
-    LIMIT 1
-  `, [session.userId])
-
-  if (orgRows.length === 0 && !isPlatformAdmin) {
-    throw new AuthError('Not a member of any organization', 403)
+  // Verify events product access
+  if (!isPlatformAdmin) {
+    const { rows: productRows } = await pool.query(
+      `SELECT 1 FROM user_products WHERE user_id = $1 AND product = 'events' AND is_active = true`,
+      [session.userId]
+    )
+    if (productRows.length === 0) {
+      throw new AuthError('No access to events product', 403)
+    }
   }
 
-  // Platform admin without org membership — use default org
-  const orgId = orgRows.length > 0 ? orgRows[0].org_id as string : 'org-default'
+  // Find user's org — first by created_by (events-only users), then via membership chain
+  const { rows: createdOrgRows } = await pool.query(
+    `SELECT id as org_id FROM organizations WHERE created_by = $1 LIMIT 1`,
+    [session.userId]
+  )
+
+  let orgId: string
+  if (createdOrgRows.length > 0) {
+    orgId = createdOrgRows[0].org_id as string
+  } else {
+    // Fallback: find via membership chain (for users who have both products)
+    const { rows: orgRows } = await pool.query(`
+      SELECT DISTINCT o.id as org_id
+      FROM memberships m
+      JOIN campaigns c ON c.id = m.campaign_id
+      JOIN organizations o ON o.id = c.org_id
+      WHERE m.user_id = $1 AND m.is_active = true
+      LIMIT 1
+    `, [session.userId])
+
+    if (orgRows.length === 0 && !isPlatformAdmin) {
+      throw new AuthError('Not a member of any organization', 403)
+    }
+
+    // Platform admin without org — use default org
+    orgId = orgRows.length > 0 ? orgRows[0].org_id as string : 'org-default'
+  }
 
   // Check events subscription
   const subscription = await getEventsSubscription(orgId)

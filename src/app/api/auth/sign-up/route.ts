@@ -9,6 +9,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, email, password, organizationName, slug: rawSlug, product, plan } = body
 
+    // Self-signup for relational is not supported — relational access is invite-only
+    if (product === 'relational') {
+      return NextResponse.json(
+        { error: 'Relational access requires a campaign invitation. Ask your campaign admin for an invite link.' },
+        { status: 400 }
+      )
+    }
+
     // ── Validate inputs ──────────────────────────────────────────────
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -35,13 +43,11 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb()
 
-    // ── Check uniqueness ─────────────────────────────────────────────
+    // ── Check if user already exists ───────────────────────────────
     const { rows: existingUser } = await db.query(
       'SELECT id, password_hash FROM users WHERE email = $1', [normalizedEmail]
     )
     if (existingUser.length > 0) {
-      // If the user already exists, check if they simply abandoned verification.
-      // If the password matches, re-send a new verification code so they can finish.
       const existing = existingUser[0]
       if (!verifyPassword(password, existing.password_hash)) {
         return NextResponse.json(
@@ -50,7 +56,38 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Password matches — expire any old codes and re-send a fresh one
+      // Password matches — grant events product if they don't have it yet
+      const { rows: existingProduct } = await db.query(
+        `SELECT 1 FROM user_products WHERE user_id = $1 AND product = 'events'`,
+        [existing.id]
+      )
+      if (existingProduct.length === 0) {
+        await db.query(
+          `INSERT INTO user_products (id, user_id, product) VALUES ($1, $2, 'events')`,
+          [crypto.randomUUID(), existing.id]
+        )
+      }
+
+      // Ensure they have an org for events (relational-only users may not have one as creator)
+      const { rows: orgCheck } = await db.query(
+        `SELECT id FROM organizations WHERE created_by = $1`, [existing.id]
+      )
+      if (orgCheck.length === 0) {
+        // Check slug availability and create org
+        const { rows: slugTaken } = await db.query(
+          'SELECT id FROM organizations WHERE slug = $1', [slug]
+        )
+        if (slugTaken.length === 0) {
+          const orgId = crypto.randomUUID()
+          await db.query(
+            `INSERT INTO organizations (id, name, slug, created_by) VALUES ($1, $2, $3, $4)`,
+            [orgId, organizationName.trim(), slug, existing.id]
+          )
+        }
+        // If slug is taken, they can still proceed — they'll use their existing org via membership chain
+      }
+
+      // Expire old codes and re-send a fresh one
       await db.query(
         `UPDATE verification_codes SET used = true WHERE user_id = $1 AND used = false`,
         [existing.id]
@@ -68,14 +105,11 @@ export async function POST(request: NextRequest) {
 
       await sendVerificationCode(normalizedEmail, code)
 
-      const pendingToken = createPendingToken(existing.id, normalizedEmail, { product, plan })
+      const pendingToken = createPendingToken(existing.id, normalizedEmail, { product: 'events', plan })
 
-      // Look up the org slug so the client can store it
+      // Look up the org slug
       const { rows: orgRows } = await db.query(
-        `SELECT o.slug FROM organizations o
-         JOIN campaigns c ON c.org_id = o.id
-         JOIN memberships m ON m.campaign_id = c.id
-         WHERE m.user_id = $1 LIMIT 1`,
+        `SELECT slug FROM organizations WHERE created_by = $1 LIMIT 1`,
         [existing.id]
       )
 
@@ -103,51 +137,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This URL is already taken. Please choose a different one.' }, { status: 409 })
     }
 
-    // ── Create everything in a transaction ───────────────────────────
+    // ── Create user + org + product access (events-only, no campaign/membership) ──
     const client = await db.connect()
     let userId: string
-    let campaignId: string
 
     try {
       await client.query('BEGIN')
 
       userId = crypto.randomUUID()
       const orgId = crypto.randomUUID()
-      campaignId = crypto.randomUUID()
-      const membershipId = crypto.randomUUID()
 
       const passwordHash = hashPassword(password)
 
-      // Create user
+      // Create user (no campaign_id or role — those are relational-only concerns)
       await client.query(
-        `INSERT INTO users (id, email, password_hash, name, role, campaign_id, is_platform_admin)
-         VALUES ($1, $2, $3, $4, 'volunteer', $5, false)`,
-        [userId, normalizedEmail, passwordHash, name.trim(), campaignId]
+        `INSERT INTO users (id, email, password_hash, name, is_platform_admin)
+         VALUES ($1, $2, $3, $4, false)`,
+        [userId, normalizedEmail, passwordHash, name.trim()]
       )
 
-      // Create organization
+      // Create organization (events need an org for events.organization_id)
       await client.query(
         `INSERT INTO organizations (id, name, slug, created_by)
          VALUES ($1, $2, $3, $4)`,
         [orgId, organizationName.trim(), slug, userId]
       )
 
-      // Create campaign (needed for the membership chain)
+      // Grant events product access
       await client.query(
-        `INSERT INTO campaigns (id, org_id, name, slug, is_active)
-         VALUES ($1, $2, $3, $4, true)`,
-        [campaignId, orgId, organizationName.trim(), slug]
+        `INSERT INTO user_products (id, user_id, product)
+         VALUES ($1, $2, 'events')`,
+        [crypto.randomUUID(), userId]
       )
 
-      // Create membership with admin role
-      await client.query(
-        `INSERT INTO memberships (id, user_id, campaign_id, role)
-         VALUES ($1, $2, $3, 'campaign_admin')`,
-        [membershipId, userId, campaignId]
-      )
-
-      // No subscription created — users start on the free tier (2 events free)
-      // They can upgrade via /events/pricing when they need more
+      // NO campaign or membership creation — those are relational-only
 
       await client.query('COMMIT')
     } catch (txError) {
@@ -170,7 +193,7 @@ export async function POST(request: NextRequest) {
 
     await sendVerificationCode(normalizedEmail, code)
 
-    const pendingToken = createPendingToken(userId, normalizedEmail, { product, plan })
+    const pendingToken = createPendingToken(userId, normalizedEmail, { product: 'events', plan })
 
     const response = NextResponse.json({
       requiresVerification: true,

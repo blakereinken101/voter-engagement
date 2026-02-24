@@ -9,6 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 export interface SessionPayload {
   userId: string
   email: string
+  products: string[]  // ['events'], ['relational'], or ['events', 'relational']
 }
 
 export interface RequestContext {
@@ -34,6 +35,10 @@ export function createSessionToken(payload: SessionPayload): string {
 export function verifySessionToken(token: string): SessionPayload | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as SessionPayload
+    // Ensure products array exists (backward compat with old tokens)
+    if (!Array.isArray(decoded.products)) {
+      decoded.products = []
+    }
     return decoded
   } catch {
     return null
@@ -126,6 +131,7 @@ export function generateVerificationCode(): string {
 /**
  * Get full request context including campaign membership.
  * Use this instead of getSessionFromRequest() for campaign-scoped endpoints.
+ * Enforces relational product access — events-only users will get a 403.
  */
 export async function getRequestContext(): Promise<RequestContext> {
   const session = getSessionFromRequest()
@@ -144,6 +150,17 @@ export async function getRequestContext(): Promise<RequestContext> {
   )
   if (userRows.length === 0) throw new AuthError('User not found', 401)
   const isPlatformAdmin = !!userRows[0].is_platform_admin
+
+  // Verify relational product access (the security boundary)
+  if (!isPlatformAdmin) {
+    const { rows: productRows } = await pool.query(
+      `SELECT 1 FROM user_products WHERE user_id = $1 AND product = 'relational' AND is_active = true`,
+      [session.userId]
+    )
+    if (productRows.length === 0) {
+      throw new AuthError('No access to relational product', 403)
+    }
+  }
 
   // Look up membership for active campaign
   const { rows: memberRows } = await pool.query(
@@ -168,6 +185,7 @@ export async function getRequestContext(): Promise<RequestContext> {
     isPlatformAdmin,
   }
 }
+
 
 /**
  * Require one of the specified roles. Throws AuthError if not authorized.

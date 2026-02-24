@@ -27,21 +27,32 @@ export default function SignInPage() {
     if (typeof window === 'undefined') return false
     return new URLSearchParams(window.location.search).get('reset') === 'true'
   }, [])
-  const { signIn, user, isLoading: authLoading } = useAuth()
+  const { signIn, user, isLoading: authLoading, hasRelationalAccess, hasEventsAccess } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // If already signed in, redirect based on return URL > URL params > default
+  // If already signed in, redirect based on return URL > URL params > product access
   useEffect(() => {
     if (!authLoading && user) {
-      const dest = redirectTo || returnUrl || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')
+      let dest = redirectTo || returnUrl
+      if (!dest) {
+        if (productFromUrl === 'events') {
+          dest = '/events/manage'
+        } else if (hasRelationalAccess) {
+          dest = '/dashboard'
+        } else if (hasEventsAccess) {
+          dest = '/events/manage'
+        } else {
+          dest = '/dashboard'
+        }
+      }
       // Clear the return-url cookie
       document.cookie = 'vc-return-url=; Path=/; SameSite=Lax; Max-Age=0'
       router.push(dest)
     }
-  }, [authLoading, user, router, redirectTo, returnUrl, productFromUrl])
+  }, [authLoading, user, router, redirectTo, returnUrl, productFromUrl, hasRelationalAccess, hasEventsAccess])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

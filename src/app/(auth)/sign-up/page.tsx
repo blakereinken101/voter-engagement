@@ -4,13 +4,55 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { UserPlus, Check, X, Loader2, Globe } from 'lucide-react'
+import { UserPlus, Check, X, Loader2, Globe, Mail } from 'lucide-react'
 
 function SignUpForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const planFromUrl = searchParams.get('plan')
-  const productFromUrl = searchParams.get('product') || (planFromUrl ? 'events' : null)
+  const productFromUrl = searchParams.get('product')
+
+  // Relational access is invite-only — show a message instead of the form
+  if (productFromUrl === 'relational') {
+    return (
+      <div className="cosmic-bg constellation min-h-screen flex items-center justify-center p-6">
+        <div className="w-full max-w-lg animate-slide-up">
+          <div className="text-center mb-6">
+            <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
+              <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-32 md:h-40 w-auto mx-auto" priority />
+            </Link>
+          </div>
+
+          <div className="glass-card p-8 text-center">
+            <div className="w-12 h-12 rounded-full bg-vc-purple/20 flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-6 h-6 text-vc-purple-light" />
+            </div>
+            <h2 className="text-lg font-bold text-white mb-2">Invite Required</h2>
+            <p className="text-white/60 text-sm mb-6">
+              Access to the relational organizing tool requires a campaign invitation.
+              Ask your campaign admin for an invite link to get started.
+            </p>
+            <p className="text-white/40 text-xs mb-4">
+              Already have an invite?
+            </p>
+            <Link
+              href="/sign-in"
+              className="inline-block bg-vc-purple hover:bg-vc-purple-light text-white px-6 py-3 rounded-btn font-medium shadow-glow transition-all"
+            >
+              Sign In
+            </Link>
+          </div>
+
+          <p className="text-center mt-6 text-sm text-white/50">
+            Looking for events?{' '}
+            <Link href="/sign-up?product=events" className="text-vc-purple-light font-bold hover:underline">
+              Create an events account
+            </Link>
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -106,7 +148,7 @@ function SignUpForm() {
           password,
           organizationName: organizationName.trim(),
           slug,
-          product: productFromUrl || undefined,
+          product: 'events',
           plan: planFromUrl || undefined,
         }),
       })
@@ -120,8 +162,7 @@ function SignUpForm() {
       }
 
       if (data.requiresVerification) {
-        // Product and plan are now encoded in the vc-2fa-pending JWT by the server
-        router.push(productFromUrl ? `/verify-code?product=${productFromUrl}` : '/verify-code')
+        router.push('/verify-code?product=events')
       }
     } catch {
       setError('Network error. Please try again.')
@@ -145,14 +186,10 @@ function SignUpForm() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
-                Create your {productFromUrl === 'relational'
-                  ? <span className="text-vc-purple-light">relational</span>
-                  : <span className="text-vc-purple-light">events</span>} account
+                Create your <span className="text-vc-purple-light">events</span> account
               </h2>
               <p className="text-white/50 text-sm">
-                {productFromUrl === 'relational'
-                  ? 'Start building your voter contact program'
-                  : 'Start organizing events in minutes'}
+                Start organizing events in minutes
               </p>
             </div>
           </div>
@@ -309,7 +346,7 @@ function SignUpForm() {
 
         <p className="text-center mt-6 text-sm text-white/50">
           Already have an account?{' '}
-          <Link href={productFromUrl ? `/sign-in?product=${productFromUrl}` : '/sign-in'} className="text-vc-purple-light font-bold hover:underline">
+          <Link href="/sign-in?product=events" className="text-vc-purple-light font-bold hover:underline">
             Sign in
           </Link>
         </p>

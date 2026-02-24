@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAppContext } from '@/context/AppContext'
 import { useAuth } from '@/context/AuthContext'
 import ContactSpreadsheet from '@/components/ContactSpreadsheet'
@@ -19,7 +20,15 @@ import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, 
 
 export default function DashboardPage() {
   const { state } = useAppContext()
-  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig } = useAuth()
+  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig, hasRelationalAccess, hasEventsAccess, isLoading: authLoading } = useAuth()
+  const router = useRouter()
+
+  // Product access guard — redirect events-only users away from dashboard
+  useEffect(() => {
+    if (!authLoading && user && !hasRelationalAccess) {
+      router.push(hasEventsAccess ? '/events/manage' : '/sign-in')
+    }
+  }, [authLoading, user, hasRelationalAccess, hasEventsAccess, router])
   const campaignConfig = authConfig || defaultCampaignConfig
   const [view, setView] = useState<DashboardView | 'admin'>('chat')
 

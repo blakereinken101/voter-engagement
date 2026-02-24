@@ -25,6 +25,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
+    // If no product param, determine default from user_products
+    let effectiveProduct = product
+    if (!effectiveProduct) {
+      const { rows: productRows } = await db.query(
+        `SELECT product FROM user_products WHERE user_id = $1 AND is_active = true`,
+        [user.id]
+      )
+      const userProducts = productRows.map((r: { product: string }) => r.product)
+      // Default to relational if they have it, otherwise events
+      if (!userProducts.includes('relational') && userProducts.includes('events')) {
+        effectiveProduct = 'events'
+      }
+    }
+
     // Generate 2FA code
     const code = generateVerificationCode()
     const codeId = crypto.randomUUID()
@@ -47,7 +61,7 @@ export async function POST(request: NextRequest) {
     await sendVerificationCode(user.email, code)
 
     // Create pending 2FA token (short-lived, can't access dashboard)
-    const pendingToken = createPendingToken(user.id, user.email, { product })
+    const pendingToken = createPendingToken(user.id, user.email, { product: effectiveProduct })
 
     const response = NextResponse.json({
       requiresVerification: true,

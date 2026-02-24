@@ -85,12 +85,20 @@ export async function POST(request: NextRequest) {
 
     const memberships = memberRows.map(m => ({ ...m, userId: user.id }))
 
-    // Issue full session
-    const sessionToken = createSessionToken({ userId: user.id, email: user.email })
+    // Query user's product access for the JWT
+    const { rows: productRows } = await db.query(
+      `SELECT product FROM user_products WHERE user_id = $1 AND is_active = true`,
+      [user.id]
+    )
+    const products = productRows.map(r => r.product as string)
 
-    // Compute redirect: return-url cookie > product/plan from JWT > default
+    // Issue full session with product access embedded
+    const sessionToken = createSessionToken({ userId: user.id, email: user.email, products })
+
+    // Compute redirect: return-url cookie > product/plan from JWT > user_products > default
     const returnUrl = request.cookies.get('vc-return-url')?.value
-    let redirect = '/dashboard'
+    let redirect: string
+
     if (returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
       // Use the stored return URL (set by middleware when user was redirected to sign-in)
       redirect = returnUrl
@@ -98,6 +106,12 @@ export async function POST(request: NextRequest) {
       redirect = pending.plan
         ? `/events/manage?checkout=${pending.plan}`
         : '/events/manage'
+    } else if (products.includes('relational')) {
+      redirect = '/dashboard'
+    } else if (products.includes('events')) {
+      redirect = '/events/manage'
+    } else {
+      redirect = '/dashboard'
     }
 
     const response = NextResponse.json({
@@ -134,7 +148,8 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       maxAge: 0,
     })
-    if (memberships[0]) {
+    // Only set campaign cookie if user has relational access and has memberships
+    if (memberships[0] && products.includes('relational')) {
       response.cookies.set('vc-campaign', memberships[0].campaignId, {
         path: '/',
         sameSite: 'lax',

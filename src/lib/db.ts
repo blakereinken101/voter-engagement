@@ -425,6 +425,30 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_van_sync_log_campaign ON van_sync_log(campaign_id, created_at DESC);
     `)
 
+    // ── User Products (product-level access control) ─────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_products (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        product TEXT NOT NULL CHECK (product IN ('events', 'relational')),
+        granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        granted_by TEXT,
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        UNIQUE(user_id, product)
+      );
+    `)
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_user_products_user ON user_products(user_id);
+      CREATE INDEX IF NOT EXISTS idx_user_products_product ON user_products(product, is_active);
+    `)
+
+    // Make legacy columns nullable for events-only users (no campaign needed)
+    await client.query(`
+      ALTER TABLE users ALTER COLUMN role DROP NOT NULL;
+      ALTER TABLE users ALTER COLUMN campaign_id DROP NOT NULL;
+    `)
+
     // ── Seed defaults ────────────────────────────────────────────────
     await seedDefaults(client)
   } finally {
@@ -501,10 +525,21 @@ async function seedDefaults(client: import('pg').PoolClient) {
     console.log(`[db] Seeded admin membership in campaign: ${campaignId}`)
   }
 
-  // ── Migrate existing users without memberships ──────────────────
+  // Ensure admin has both product access grants
+  for (const product of ['events', 'relational']) {
+    await client.query(
+      `INSERT INTO user_products (id, user_id, product)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, product) DO NOTHING`,
+      [crypto.randomUUID(), adminId, product]
+    )
+  }
+
+  // ── Migrate existing users without memberships (legacy relational users only) ──
   const { rows: usersWithoutMembership } = await client.query(`
     SELECT u.id, u.campaign_id, u.role FROM users u
     WHERE NOT EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = u.id)
+    AND u.campaign_id IS NOT NULL
     AND u.id != $1
   `, [adminId])
 

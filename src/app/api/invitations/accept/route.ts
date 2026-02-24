@@ -141,9 +141,9 @@ export async function POST(request: NextRequest) {
       userId = crypto.randomUUID()
       const passwordHash = hashPassword(password)
       await db.query(
-        `INSERT INTO users (id, email, password_hash, name, role, campaign_id)
-         VALUES ($1, $2, $3, $4, 'volunteer', $5)`,
-        [userId, normalizedEmail, passwordHash, name.trim(), invitation.campaign_id]
+        `INSERT INTO users (id, email, password_hash, name, is_platform_admin)
+         VALUES ($1, $2, $3, $4, false)`,
+        [userId, normalizedEmail, passwordHash, name.trim()]
       )
       userEmail = normalizedEmail
       userName = name.trim()
@@ -170,6 +170,14 @@ export async function POST(request: NextRequest) {
       [crypto.randomUUID(), userId, invitation.campaign_id, invitation.role, invitation.invited_by]
     )
 
+    // Grant relational product access (invitations are always for the relational product)
+    await db.query(
+      `INSERT INTO user_products (id, user_id, product, granted_by)
+       VALUES ($1, $2, 'relational', $3)
+       ON CONFLICT (user_id, product) DO UPDATE SET is_active = true`,
+      [crypto.randomUUID(), userId, invitation.invited_by]
+    )
+
     // Update invitation usage
     await db.query(
       `UPDATE invitations SET use_count = use_count + 1, accepted_at = NOW() WHERE id = $1`,
@@ -183,8 +191,13 @@ export async function POST(request: NextRequest) {
     })
 
     if (session) {
-      // Already signed in (already passed 2FA) — issue full session for new campaign
-      const sessionToken = createSessionToken({ userId, email: userEmail })
+      // Already signed in — re-issue session token with updated products
+      const { rows: productRows } = await db.query(
+        `SELECT product FROM user_products WHERE user_id = $1 AND is_active = true`,
+        [userId]
+      )
+      const products = productRows.map((r: { product: string }) => r.product)
+      const sessionToken = createSessionToken({ userId, email: userEmail, products })
 
       const response = NextResponse.json({
         success: true,

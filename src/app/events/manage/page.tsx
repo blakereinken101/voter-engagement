@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import EventManageTable from '@/components/events/EventManageTable'
 import type { Event } from '@/types/events'
 import { FREE_EVENT_LIMIT } from '@/types/events'
@@ -10,13 +10,21 @@ import { Plus, Lock, Sparkles, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 function EventManageContent() {
-  const { user, isLoading: authLoading, hasEventsSubscription, freeEventsUsed, freeEventsRemaining } = useAuth()
+  const { user, isLoading: authLoading, hasEventsAccess, hasRelationalAccess, hasEventsSubscription, freeEventsUsed, freeEventsRemaining } = useAuth()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [events, setEvents] = useState<Event[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'cancelled'>('all')
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const didCheckoutRef = useRef(false)
+
+  // Product access guard — redirect relational-only users away from events manage
+  useEffect(() => {
+    if (!authLoading && user && !hasEventsAccess) {
+      router.push(hasRelationalAccess ? '/dashboard' : '/sign-in?product=events')
+    }
+  }, [authLoading, user, hasEventsAccess, hasRelationalAccess, router])
 
   // Auto-trigger Stripe checkout if redirected here after signup with a plan
   useEffect(() => {

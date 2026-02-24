@@ -24,7 +24,14 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 401 })
     }
 
-    // Get all active memberships with campaign info
+    // Get user's product access (the single source of truth)
+    const { rows: productRows } = await db.query(
+      `SELECT product FROM user_products WHERE user_id = $1 AND is_active = true`,
+      [user.id]
+    )
+    const userProducts = productRows.map((r: { product: string }) => r.product)
+
+    // Get all active memberships with campaign info (may be empty for events-only users)
     const { rows: memberRows } = await db.query(`
       SELECT m.id, m.campaign_id as "campaignId", m.role, m.joined_at as "joinedAt", m.is_active as "isActive",
              c.name as "campaignName", c.slug as "campaignSlug",
@@ -41,20 +48,25 @@ export async function GET() {
       userId: user.id,
     }))
 
-    // Determine active membership from cookie
+    // Determine active membership from cookie (only relevant for relational users)
     const activeCampaignId = getActiveCampaignId()
     const activeMembership = activeCampaignId
       ? memberships.find((m: { campaignId: string }) => m.campaignId === activeCampaignId) || memberships[0] || null
       : memberships[0] || null
 
-    // Load campaign config from DB for the active campaign
+    // Load campaign config from DB for the active campaign (skip for events-only users)
     const campaignConfig = activeMembership
       ? await getCampaignConfig(activeMembership.campaignId)
       : null
 
     // Load product subscriptions for user's organizations
-    const orgIds = [...new Set(memberRows.map(m => m.orgName ? memberRows.find(mr => mr.orgName === m.orgName) : null).filter(Boolean))]
     const { rows: subRows } = await db.query(`
+      SELECT ps.product, ps.plan, ps.status, o.id as org_id
+      FROM product_subscriptions ps
+      JOIN organizations o ON o.id = ps.organization_id
+      WHERE o.created_by = $1
+        AND ps.status IN ('active', 'trialing')
+      UNION
       SELECT ps.product, ps.plan, ps.status, o.id as org_id
       FROM product_subscriptions ps
       JOIN organizations o ON o.id = ps.organization_id
@@ -62,7 +74,6 @@ export async function GET() {
       JOIN memberships m ON m.campaign_id = c.id
       WHERE m.user_id = $1 AND m.is_active = true
         AND ps.status IN ('active', 'trialing')
-      GROUP BY ps.id, o.id
     `, [user.id])
 
     const productSubscriptions = subRows.map(s => ({
@@ -73,7 +84,10 @@ export async function GET() {
     }))
 
     // Get user's organization slug and ID for vanity URL + event count
+    // Check both created_by and membership chain
     const { rows: orgSlugRows } = await db.query(`
+      SELECT slug, id as org_id FROM organizations WHERE created_by = $1
+      UNION
       SELECT DISTINCT o.slug, o.id as org_id
       FROM memberships m
       JOIN campaigns c ON c.id = m.campaign_id
@@ -106,6 +120,7 @@ export async function GET() {
       activeMembership,
       campaignConfig,
       productSubscriptions,
+      userProducts,
       organizationSlug: orgSlugRows[0]?.slug || null,
       freeEventsUsed,
       freeEventsRemaining,

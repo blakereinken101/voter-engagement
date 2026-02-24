@@ -24,22 +24,35 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb()
 
-    // Find user's org
-    const { rows: orgRows } = await db.query(`
-      SELECT DISTINCT o.id, o.name
-      FROM memberships m
-      JOIN campaigns c ON c.id = m.campaign_id
-      JOIN organizations o ON o.id = c.org_id
-      WHERE m.user_id = $1 AND m.is_active = true
-      LIMIT 1
-    `, [session.userId])
+    // Find user's org — first by created_by (events-only users), then via membership chain
+    let orgId: string
+    let orgName: string
 
-    if (orgRows.length === 0) {
-      return NextResponse.json({ error: 'Not a member of any organization' }, { status: 403 })
+    const { rows: createdOrgRows } = await db.query(
+      `SELECT id, name FROM organizations WHERE created_by = $1 LIMIT 1`,
+      [session.userId]
+    )
+
+    if (createdOrgRows.length > 0) {
+      orgId = createdOrgRows[0].id
+      orgName = createdOrgRows[0].name
+    } else {
+      const { rows: orgRows } = await db.query(`
+        SELECT DISTINCT o.id, o.name
+        FROM memberships m
+        JOIN campaigns c ON c.id = m.campaign_id
+        JOIN organizations o ON o.id = c.org_id
+        WHERE m.user_id = $1 AND m.is_active = true
+        LIMIT 1
+      `, [session.userId])
+
+      if (orgRows.length === 0) {
+        return NextResponse.json({ error: 'Not a member of any organization' }, { status: 403 })
+      }
+
+      orgId = orgRows[0].id
+      orgName = orgRows[0].name
     }
-
-    const orgId = orgRows[0].id
-    const orgName = orgRows[0].name
 
     // Check for existing Stripe customer
     const { rows: subRows } = await db.query(
