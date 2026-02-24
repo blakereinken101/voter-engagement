@@ -82,12 +82,12 @@ export default function LandingPage() {
                 Relational
               </Link>
             ) : user ? (
-              <Link
-                href="/events/manage"
+              <a
+                href="#waitlist"
                 className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
               >
-                My Events
-              </Link>
+                Get Started
+              </a>
             ) : (
               <>
                 <Link href="/sign-in" className="text-sm font-bold text-white/60 hover:text-white transition-colors">
