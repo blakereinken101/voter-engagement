@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { getSessionFromRequest, AuthError, handleAuthError } from '@/lib/auth'
-
-async function requirePlatformAdmin() {
-  const session = getSessionFromRequest()
-  if (!session) throw new AuthError('Not authenticated', 401)
-
-  const db = await getDb()
-  const { rows } = await db.query('SELECT is_platform_admin FROM users WHERE id = $1', [session.userId])
-  if (!rows[0] || !rows[0].is_platform_admin) {
-    throw new AuthError('Platform admin access required', 403)
-  }
-  return session
-}
+import { requirePlatformAdmin, handleAuthError } from '@/lib/platform-guard'
 
 export async function POST(request: NextRequest) {
   try {

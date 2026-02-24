@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { getSessionFromRequest, AuthError, handleAuthError } from '@/lib/auth'
-
-async function requirePlatformAdmin() {
-  const session = getSessionFromRequest()
-  if (!session) throw new AuthError('Not authenticated', 401)
-
-  const db = await getDb()
-  const { rows } = await db.query('SELECT is_platform_admin FROM users WHERE id = $1', [session.userId])
-  if (!rows[0] || !rows[0].is_platform_admin) {
-    throw new AuthError('Platform admin access required', 403)
-  }
-  return session
-}
+import { requirePlatformAdmin, handleAuthError } from '@/lib/platform-guard'
 
 export async function GET() {
   try {
@@ -20,10 +8,17 @@ export async function GET() {
     const db = await getDb()
 
     const { rows } = await db.query(`
-      SELECT o.*, COUNT(c.id) as campaign_count
+      SELECT
+        o.*,
+        COUNT(DISTINCT c.id)::int as campaign_count,
+        COUNT(DISTINCT m.user_id)::int as user_count,
+        ps.plan as subscription_plan,
+        ps.status as subscription_status
       FROM organizations o
       LEFT JOIN campaigns c ON c.org_id = o.id
-      GROUP BY o.id
+      LEFT JOIN memberships m ON m.campaign_id = c.id AND m.is_active = true
+      LEFT JOIN product_subscriptions ps ON ps.organization_id = o.id AND ps.product = 'events'
+      GROUP BY o.id, ps.plan, ps.status
       ORDER BY o.created_at DESC
     `)
 

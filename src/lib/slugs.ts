@@ -1,7 +1,7 @@
 // Reserved slugs that cannot be used as organization vanity URLs.
 // These correspond to existing application routes at the root level.
 export const RESERVED_SLUGS = [
-  'events', 'dashboard', 'sign-in', 'sign-up', 'privacy',
+  'events', 'dashboard', 'platform', 'sign-in', 'sign-up', 'privacy',
   'api', '_next', 'action-plan', 'matching', 'questionnaire',
   'results', 'rolodex', 'invite', 'verify-code',
   'forgot-password', 'reset-password', 'change-password',

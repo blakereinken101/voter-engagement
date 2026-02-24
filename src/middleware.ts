@@ -21,7 +21,7 @@ const PUBLIC_PATHS = [
 // from accidentally opening these to unauthenticated users
 const PROTECTED_ROOT_ROUTES = [
   '/dashboard', '/action-plan', '/matching', '/questionnaire',
-  '/results', '/rolodex', '/change-password',
+  '/results', '/rolodex', '/change-password', '/platform',
 ]
 
 export async function middleware(request: NextRequest) {
