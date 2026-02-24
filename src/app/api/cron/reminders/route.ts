@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { sendEventReminderToHost, sendEventReminderToGuest } from '@/lib/email'
+import { sendSms, formatEventReminderSms } from '@/lib/sms'
 
 /**
  * Cron endpoint for sending event reminders.
@@ -10,6 +11,8 @@ import { sendEventReminderToHost, sendEventReminderToGuest } from '@/lib/email'
  * Sends reminders at two windows:
  * - 24 hours before event (23.5h–24.5h window)
  * - 6 hours before event (5.5h–6.5h window)
+ *
+ * Sends both email and SMS (for opted-in recipients with phone numbers).
  */
 export async function GET(request: NextRequest) {
   // Verify cron secret
@@ -22,7 +25,8 @@ export async function GET(request: NextRequest) {
   try {
     const db = await getDb()
     const now = new Date()
-    let totalSent = 0
+    let emailsSent = 0
+    let smsSent = 0
 
     // Define reminder windows
     const windows: { type: '24h' | '6h'; minHours: number; maxHours: number }[] = [
@@ -73,16 +77,16 @@ export async function GET(request: NextRequest) {
           maybe: parseInt(event.maybe_count, 10),
         }
 
-        // Collect all recipient emails
-        const recipients: { email: string; isHost: boolean; name?: string }[] = []
+        // ── Email recipients ──────────────────────────────────────────
+        const emailRecipients: { email: string; isHost: boolean; name?: string }[] = []
 
         // Host email
         const { rows: hostRows } = await db.query(
-          'SELECT email, name FROM users WHERE id = $1',
+          'SELECT email, name, phone, sms_opt_in FROM users WHERE id = $1',
           [event.created_by]
         )
         if (hostRows.length > 0 && hostRows[0].email) {
-          recipients.push({ email: hostRows[0].email, isHost: true, name: hostRows[0].name })
+          emailRecipients.push({ email: hostRows[0].email, isHost: true, name: hostRows[0].name })
         }
 
         // Authenticated RSVPs (going or maybe)
@@ -94,7 +98,7 @@ export async function GET(request: NextRequest) {
         `, [event.id])
         for (const row of rsvpRows) {
           if (row.email && row.email !== hostRows[0]?.email) {
-            recipients.push({ email: row.email, isHost: false, name: row.name })
+            emailRecipients.push({ email: row.email, isHost: false, name: row.name })
           }
         }
 
@@ -106,22 +110,20 @@ export async function GET(request: NextRequest) {
         `, [event.id])
         for (const row of guestRows) {
           if (row.guest_email) {
-            recipients.push({ email: row.guest_email, isHost: false, name: row.guest_name })
+            emailRecipients.push({ email: row.guest_email, isHost: false, name: row.guest_name })
           }
         }
 
         // Send emails with deduplication
-        for (const recipient of recipients) {
-          // Try to insert into dedup log — skip if already sent
+        for (const recipient of emailRecipients) {
           const logId = crypto.randomUUID()
           const { rowCount } = await db.query(
-            `INSERT INTO event_reminder_log (id, event_id, reminder_type, recipient_email)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (event_id, reminder_type, recipient_email) DO NOTHING`,
+            `INSERT INTO event_reminder_log (id, event_id, reminder_type, recipient_email, channel)
+             VALUES ($1, $2, $3, $4, 'email')
+             ON CONFLICT DO NOTHING`,
             [logId, event.id, window.type, recipient.email]
           )
 
-          // rowCount === 0 means it was already sent
           if (rowCount === 0) continue
 
           try {
@@ -130,17 +132,86 @@ export async function GET(request: NextRequest) {
             } else {
               await sendEventReminderToGuest(recipient.email, eventInfo, window.type, recipient.name)
             }
-            totalSent++
+            emailsSent++
           } catch (err) {
-            console.error(`[cron/reminders] Failed to send ${window.type} reminder to ${recipient.email}:`, err)
-            // Delete the log entry so it can be retried next run
+            console.error(`[cron/reminders] Failed to send ${window.type} email to ${recipient.email}:`, err)
+            await db.query('DELETE FROM event_reminder_log WHERE id = $1', [logId])
+          }
+        }
+
+        // ── SMS recipients ────────────────────────────────────────────
+        const smsRecipients: { phone: string; identifier: string }[] = []
+
+        // Host SMS (if opted in)
+        if (hostRows.length > 0 && hostRows[0].phone && hostRows[0].sms_opt_in) {
+          smsRecipients.push({ phone: hostRows[0].phone, identifier: hostRows[0].email || hostRows[0].phone })
+        }
+
+        // Authenticated RSVPs with SMS opt-in
+        const { rows: smsRsvpRows } = await db.query(`
+          SELECT DISTINCT u.phone, u.email
+          FROM event_rsvps r
+          JOIN users u ON u.id = r.user_id
+          WHERE r.event_id = $1
+            AND r.status IN ('going', 'maybe')
+            AND r.user_id IS NOT NULL
+            AND u.phone IS NOT NULL
+            AND u.sms_opt_in = true
+        `, [event.id])
+        for (const row of smsRsvpRows) {
+          if (row.phone && row.phone !== hostRows[0]?.phone) {
+            smsRecipients.push({ phone: row.phone, identifier: row.email || row.phone })
+          }
+        }
+
+        // Guest RSVPs with SMS opt-in
+        const { rows: smsGuestRows } = await db.query(`
+          SELECT DISTINCT guest_phone, guest_email
+          FROM event_rsvps
+          WHERE event_id = $1
+            AND status IN ('going', 'maybe')
+            AND user_id IS NULL
+            AND guest_phone IS NOT NULL
+            AND sms_opt_in = true
+        `, [event.id])
+        for (const row of smsGuestRows) {
+          if (row.guest_phone) {
+            smsRecipients.push({ phone: row.guest_phone, identifier: row.guest_email || row.guest_phone })
+          }
+        }
+
+        // Send SMS with deduplication
+        const smsBody = formatEventReminderSms(
+          event.title,
+          event.start_time,
+          event.timezone,
+          window.type,
+          event.slug
+        )
+
+        for (const recipient of smsRecipients) {
+          const logId = crypto.randomUUID()
+          const { rowCount } = await db.query(
+            `INSERT INTO event_reminder_log (id, event_id, reminder_type, recipient_email, channel)
+             VALUES ($1, $2, $3, $4, 'sms')
+             ON CONFLICT DO NOTHING`,
+            [logId, event.id, window.type, recipient.identifier]
+          )
+
+          if (rowCount === 0) continue
+
+          try {
+            await sendSms(recipient.phone, smsBody)
+            smsSent++
+          } catch (err) {
+            console.error(`[cron/reminders] Failed to send ${window.type} SMS to ${recipient.phone}:`, err)
             await db.query('DELETE FROM event_reminder_log WHERE id = $1', [logId])
           }
         }
       }
     }
 
-    return NextResponse.json({ success: true, sent: totalSent })
+    return NextResponse.json({ success: true, emailsSent, smsSent })
   } catch (error) {
     console.error('[cron/reminders] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -72,7 +72,7 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { status: rsvpStatus, guestCount, note, guestName, guestEmail } = body
+    const { status: rsvpStatus, guestCount, note, guestName, guestEmail, phone, guestPhone, smsOptIn } = body
 
     if (!rsvpStatus || !['going', 'maybe', 'not_going'].includes(rsvpStatus)) {
       return NextResponse.json({ error: 'Invalid RSVP status' }, { status: 400 })
@@ -102,14 +102,26 @@ export async function POST(
       // Authenticated RSVP — upsert
       const id = crypto.randomUUID()
       await db.query(`
-        INSERT INTO event_rsvps (id, event_id, user_id, status, guest_count, note)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO event_rsvps (id, event_id, user_id, status, guest_count, note, sms_opt_in)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (event_id, user_id) DO UPDATE SET
           status = EXCLUDED.status,
           guest_count = EXCLUDED.guest_count,
           note = EXCLUDED.note,
+          sms_opt_in = EXCLUDED.sms_opt_in,
           updated_at = NOW()
-      `, [id, eventId, session.userId, rsvpStatus, guestCount || 1, note || null])
+      `, [id, eventId, session.userId, rsvpStatus, guestCount || 1, note || null, !!smsOptIn])
+
+      // If user provided a phone and opted in, save to their user record
+      if (phone?.trim() && smsOptIn) {
+        await db.query(
+          'UPDATE users SET phone = $1, sms_opt_in = true WHERE id = $2',
+          [phone.trim(), session.userId]
+        )
+      } else if (smsOptIn === false) {
+        // Explicitly opted out — clear sms_opt_in on user
+        await db.query('UPDATE users SET sms_opt_in = false WHERE id = $1', [session.userId])
+      }
 
       await logActivity(session.userId, 'event_rsvp', { eventId, status: rsvpStatus })
 
@@ -133,9 +145,9 @@ export async function POST(
 
       const id = crypto.randomUUID()
       await db.query(`
-        INSERT INTO event_rsvps (id, event_id, guest_name, guest_email, status, guest_count, note)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [id, eventId, guestName.trim(), guestEmail?.trim() || null, rsvpStatus, guestCount || 1, note || null])
+        INSERT INTO event_rsvps (id, event_id, guest_name, guest_email, status, guest_count, note, guest_phone, sms_opt_in)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `, [id, eventId, guestName.trim(), guestEmail?.trim() || null, rsvpStatus, guestCount || 1, note || null, guestPhone?.trim() || null, !!smsOptIn])
 
       return NextResponse.json({ id, success: true })
     }

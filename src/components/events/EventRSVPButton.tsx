@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import type { RSVPStatus } from '@/types/events'
-import { Check, HelpCircle, X } from 'lucide-react'
+import { Check, HelpCircle, X, Phone } from 'lucide-react'
 
 interface Props {
   eventId: string
@@ -18,8 +18,11 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
   const [status, setStatus] = useState<RSVPStatus | null>(currentStatus)
   const [isLoading, setIsLoading] = useState(false)
   const [showGuestForm, setShowGuestForm] = useState(false)
+  const [showSmsForm, setShowSmsForm] = useState(false)
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [smsOptIn, setSmsOptIn] = useState(false)
   const [error, setError] = useState('')
 
   if (!rsvpEnabled) return null
@@ -39,10 +42,13 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
     setError('')
 
     try {
-      const body: Record<string, unknown> = { status: newStatus }
+      const body: Record<string, unknown> = { status: newStatus, smsOptIn }
       if (!user) {
         body.guestName = guestName
         body.guestEmail = guestEmail
+        if (phoneNumber.trim()) body.guestPhone = phoneNumber.trim()
+      } else {
+        if (phoneNumber.trim()) body.phone = phoneNumber.trim()
       }
 
       const res = await fetch(`/api/events/${eventId}/rsvp`, {
@@ -111,6 +117,27 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
             onChange={e => setGuestEmail(e.target.value)}
             className="glass-input w-full px-3 py-2 text-sm"
           />
+          <input
+            type="tel"
+            placeholder="Phone number (optional)"
+            value={phoneNumber}
+            onChange={e => setPhoneNumber(e.target.value)}
+            className="glass-input w-full px-3 py-2 text-sm"
+          />
+          {phoneNumber.trim() && (
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={smsOptIn}
+                onChange={e => setSmsOptIn(e.target.checked)}
+                className="mt-0.5 accent-vc-teal"
+              />
+              <span className="text-xs text-white/60">
+                <Phone className="w-3 h-3 inline mr-1" />
+                Text me event reminders (24h & 6h before). Msg & data rates may apply. Reply STOP to unsubscribe.
+              </span>
+            </label>
+          )}
           <div className="flex gap-2">
             <button
               onClick={() => handleRsvp('going')}
@@ -121,6 +148,59 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
             </button>
             <button
               onClick={() => setShowGuestForm(false)}
+              className="px-4 py-2 text-white/60 hover:text-white text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* SMS opt-in for authenticated users who just RSVP'd going/maybe */}
+      {user && status && (status === 'going' || status === 'maybe') && !showSmsForm && (
+        <button
+          onClick={() => setShowSmsForm(true)}
+          className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/60 transition-colors"
+        >
+          <Phone className="w-3 h-3" />
+          Get text reminders
+        </button>
+      )}
+
+      {user && showSmsForm && (
+        <div className="glass-card p-4 space-y-3 animate-fade-in">
+          <p className="text-sm text-white/70 flex items-center gap-1.5">
+            <Phone className="w-4 h-4" />
+            Get text reminders for this event
+          </p>
+          <input
+            type="tel"
+            placeholder="Phone number"
+            value={phoneNumber}
+            onChange={e => setPhoneNumber(e.target.value)}
+            className="glass-input w-full px-3 py-2 text-sm"
+          />
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={smsOptIn}
+              onChange={e => setSmsOptIn(e.target.checked)}
+              className="mt-0.5 accent-vc-teal"
+            />
+            <span className="text-xs text-white/60">
+              Text me event reminders (24h & 6h before). Msg & data rates may apply. Reply STOP to unsubscribe.
+            </span>
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { if (status) handleRsvp(status) }}
+              disabled={!phoneNumber.trim() || !smsOptIn || isLoading}
+              className="flex-1 bg-vc-teal text-white px-4 py-2 rounded-btn text-sm font-medium disabled:opacity-50"
+            >
+              {isLoading ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              onClick={() => setShowSmsForm(false)}
               className="px-4 py-2 text-white/60 hover:text-white text-sm"
             >
               Cancel

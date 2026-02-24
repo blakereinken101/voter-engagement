@@ -52,6 +52,12 @@ async function initSchema() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_platform_admin BOOLEAN NOT NULL DEFAULT false;
     `)
 
+    // SMS fields on users
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS sms_opt_in BOOLEAN DEFAULT false;
+    `)
+
     // ── Organizations ────────────────────────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS organizations (
@@ -264,6 +270,12 @@ async function initSchema() {
       );
     `)
 
+    // SMS opt-in fields for event RSVPs
+    await client.query(`
+      ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS guest_phone TEXT;
+      ALTER TABLE event_rsvps ADD COLUMN IF NOT EXISTS sms_opt_in BOOLEAN DEFAULT false;
+    `)
+
     // ── Event Comments ──────────────────────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS event_comments (
@@ -299,6 +311,28 @@ async function initSchema() {
         sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         UNIQUE(event_id, reminder_type, recipient_email)
       );
+    `)
+
+    // Add channel column for SMS vs email dedup
+    await client.query(`
+      ALTER TABLE event_reminder_log ADD COLUMN IF NOT EXISTS channel TEXT DEFAULT 'email';
+    `)
+
+    // Drop old unique constraint and add new one that includes channel
+    await client.query(`
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'event_reminder_log_event_id_reminder_type_recipient_email_key'
+        ) THEN
+          ALTER TABLE event_reminder_log
+            DROP CONSTRAINT event_reminder_log_event_id_reminder_type_recipient_email_key;
+        END IF;
+      END $$;
+    `)
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_reminder_log_dedup
+        ON event_reminder_log(event_id, reminder_type, recipient_email, channel);
     `)
 
     // ── Voter Datasets + Voters (DB-backed voter file storage) ──────
