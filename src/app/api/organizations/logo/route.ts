@@ -38,9 +38,9 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ success: true, logoUrl })
   } catch (error) {
-    if (error instanceof AuthError) return handleAuthError(error)
-    console.error('[organizations/logo] Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const { error: msg, status } = handleAuthError(error)
+    if (!(error instanceof AuthError)) console.error('[organizations/logo] Error:', error)
+    return NextResponse.json({ error: msg }, { status })
   }
 }
 
@@ -63,8 +63,8 @@ export async function GET() {
       customBranding: ctx.subscription?.limits?.customBranding || false,
     })
   } catch (error) {
-    if (error instanceof AuthError) return handleAuthError(error)
-    console.error('[organizations/logo] Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const { error: msg, status } = handleAuthError(error)
+    if (!(error instanceof AuthError)) console.error('[organizations/logo] Error:', error)
+    return NextResponse.json({ error: msg }, { status })
   }
 }
