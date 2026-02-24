@@ -50,9 +50,10 @@ export default function SignInPage() {
       }
       // Clear the return-url cookie
       document.cookie = 'vc-return-url=; Path=/; SameSite=Lax; Max-Age=0'
-      router.push(dest)
+      // Hard navigate to avoid stale AuthContext state after login
+      window.location.href = dest
     }
-  }, [authLoading, user, router, redirectTo, returnUrl, productFromUrl, hasRelationalAccess, hasEventsAccess])
+  }, [authLoading, user, redirectTo, returnUrl, productFromUrl, hasRelationalAccess, hasEventsAccess])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

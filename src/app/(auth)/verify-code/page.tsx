@@ -53,16 +53,18 @@ function VerifyCodeForm() {
       // Server returns the redirect URL computed from the JWT claims
       const redirect = await verifyCode(code)
       didRedirectRef.current = true
-      router.push(redirect || (product === 'events' ? '/events/manage' : '/dashboard'))
+      // Hard navigate (not router.push) to guarantee a fresh page load with
+      // clean AuthContext state — same pattern as signOut. This prevents stale
+      // userProducts from causing redirect loops.
+      window.location.href = redirect || (product === 'events' ? '/events/manage' : '/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed')
       // Clear inputs on error
       setDigits(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
-    } finally {
       setLoading(false)
     }
-  }, [verifyCode, router, product])
+  }, [verifyCode, product])
 
   function handleDigitChange(index: number, value: string) {
     // Only allow digits

@@ -22,8 +22,8 @@ export default function EventNav() {
             <Link href="/events" className="flex items-center gap-2 mr-4">
               <Image src="/logo.png" alt="Threshold" width={120} height={67} className="h-8 w-auto" />
               <span className="font-display font-bold text-white hidden sm:inline">Events</span>
-              <span className="hidden md:inline-flex ml-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-full">
-                For Democrats
+              <span className="inline-flex ml-1 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-vc-teal/20 text-vc-teal border border-vc-teal/30 rounded-full">
+                Events
               </span>
             </Link>
 

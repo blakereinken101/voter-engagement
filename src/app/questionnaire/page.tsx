@@ -3,6 +3,7 @@ import { useAppContext } from '@/context/AppContext'
 import StateSelector from '@/components/StateSelector'
 import CategoryWizard from '@/components/CategoryWizard'
 import ProgressBar from '@/components/ProgressBar'
+import RelationalTopBar from '@/components/RelationalTopBar'
 import { CATEGORIES } from '@/lib/wizard-config'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -13,7 +14,9 @@ export default function QuestionnairePage() {
 
   if (!state.selectedState) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 cosmic-bg constellation">
+      <div className="min-h-screen flex flex-col cosmic-bg constellation">
+        <RelationalTopBar />
+        <div className="flex-1 flex flex-col items-center justify-center p-6">
         <Link href="/" className="inline-block mb-12 hover:opacity-80 transition-opacity">
           <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-48 md:h-64 w-auto" priority />
         </Link>
@@ -24,12 +27,14 @@ export default function QuestionnairePage() {
           We will match your people against voter records for your state.
         </p>
         <StateSelector />
+        </div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen cosmic-bg constellation text-white">
+      <RelationalTopBar />
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-4 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between mb-3">
           <Link href="/" className="hover:opacity-80 transition-opacity">

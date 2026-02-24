@@ -79,7 +79,7 @@ export default function LandingPage() {
                 href="/dashboard"
                 className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
               >
-                Dashboard
+                Relational
               </Link>
             ) : (
               <>
@@ -186,8 +186,8 @@ export default function LandingPage() {
             },
             {
               icon: Globe,
-              title: 'VAN Sync & Data Export',
-              desc: 'Contacts, canvass responses, events, and RSVPs sync directly to VAN/EveryAction in real time. Export your data in VoteBuilder-ready CSV format anytime.',
+              title: 'Data Export',
+              desc: 'Export your contacts, canvass responses, and outreach data in VoteBuilder-ready CSV format anytime. Keep your data portable and ready for any tool.',
               color: 'bg-vc-teal/10 text-vc-teal',
             },
           ].map(({ icon: Icon, title, desc, color }) => (
@@ -345,7 +345,7 @@ export default function LandingPage() {
                 Host canvassing shifts, phone banks, rallies, fundraisers, voter registration drives, watch parties, and 14 other event types &mdash; each with its own shareable page, RSVP management, comment threads, emoji reactions, and countdown timers. Built for organizing, not generic event software.
               </p>
               <p className="text-white/40 leading-relaxed mb-6 max-w-xl text-sm">
-                Create an account in minutes. Start free with 2 events, no credit card required. Paid plans add unlimited events, team members, custom branding, analytics, and direct VAN sync.
+                Create an account in minutes. Start free with 2 events, no credit card required. Paid plans add unlimited events, team members, custom branding, and analytics.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link

@@ -18,7 +18,7 @@ export default function EventsPricingPage() {
         </h1>
         <p className="text-white/50 max-w-2xl mx-auto text-lg">
           Shareable event pages, guest and member RSVPs, comment threads, email reminders,
-          team coordination, and VAN sync — purpose-built for campaigns and progressive organizations, at a fraction of what legacy platforms charge.
+          and team coordination — purpose-built for campaigns and progressive organizations, at a fraction of what legacy platforms charge.
         </p>
       </div>
 

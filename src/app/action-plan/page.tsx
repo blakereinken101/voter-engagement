@@ -2,6 +2,7 @@
 import { useAppContext } from '@/context/AppContext'
 import VoterCard from '@/components/VoterCard'
 import ScriptCard from '@/components/ScriptCard'
+import RelationalTopBar from '@/components/RelationalTopBar'
 import { CONVERSATION_SCRIPTS } from '@/lib/scripts'
 import { generateVoteBuilderCSV, downloadCSV } from '@/lib/votebuilder-export'
 import { VoterSegment, OutreachMethod, ContactOutcome } from '@/types'
@@ -22,8 +23,11 @@ export default function ActionPlanPage() {
 
   if (state.actionPlanState.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center cosmic-bg constellation">
-        <p className="text-white/50">No action plan yet. <Link href="/questionnaire" className="text-vc-purple-light font-bold hover:underline">Build your list first</Link>.</p>
+      <div className="min-h-screen flex flex-col cosmic-bg constellation">
+        <RelationalTopBar />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-white/50">No action plan yet. <Link href="/questionnaire" className="text-vc-purple-light font-bold hover:underline">Build your list first</Link>.</p>
+        </div>
       </div>
     )
   }
@@ -44,6 +48,7 @@ export default function ActionPlanPage() {
 
   return (
     <div className="min-h-screen cosmic-bg constellation text-white">
+      <RelationalTopBar />
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-8">
         <div className="max-w-2xl mx-auto">
           <Link href="/results" className="text-white/40 text-sm hover:text-white transition-colors mb-4 block">

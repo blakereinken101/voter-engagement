@@ -61,77 +61,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [freeEventsRemaining, setFreeEventsRemaining] = useState(2)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Check session on mount and periodically verify token is still valid
+  // Reusable session refresh — fetches /api/auth/me and updates all state
+  const refreshSession = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/me')
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+        setMemberships(data.memberships || [])
+        setProductSubscriptions(data.productSubscriptions || [])
+        setUserProducts(data.userProducts || [])
+        setOrganizationSlug(data.organizationSlug || null)
+        setFreeEventsUsed(data.freeEventsUsed ?? 0)
+        setFreeEventsRemaining(data.freeEventsRemaining ?? 2)
+        if (data.campaignConfig) {
+          setCampaignConfig(data.campaignConfig)
+        }
+        if (data.activeMembership) {
+          setActiveMembership(data.activeMembership)
+        } else if (data.memberships?.length === 1) {
+          const m = data.memberships[0]
+          setActiveMembership(m)
+          document.cookie = `vc-campaign=${m.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
+        }
+      } else if (res.status === 401) {
+        setUser(null)
+        setMemberships([])
+        setActiveMembership(null)
+        setCampaignConfig(null)
+        setProductSubscriptions([])
+        setUserProducts([])
+        setFreeEventsUsed(0)
+        setFreeEventsRemaining(2)
+      }
+    } catch {
+      setUser(null)
+      setMemberships([])
+      setActiveMembership(null)
+      setCampaignConfig(null)
+      setProductSubscriptions([])
+      setUserProducts([])
+      setOrganizationSlug(null)
+      setFreeEventsUsed(0)
+      setFreeEventsRemaining(2)
+    }
+  }, [])
+
+  // Check session on mount and periodically
   useEffect(() => {
     let isMounted = true
 
-    function checkSession() {
-      fetch('/api/auth/me')
-        .then(res => {
-          if (!isMounted) return
-          if (res.ok) return res.json()
-          if (res.status === 401) {
-            setUser(null)
-            setMemberships([])
-            setActiveMembership(null)
-            setCampaignConfig(null)
-            setProductSubscriptions([])
-            setUserProducts([])
-            setFreeEventsUsed(0)
-            setFreeEventsRemaining(2)
-            return null
-          }
-          throw new Error('Not authenticated')
-        })
-        .then(data => {
-          if (isMounted && data) {
-            setUser(data.user)
-            setMemberships(data.memberships || [])
-            setProductSubscriptions(data.productSubscriptions || [])
-            setUserProducts(data.userProducts || [])
-            setOrganizationSlug(data.organizationSlug || null)
-            setFreeEventsUsed(data.freeEventsUsed ?? 0)
-            setFreeEventsRemaining(data.freeEventsRemaining ?? 2)
-            if (data.campaignConfig) {
-              setCampaignConfig(data.campaignConfig)
-            }
-            if (data.activeMembership) {
-              setActiveMembership(data.activeMembership)
-            } else if (data.memberships?.length === 1) {
-              // Auto-select if only one campaign
-              const m = data.memberships[0]
-              setActiveMembership(m)
-              document.cookie = `vc-campaign=${m.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
-            }
-          }
-        })
-        .catch(() => {
-          if (isMounted) {
-            setUser(null)
-            setMemberships([])
-            setActiveMembership(null)
-            setCampaignConfig(null)
-            setProductSubscriptions([])
-            setUserProducts([])
-            setOrganizationSlug(null)
-            setFreeEventsUsed(0)
-            setFreeEventsRemaining(2)
-          }
-        })
-        .finally(() => {
-          if (isMounted) setIsLoading(false)
-        })
-    }
+    refreshSession().finally(() => {
+      if (isMounted) setIsLoading(false)
+    })
 
-    checkSession()
-
-    const interval = setInterval(checkSession, 30 * 60 * 1000)
+    const interval = setInterval(refreshSession, 30 * 60 * 1000)
 
     return () => {
       isMounted = false
       clearInterval(interval)
     }
-  }, [])
+  }, [refreshSession])
 
   const signIn = useCallback(async (email: string, password: string, product?: string): Promise<SignInResult | void> => {
     const res = await fetch('/api/auth/sign-in', {
@@ -179,17 +169,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || 'Verification failed')
     }
     const data = await res.json()
-    setUser(data.user)
-    setMemberships(data.memberships || [])
 
-    if (data.memberships?.length >= 1) {
-      const m = data.activeMembership || data.memberships[0]
-      setActiveMembership(m)
-      document.cookie = `vc-campaign=${m.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
-    }
+    // Now that vc-session cookie is set, fetch the full session to populate
+    // all state (userProducts, productSubscriptions, etc.) — not just user/memberships
+    await refreshSession()
 
     return data.redirect
-  }, [])
+  }, [refreshSession])
 
   const resendCode = useCallback(async () => {
     const res = await fetch('/api/auth/resend-code', { method: 'POST' })

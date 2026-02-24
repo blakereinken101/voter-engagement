@@ -1,6 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { useAppContext } from '@/context/AppContext'
 import { useAuth } from '@/context/AuthContext'
 import ContactSpreadsheet from '@/components/ContactSpreadsheet'
@@ -20,15 +19,9 @@ import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, 
 
 export default function DashboardPage() {
   const { state } = useAppContext()
-  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig, hasRelationalAccess, hasEventsAccess, isLoading: authLoading } = useAuth()
-  const router = useRouter()
+  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig, isLoading: authLoading } = useAuth()
 
-  // Product access guard — redirect events-only users away from dashboard
-  useEffect(() => {
-    if (!authLoading && user && !hasRelationalAccess) {
-      router.push(hasEventsAccess ? '/events/manage' : '/sign-in')
-    }
-  }, [authLoading, user, hasRelationalAccess, hasEventsAccess, router])
+  // Product access is enforced by middleware — no client-side redirect guard needed
   const campaignConfig = authConfig || defaultCampaignConfig
   const [view, setView] = useState<DashboardView | 'admin'>('chat')
 
@@ -53,9 +46,14 @@ export default function DashboardPage() {
       <header className="glass-dark border-b border-white/10">
         {/* Top bar */}
         <div className="max-w-6xl mx-auto px-6 pt-5 pb-3 flex items-center justify-between">
-          <Link href="/" className="hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-20 md:h-28 w-auto" priority />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-20 md:h-28 w-auto" priority />
+            </Link>
+            <span className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-vc-purple/20 text-vc-purple-light border border-vc-purple/30 rounded-full">
+              Relational
+            </span>
+          </div>
           {user && (
             <div className="flex items-center gap-3">
               <div className="hidden sm:block text-right">
