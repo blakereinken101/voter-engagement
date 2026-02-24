@@ -11,6 +11,11 @@ jobs:
     steps:
       - name: Call reminder endpoint
         run: |
-          curl -sf \
+          HTTP_CODE=$(curl -s -o /tmp/response.json -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-            https://thresholdvote.com/api/cron/reminders
+            https://thresholdvote.com/api/cron/reminders)
+          cat /tmp/response.json
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Endpoint returned HTTP $HTTP_CODE"
+            exit 1
+          fi

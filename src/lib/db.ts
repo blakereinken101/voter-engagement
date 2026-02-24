@@ -302,7 +302,11 @@ async function initSchema() {
     `)
 
     // ── Voter Datasets + Voters (DB-backed voter file storage) ──────
-    await client.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`)
+    try {
+      await client.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`)
+    } catch (err) {
+      console.warn('[db] Could not create pg_trgm extension (fuzzy name search will be unavailable):', (err as Error).message)
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS voter_datasets (
@@ -392,9 +396,13 @@ async function initSchema() {
     `)
 
     // Trigram GIN indexes for fuzzy name matching (requires pg_trgm)
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_voters_last_name_trgm ON voters USING gin(last_name_normalized gin_trgm_ops);
-    `)
+    try {
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_voters_last_name_trgm ON voters USING gin(last_name_normalized gin_trgm_ops);
+      `)
+    } catch (err) {
+      console.warn('[db] Could not create trigram index (fuzzy name search will be unavailable):', (err as Error).message)
+    }
 
     // ── Seed defaults ────────────────────────────────────────────────
     await seedDefaults(client)
