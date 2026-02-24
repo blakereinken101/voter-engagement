@@ -4,10 +4,13 @@ import { cookies } from 'next/headers'
 import { MembershipRole, ADMIN_ROLES } from '@/types'
 import { getPool } from '@/lib/db'
 
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('FATAL: JWT_SECRET environment variable is missing in production.')
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET environment variable is missing in production.')
+  }
+  return secret || 'dev-secret-change-me'
 }
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
 
 export interface SessionPayload {
   userId: string
@@ -32,12 +35,12 @@ export function verifyPassword(password: string, hash: string): boolean {
 }
 
 export function createSessionToken(payload: SessionPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' })
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' })
 }
 
 export function verifySessionToken(token: string): SessionPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as SessionPayload
+    const decoded = jwt.verify(token, getJwtSecret()) as SessionPayload
     // Ensure products array exists (backward compat with old tokens)
     if (!Array.isArray(decoded.products)) {
       decoded.products = []
@@ -87,7 +90,7 @@ export function createPendingToken(
 ): string {
   return jwt.sign(
     { userId, email, pending2fa: true, product: options?.product, plan: options?.plan },
-    JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: '30m' }
   )
 }
@@ -97,7 +100,7 @@ export function getPendingSession(): PendingSession | null {
   const token = cookieStore.get('vc-2fa-pending')?.value
   if (!token) return null
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as PendingSession
+    const decoded = jwt.verify(token, getJwtSecret()) as PendingSession
     if (!decoded.pending2fa) return null
     return decoded
   } catch {
@@ -108,7 +111,7 @@ export function getPendingSession(): PendingSession | null {
 // ── Password Reset Pending Session ───────────────────────────────
 
 export function createResetPendingToken(userId: string, email: string): string {
-  return jwt.sign({ userId, email, pendingReset: true }, JWT_SECRET, { expiresIn: '10m' })
+  return jwt.sign({ userId, email, pendingReset: true }, getJwtSecret(), { expiresIn: '10m' })
 }
 
 export function getResetPendingSession(): SessionPayload | null {
@@ -116,7 +119,7 @@ export function getResetPendingSession(): SessionPayload | null {
   const token = cookieStore.get('vc-reset-pending')?.value
   if (!token) return null
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as SessionPayload & { pendingReset?: boolean }
+    const decoded = jwt.verify(token, getJwtSecret()) as SessionPayload & { pendingReset?: boolean }
     if (!decoded.pendingReset) return null
     return decoded
   } catch {
