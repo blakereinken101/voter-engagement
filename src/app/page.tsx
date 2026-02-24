@@ -30,7 +30,7 @@ function useInView(ref: RefObject<HTMLElement | null>, options?: IntersectionObs
 }
 
 export default function LandingPage() {
-  const { user } = useAuth()
+  const { user, hasRelationalAccess } = useAuth()
   const eventsRef = useRef<HTMLElement>(null)
   const aiRef = useRef<HTMLElement>(null)
   const featuresRef = useRef<HTMLElement>(null)
@@ -74,12 +74,19 @@ export default function LandingPage() {
             <Link href="/events" className="text-sm font-bold text-white/60 hover:text-white transition-colors">
               Events Platform
             </Link>
-            {user ? (
+            {hasRelationalAccess ? (
               <Link
                 href="/dashboard"
                 className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
               >
                 Relational
+              </Link>
+            ) : user ? (
+              <Link
+                href="/events/manage"
+                className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
+              >
+                My Events
               </Link>
             ) : (
               <>
