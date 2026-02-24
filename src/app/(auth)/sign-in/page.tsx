@@ -17,6 +17,12 @@ export default function SignInPage() {
     if (typeof window === 'undefined') return null
     return new URLSearchParams(window.location.search).get('product')
   }, [])
+  // Read return-url cookie set by middleware (where user was trying to go)
+  const returnUrl = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    const match = document.cookie.match(/(?:^|;\s*)vc-return-url=([^;]*)/)
+    return match ? decodeURIComponent(match[1]) : null
+  }, [])
   const wasReset = useMemo(() => {
     if (typeof window === 'undefined') return false
     return new URLSearchParams(window.location.search).get('reset') === 'true'
@@ -27,13 +33,15 @@ export default function SignInPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // If already signed in, redirect based on URL params
+  // If already signed in, redirect based on return URL > URL params > default
   useEffect(() => {
     if (!authLoading && user) {
-      const dest = redirectTo || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')
+      const dest = redirectTo || returnUrl || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')
+      // Clear the return-url cookie
+      document.cookie = 'vc-return-url=; Path=/; SameSite=Lax; Max-Age=0'
       router.push(dest)
     }
-  }, [authLoading, user, router, redirectTo, productFromUrl])
+  }, [authLoading, user, router, redirectTo, returnUrl, productFromUrl])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,7 +66,8 @@ export default function SignInPage() {
         router.push(productFromUrl ? `/verify-code?product=${productFromUrl}` : '/verify-code')
         return
       }
-      const dest = redirectTo || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')
+      const dest = redirectTo || returnUrl || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')
+      document.cookie = 'vc-return-url=; Path=/; SameSite=Lax; Max-Age=0'
       router.push(dest)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Sign in failed'

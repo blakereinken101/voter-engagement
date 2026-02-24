@@ -56,7 +56,14 @@ export async function middleware(request: NextRequest) {
     : new URL('/sign-in', request.url)
 
   if (!token) {
-    return NextResponse.redirect(signInUrl)
+    // Store the intended destination so auth flow can redirect back
+    const response = NextResponse.redirect(signInUrl)
+    response.cookies.set('vc-return-url', pathname, {
+      path: '/',
+      sameSite: 'lax',
+      maxAge: 1800, // 30 minutes
+    })
+    return response
   }
 
   try {
@@ -64,7 +71,13 @@ export async function middleware(request: NextRequest) {
     await jwtVerify(token, secret)
     return NextResponse.next()
   } catch {
-    return NextResponse.redirect(signInUrl)
+    const response = NextResponse.redirect(signInUrl)
+    response.cookies.set('vc-return-url', pathname, {
+      path: '/',
+      sameSite: 'lax',
+      maxAge: 1800, // 30 minutes
+    })
+    return response
   }
 }
 

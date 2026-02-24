@@ -88,9 +88,13 @@ export async function POST(request: NextRequest) {
     // Issue full session
     const sessionToken = createSessionToken({ userId: user.id, email: user.email })
 
-    // Compute redirect from JWT claims (product/plan encoded at sign-up/sign-in)
+    // Compute redirect: return-url cookie > product/plan from JWT > default
+    const returnUrl = request.cookies.get('vc-return-url')?.value
     let redirect = '/dashboard'
-    if (pending.product === 'events') {
+    if (returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
+      // Use the stored return URL (set by middleware when user was redirected to sign-in)
+      redirect = returnUrl
+    } else if (pending.product === 'events') {
       redirect = pending.plan
         ? `/events/manage?checkout=${pending.plan}`
         : '/events/manage'
@@ -106,6 +110,13 @@ export async function POST(request: NextRequest) {
       memberships,
       activeMembership: memberships[0] || null,
       redirect,
+    })
+
+    // Clear return-url cookie after use
+    response.cookies.set('vc-return-url', '', {
+      path: '/',
+      sameSite: 'lax',
+      maxAge: 0,
     })
 
     // Set session cookie, clear pending cookie
