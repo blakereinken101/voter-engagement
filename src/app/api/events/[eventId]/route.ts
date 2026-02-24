@@ -126,11 +126,22 @@ export async function PUT(
     const values: unknown[] = []
     let idx = 1
 
+    // Resolve timezone for AT TIME ZONE conversion on time fields
+    const tz = body.timezone || rows[0].timezone || 'America/New_York'
+
     for (const [clientKey, dbKey] of Object.entries(updatableFields)) {
       if (body[clientKey] !== undefined) {
-        setClauses.push(`${dbKey} = $${idx}`)
-        values.push(body[clientKey])
-        idx++
+        // Convert naive datetime strings to proper UTC using AT TIME ZONE
+        if (dbKey === 'start_time' || dbKey === 'end_time') {
+          setClauses.push(`${dbKey} = $${idx}::timestamp AT TIME ZONE $${idx + 1}`)
+          values.push(body[clientKey])
+          values.push(tz)
+          idx += 2
+        } else {
+          setClauses.push(`${dbKey} = $${idx}`)
+          values.push(body[clientKey])
+          idx++
+        }
       }
     }
 

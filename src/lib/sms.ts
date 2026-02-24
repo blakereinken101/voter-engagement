@@ -47,3 +47,13 @@ export function formatEventReminderSms(
   const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
   return `Reminder: ${eventTitle} starts ${timeLabel} (${timeStr})!\n\nDetails: ${appUrl}/events/${slug}\n\nReply STOP to unsubscribe`
 }
+
+export function formatEventBlastSms(
+  hostName: string,
+  eventTitle: string,
+  message: string,
+  slug: string,
+): string {
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
+  return `The host of ${eventTitle} sent a message:\n\n"${message}"\n\nDetails: ${appUrl}/events/${slug}\n\nReply STOP to unsubscribe`
+}

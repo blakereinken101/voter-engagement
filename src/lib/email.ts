@@ -108,6 +108,18 @@ export async function sendContactFormEmail(data: ContactFormData): Promise<void>
   }
 }
 
+// ── Shared Helpers ───────────────────────────────────────────────
+
+function getAppUrl(): string {
+  return process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
+}
+
+function buildEmailHeader(logoUrl?: string | null): string {
+  const appUrl = getAppUrl()
+  const src = logoUrl || `${appUrl}/logo.png`
+  return `<div style="text-align: center; margin-bottom: 24px;"><img src="${src}" alt="Logo" style="height: 40px; max-width: 200px;" /></div>`
+}
+
 // ── Event Published Confirmation ─────────────────────────────────
 
 interface PublishedEventInfo {
@@ -124,6 +136,7 @@ export async function sendEventPublishedConfirmation(
   email: string,
   hostName: string | null,
   event: PublishedEventInfo,
+  logoUrl?: string | null,
 ): Promise<void> {
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
   const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
@@ -145,6 +158,7 @@ export async function sendEventPublishedConfirmation(
     subject: `Your event "${event.title}" is live!`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        ${buildEmailHeader(logoUrl)}
         <p style="color: #666; margin: 0 0 16px; font-size: 15px;">${greeting}</p>
         <h2 style="color: #1a1a2e; margin: 0 0 8px;">Your event is published!</h2>
         <p style="color: #666; margin: 0 0 20px; font-size: 15px;">Share the link below to start getting RSVPs.</p>
@@ -212,10 +226,6 @@ interface ReminderEventInfo {
   slug: string
 }
 
-function getAppUrl(): string {
-  return process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
-}
-
 function buildLocationHtml(event: ReminderEventInfo): string {
   if (event.isVirtual) {
     const linkHtml = event.virtualUrl
@@ -232,7 +242,8 @@ export async function sendEventReminderToHost(
   email: string,
   event: ReminderEventInfo,
   reminderType: '24h' | '6h',
-  rsvpCounts: { going: number; maybe: number }
+  rsvpCounts: { going: number; maybe: number },
+  logoUrl?: string | null,
 ): Promise<void> {
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
   const appUrl = getAppUrl()
@@ -246,6 +257,7 @@ export async function sendEventReminderToHost(
     subject: `Your event "${event.title}" ${timeLabel}`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        ${buildEmailHeader(logoUrl)}
         <h2 style="color: #1a1a2e; margin: 0 0 8px;">Your event ${timeLabel}!</h2>
         <p style="color: #666; margin: 0 0 20px; font-size: 15px;">Here's a quick update on your upcoming event.</p>
 
@@ -277,7 +289,8 @@ export async function sendEventReminderToGuest(
   email: string,
   event: ReminderEventInfo,
   reminderType: '24h' | '6h',
-  guestName?: string | null
+  guestName?: string | null,
+  logoUrl?: string | null,
 ): Promise<void> {
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
   const appUrl = getAppUrl()
@@ -292,6 +305,7 @@ export async function sendEventReminderToGuest(
     subject: `Reminder: "${event.title}" ${timeLabel}`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        ${buildEmailHeader(logoUrl)}
         <p style="color: #666; margin: 0 0 16px; font-size: 15px;">${greeting}</p>
         <h2 style="color: #1a1a2e; margin: 0 0 8px;">Your event ${timeLabel}!</h2>
         <p style="color: #666; margin: 0 0 20px; font-size: 15px;">Just a friendly heads up about an event you signed up for.</p>
@@ -312,5 +326,51 @@ export async function sendEventReminderToGuest(
   if (error) {
     console.error('[email] Failed to send guest reminder:', error)
     throw new Error('Failed to send guest reminder email')
+  }
+}
+
+// ── Event Blast Emails ──────────────────────────────────────────────
+
+export async function sendEventBlast(
+  email: string,
+  hostName: string,
+  message: string,
+  event: ReminderEventInfo,
+  logoUrl?: string | null,
+): Promise<void> {
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const appUrl = getAppUrl()
+  const eventUrl = `${appUrl}/events/${event.slug}`
+  const formattedTime = formatEventTime(event.startTime, event.timezone)
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold Events <${FROM_EMAIL}>`,
+    to: email,
+    subject: `Message from ${hostName} about "${event.title}"`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        ${buildEmailHeader(logoUrl)}
+        <h2 style="color: #1a1a2e; margin: 0 0 8px;">A message from ${escapeHtml(hostName)}:</h2>
+
+        <div style="background: #f9fafb; border-left: 4px solid #7c3aed; border-radius: 4px; padding: 16px 20px; margin: 16px 0 24px;">
+          <p style="color: #1a1a2e; font-size: 15px; margin: 0; white-space: pre-wrap; line-height: 1.6;">${escapeHtml(message)}</p>
+        </div>
+
+        <div style="background: #f5f5ff; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <h3 style="color: #1a1a2e; margin: 0 0 8px; font-size: 18px;">${escapeHtml(event.title)}</h3>
+          <p style="color: #7c3aed; font-size: 14px; margin: 0 0 8px; font-weight: 600;">${escapeHtml(formattedTime)}</p>
+          ${buildLocationHtml(event)}
+        </div>
+
+        <a href="${eventUrl}" style="display: inline-block; background: #7c3aed; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Event</a>
+
+        <p style="color: #999; font-size: 12px; margin-top: 24px;">You're receiving this because you RSVP'd to this event on Threshold.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send event blast:', error)
+    throw new Error('Failed to send event blast email')
   }
 }

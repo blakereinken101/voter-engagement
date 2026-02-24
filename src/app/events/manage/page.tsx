@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import EventManageTable from '@/components/events/EventManageTable'
 import type { Event } from '@/types/events'
 import { FREE_EVENT_LIMIT } from '@/types/events'
-import { Plus, Lock, Sparkles, ArrowRight } from 'lucide-react'
+import { Plus, Lock, Sparkles, ArrowRight, Image, Upload } from 'lucide-react'
 import Link from 'next/link'
 
 function EventManageContent() {
@@ -17,6 +17,10 @@ function EventManageContent() {
   const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'cancelled'>('all')
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const didCheckoutRef = useRef(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [customBranding, setCustomBranding] = useState(false)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   // Product access is enforced by middleware — no client-side redirect guard needed
 
@@ -47,14 +51,25 @@ function EventManageContent() {
   }, [user, searchParams])
 
   useEffect(() => {
-    if (user) fetchEvents()
+    if (user) {
+      fetchEvents()
+      // Fetch org logo info
+      fetch('/api/organizations/logo')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) {
+            setLogoUrl(data.logoUrl)
+            setCustomBranding(data.customBranding)
+          }
+        })
+        .catch(() => {})
+    }
   }, [user])
 
   async function fetchEvents() {
     setIsLoading(true)
     try {
-      const params = new URLSearchParams({ limit: '100' })
-      // Don't filter by status so we can see all statuses
+      const params = new URLSearchParams({ limit: '100', scope: 'manage' })
       const res = await fetch(`/api/events?${params}`)
       if (res.ok) {
         const data = await res.json()
@@ -111,6 +126,38 @@ function EventManageContent() {
     } catch { /* ignore */ }
   }
 
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) return
+    if (file.size > 1024 * 1024) {
+      alert('Logo must be under 1MB')
+      return
+    }
+
+    setLogoUploading(true)
+    try {
+      const reader = new FileReader()
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      const res = await fetch('/api/organizations/logo', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logoUrl: dataUrl }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setLogoUrl(data.logoUrl)
+      }
+    } catch { /* ignore */ }
+    setLogoUploading(false)
+    if (logoInputRef.current) logoInputRef.current.value = ''
+  }
+
   if (authLoading || checkoutLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -160,6 +207,55 @@ function EventManageContent() {
           <Plus className="w-4 h-4" />
           Create Event
         </Link>
+      </div>
+
+      {/* Organization Logo */}
+      <div className="glass-card p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Org logo" className="h-10 w-auto max-w-[120px] object-contain rounded" />
+          ) : (
+            <div className="h-10 w-10 bg-white/5 border border-white/10 rounded flex items-center justify-center">
+              <Image className="w-5 h-5 text-white/30" />
+            </div>
+          )}
+          <div>
+            <p className="text-sm font-medium text-white">Organization Logo</p>
+            <p className="text-xs text-white/40">
+              {customBranding
+                ? 'Your logo appears in all event emails'
+                : 'Custom logo available on Growth plan'}
+            </p>
+          </div>
+        </div>
+        <div>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleLogoUpload}
+            disabled={!customBranding}
+          />
+          {customBranding ? (
+            <button
+              onClick={() => logoInputRef.current?.click()}
+              disabled={logoUploading}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/5 border border-white/15 text-sm font-medium text-white/70 rounded-btn hover:bg-white/10 hover:text-white transition-all disabled:opacity-40"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              {logoUploading ? 'Uploading...' : logoUrl ? 'Change Logo' : 'Upload Logo'}
+            </button>
+          ) : (
+            <Link
+              href="/events/pricing"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-vc-purple/10 border border-vc-purple/30 text-sm font-medium text-vc-purple-light rounded-btn hover:bg-vc-purple/20 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Upgrade
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Subscription status */}

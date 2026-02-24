@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { sendEventReminderToHost, sendEventReminderToGuest } from '@/lib/email'
 import { sendSms, formatEventReminderSms } from '@/lib/sms'
+import { getEventsSubscription } from '@/lib/events'
 
 /**
  * Cron endpoint for sending event reminders.
@@ -42,10 +43,12 @@ export async function GET(request: NextRequest) {
       const { rows: events } = await db.query(`
         SELECT e.id, e.title, e.start_time, e.end_time, e.timezone,
                e.location_name, e.location_address, e.location_city, e.location_state,
-               e.is_virtual, e.virtual_url, e.slug, e.created_by,
+               e.is_virtual, e.virtual_url, e.slug, e.created_by, e.organization_id,
+               o.logo_url as org_logo_url,
                COALESCE(rc.going_count, 0) as going_count,
                COALESCE(rc.maybe_count, 0) as maybe_count
         FROM events e
+        LEFT JOIN organizations o ON o.id = e.organization_id
         LEFT JOIN LATERAL (
           SELECT
             COUNT(*) FILTER (WHERE status = 'going') as going_count,
@@ -75,6 +78,17 @@ export async function GET(request: NextRequest) {
         const rsvpCounts = {
           going: parseInt(event.going_count, 10),
           maybe: parseInt(event.maybe_count, 10),
+        }
+
+        // Determine logo: org logo if custom branding enabled, otherwise Threshold default
+        let logoUrl: string | null = null
+        if (event.organization_id && event.org_logo_url) {
+          try {
+            const sub = await getEventsSubscription(event.organization_id)
+            if (sub?.limits?.customBranding) {
+              logoUrl = event.org_logo_url
+            }
+          } catch { /* use default */ }
         }
 
         // ── Email recipients ──────────────────────────────────────────
@@ -128,9 +142,9 @@ export async function GET(request: NextRequest) {
 
           try {
             if (recipient.isHost) {
-              await sendEventReminderToHost(recipient.email, eventInfo, window.type, rsvpCounts)
+              await sendEventReminderToHost(recipient.email, eventInfo, window.type, rsvpCounts, logoUrl)
             } else {
-              await sendEventReminderToGuest(recipient.email, eventInfo, window.type, recipient.name)
+              await sendEventReminderToGuest(recipient.email, eventInfo, window.type, recipient.name, logoUrl)
             }
             emailsSent++
           } catch (err) {

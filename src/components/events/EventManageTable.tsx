@@ -12,13 +12,14 @@ interface Props {
   onDuplicate: (id: string) => void
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, timezone?: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    ...(timezone ? { timeZone: timezone } : {}),
   })
 }
 
@@ -54,14 +55,14 @@ export default function EventManageTable({ events, onDelete, onDuplicate }: Prop
                   {event.title}
                 </Link>
                 <div className="text-xs text-white/40 sm:hidden mt-0.5">
-                  {formatDate(event.startTime)}
+                  {formatDate(event.startTime, event.timezone)}
                 </div>
               </td>
               <td className="py-3 px-4 hidden sm:table-cell">
                 <EventTypeChip type={event.eventType as EventType} />
               </td>
               <td className="py-3 px-4 text-sm text-white/60 hidden md:table-cell">
-                {formatDate(event.startTime)}
+                {formatDate(event.startTime, event.timezone)}
               </td>
               <td className="py-3 px-4 text-center">
                 <div className="flex items-center justify-center gap-1 text-sm">

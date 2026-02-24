@@ -335,6 +335,20 @@ async function initSchema() {
         ON event_reminder_log(event_id, reminder_type, recipient_email, channel);
     `)
 
+    // ── Event Blasts ────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS event_blasts (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        sent_by TEXT NOT NULL REFERENCES users(id),
+        message TEXT NOT NULL,
+        channel TEXT NOT NULL DEFAULT 'both',
+        emails_sent INTEGER DEFAULT 0,
+        sms_sent INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `)
+
     // ── Voter Datasets + Voters (DB-backed voter file storage) ──────
     try {
       await client.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`)

@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const from = searchParams.get('from')
     const to = searchParams.get('to')
-    const status = searchParams.get('status') || 'published'
+    const scope = searchParams.get('scope')
     const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100)
     const offset = parseInt(searchParams.get('offset') || '0', 10)
     const orgId = searchParams.get('orgId')
@@ -19,10 +19,35 @@ export async function GET(request: NextRequest) {
     const session = getSessionFromRequest()
     const db = await getDb()
 
-    // Build query with filters
-    const conditions: string[] = ['e.status = $1']
-    const params: (string | number)[] = [status]
-    let paramIdx = 2
+    // scope=manage: org-scoped listing for the manage page (all statuses)
+    const isManageScope = scope === 'manage'
+    if (isManageScope && !session) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    const conditions: string[] = []
+    const params: (string | number)[] = []
+    let paramIdx = 1
+
+    // In manage scope, return all statuses; otherwise default to published
+    if (!isManageScope) {
+      const status = searchParams.get('status') || 'published'
+      conditions.push(`e.status = $${paramIdx}`)
+      params.push(status)
+      paramIdx++
+    }
+
+    // In manage scope, enforce org-level access
+    if (isManageScope) {
+      const ctx = await getEventsContext()
+      conditions.push(`e.organization_id = $${paramIdx}`)
+      params.push(ctx.organizationId)
+      paramIdx++
+    } else if (orgId) {
+      conditions.push(`e.organization_id = $${paramIdx}`)
+      params.push(orgId)
+      paramIdx++
+    }
 
     if (type) {
       conditions.push(`e.event_type = $${paramIdx}`)
@@ -42,18 +67,12 @@ export async function GET(request: NextRequest) {
       paramIdx++
     }
 
-    if (orgId) {
-      conditions.push(`e.organization_id = $${paramIdx}`)
-      params.push(orgId)
-      paramIdx++
-    }
-
     // Visibility scoping: unauthenticated users only see public events
     if (!session) {
       conditions.push(`e.visibility = 'public'`)
     }
 
-    const whereClause = conditions.join(' AND ')
+    const whereClause = conditions.length > 0 ? conditions.join(' AND ') : '1=1'
 
     const { rows } = await db.query(`
       SELECT e.*,
@@ -77,9 +96,9 @@ export async function GET(request: NextRequest) {
       LIMIT $${paramIdx} OFFSET $${paramIdx + 1}
     `, [...params, limit, offset])
 
-    // For authenticated users, filter out org-only events they don't have access to
+    // For manage scope, org is already verified — skip per-event visibility check
     let events = rows.map(mapEventRow)
-    if (session) {
+    if (!isManageScope && session) {
       const filtered = []
       for (const event of events) {
         const rawEvent = rows.find(r => r.id === event.id)
@@ -143,6 +162,8 @@ export async function POST(request: NextRequest) {
     const id = crypto.randomUUID()
     const slug = generateSlug(title)
 
+    const tz = timezone || 'America/New_York'
+
     await db.query(`
       INSERT INTO events (
         id, organization_id, created_by, title, description, event_type,
@@ -153,7 +174,7 @@ export async function POST(request: NextRequest) {
         visibility, max_attendees, rsvp_enabled, status, slug
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
-        $7, $8, $9,
+        $7::timestamp AT TIME ZONE $9, $8::timestamp AT TIME ZONE $9, $9,
         $10, $11, $12, $13, $14,
         $15, $16,
         $17, $18, $19,
@@ -161,7 +182,7 @@ export async function POST(request: NextRequest) {
       )
     `, [
       id, ctx.organizationId, ctx.userId, title.trim(), description || null, eventType,
-      startTime, endTime || null, timezone || 'America/New_York',
+      startTime, endTime || null, tz,
       locationName || null, locationAddress || null, locationCity || null, locationState || null, locationZip || null,
       isVirtual || false, virtualUrl || null,
       coverImageUrl || null, emoji || '🗳️', themeColor || '#6C3CE1',

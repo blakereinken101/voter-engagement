@@ -12,21 +12,24 @@ import EventCommentThread from '@/components/events/EventCommentThread'
 import EventShareButton from '@/components/events/EventShareButton'
 import EventCountdown from '@/components/events/EventCountdown'
 import type { Event, EventType, RSVPStatus } from '@/types/events'
-import { MapPin, Clock, Globe, ExternalLink, Edit, ArrowLeft, Video } from 'lucide-react'
+import EventBlastModal from '@/components/events/EventBlastModal'
+import { MapPin, Clock, Globe, ExternalLink, Edit, ArrowLeft, Video, Megaphone } from 'lucide-react'
 import Link from 'next/link'
 
-function formatFullDate(dateStr: string, endDateStr?: string | null): string {
+function formatFullDate(dateStr: string, endDateStr?: string | null, timezone?: string): string {
   const d = new Date(dateStr)
+  const tzOpts = timezone ? { timeZone: timezone } : {}
   const date = d.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
     year: 'numeric',
+    ...tzOpts,
   })
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', ...tzOpts })
 
   if (endDateStr) {
-    const endTime = new Date(endDateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    const endTime = new Date(endDateStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', ...tzOpts })
     return `${date} at ${time} — ${endTime}`
   }
 
@@ -44,6 +47,7 @@ export default function EventDetailPage() {
   const [canManage, setCanManage] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [blastModalOpen, setBlastModalOpen] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -176,7 +180,7 @@ export default function EventDetailPage() {
           <div className="flex items-start gap-3 text-white/80">
             <Clock className="w-5 h-5 text-vc-purple-light shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium">{formatFullDate(event.startTime, event.endTime)}</p>
+              <p className="font-medium">{formatFullDate(event.startTime, event.endTime, event.timezone)}</p>
               <p className="text-sm text-white/50">{event.timezone?.replace('America/', '').replace('_', ' ')}</p>
             </div>
           </div>
@@ -255,13 +259,22 @@ export default function EventDetailPage() {
           <div className="border-t border-white/10 pt-6 flex flex-wrap gap-3">
             <EventShareButton slug={event.slug} title={event.title} />
             {canManage && (
-              <Link
-                href={`/events/${event.slug}/edit`}
-                className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/15 rounded-btn text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-all"
-              >
-                <Edit className="w-4 h-4" />
-                Edit Event
-              </Link>
+              <>
+                <button
+                  onClick={() => setBlastModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-vc-purple/10 border border-vc-purple/30 rounded-btn text-sm font-medium text-vc-purple-light hover:bg-vc-purple/20 transition-all"
+                >
+                  <Megaphone className="w-4 h-4" />
+                  Message Attendees
+                </button>
+                <Link
+                  href={`/events/${event.slug}/edit`}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/15 rounded-btn text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white transition-all"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit Event
+                </Link>
+              </>
             )}
           </div>
 
@@ -279,6 +292,16 @@ export default function EventDetailPage() {
 
       {/* Bottom spacing */}
       <div className="h-16" />
+
+      {/* Blast modal */}
+      {canManage && event && (
+        <EventBlastModal
+          eventId={event.id}
+          eventTitle={event.title}
+          isOpen={blastModalOpen}
+          onClose={() => setBlastModalOpen(false)}
+        />
+      )}
     </div>
   )
 }

@@ -10,17 +10,22 @@ interface Props {
   event: Event
 }
 
-function formatEventDate(dateStr: string): string {
+function formatEventDate(dateStr: string, timezone?: string): string {
   const d = new Date(dateStr)
+  const tzOpts = timezone ? { timeZone: timezone } : {}
   const now = new Date()
   const tomorrow = new Date(now)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const isToday = d.toDateString() === now.toDateString()
-  const isTomorrow = d.toDateString() === tomorrow.toDateString()
+  const eventDateStr = d.toLocaleDateString('en-US', tzOpts)
+  const nowDateStr = now.toLocaleDateString('en-US', tzOpts)
+  const tomorrowDateStr = tomorrow.toLocaleDateString('en-US', tzOpts)
 
-  if (isToday) return `Today at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
-  if (isTomorrow) return `Tomorrow at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+  const isToday = eventDateStr === nowDateStr
+  const isTomorrow = eventDateStr === tomorrowDateStr
+
+  if (isToday) return `Today at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', ...tzOpts })}`
+  if (isTomorrow) return `Tomorrow at ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', ...tzOpts })}`
 
   return d.toLocaleDateString('en-US', {
     weekday: 'short',
@@ -28,6 +33,7 @@ function formatEventDate(dateStr: string): string {
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    ...tzOpts,
   })
 }
 
@@ -59,7 +65,7 @@ export default function EventCard({ event }: Props) {
           {/* Date */}
           <div className="flex items-center gap-2 text-sm text-white/60">
             <Clock className="w-4 h-4 shrink-0" />
-            <span>{formatEventDate(event.startTime)}</span>
+            <span>{formatEventDate(event.startTime, event.timezone)}</span>
           </div>
 
           {/* Location */}
