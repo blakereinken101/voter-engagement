@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getSessionFromRequest, handleAuthError } from '@/lib/auth'
 import { getEventsContext, generateSlug, mapEventRow, canViewEvent } from '@/lib/events'
+import { sendEventPublishedConfirmation } from '@/lib/email'
 
 export async function GET(request: NextRequest) {
   try {
@@ -167,6 +168,22 @@ export async function POST(request: NextRequest) {
     ])
 
     await logActivity(ctx.userId, 'event_created', { eventId: id, title, eventType })
+
+    // Send confirmation email to host if event is published
+    if ((status || 'published') === 'published') {
+      const { rows: hostRows } = await db.query('SELECT email, name FROM users WHERE id = $1', [ctx.userId])
+      if (hostRows[0]?.email) {
+        sendEventPublishedConfirmation(hostRows[0].email, hostRows[0].name, {
+          title: title.trim(),
+          startTime,
+          timezone: timezone || 'America/New_York',
+          locationName: locationName || null,
+          locationCity: locationCity || null,
+          isVirtual: isVirtual || false,
+          slug,
+        }).catch(err => console.error('[events POST] Failed to send confirmation email:', err))
+      }
+    }
 
     return NextResponse.json({ id, slug, success: true })
   } catch (error) {

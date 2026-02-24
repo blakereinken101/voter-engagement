@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  experimental: {
+    instrumentationHook: true,
+  },
   // Expose campaign env vars to the client bundle at build time.
   // These must also be set in Railway Variables for each deployment.
   env: {

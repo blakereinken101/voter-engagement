@@ -25,15 +25,35 @@ const TIMEZONES = [
 
 const EMOJI_OPTIONS = ['🗳️', '📢', '🎉', '🤝', '🔥', '💪', '🇺🇸', '🏛️', '📞', '🚪', '🍻', '📺', '💰', '📋', '🌟', '❤️']
 
-function snapTo15Minutes(datetime: string): string {
-  if (!datetime) return datetime
-  const [datePart, timePart] = datetime.split('T')
-  if (!timePart) return datetime
-  const [hours, minutes] = timePart.split(':').map(Number)
-  const snapped = Math.round(minutes / 15) * 15
-  const finalMinutes = snapped === 60 ? 0 : snapped
-  const finalHours = snapped === 60 ? hours + 1 : hours
-  return `${datePart}T${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`
+// Generate 15-minute time options for dropdown (12:00 AM to 11:45 PM)
+const TIME_OPTIONS: { value: string; label: string }[] = []
+for (let h = 0; h < 24; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    const value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    const period = h >= 12 ? 'PM' : 'AM'
+    const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h
+    const label = `${displayHour}:${String(m).padStart(2, '0')} ${period}`
+    TIME_OPTIONS.push({ value, label })
+  }
+}
+
+function splitDateTime(datetime: string): { date: string; time: string } {
+  if (!datetime) return { date: '', time: '' }
+  const [date, time] = datetime.split('T')
+  // Snap time to nearest 15 min
+  if (time) {
+    const [h, mins] = time.split(':').map(Number)
+    const snapped = Math.round(mins / 15) * 15
+    const finalM = snapped === 60 ? 0 : snapped
+    const finalH = snapped === 60 ? h + 1 : h
+    return { date, time: `${String(finalH).padStart(2, '0')}:${String(finalM).padStart(2, '0')}` }
+  }
+  return { date, time: '12:00' }
+}
+
+function joinDateTime(date: string, time: string): string {
+  if (!date) return ''
+  return `${date}T${time || '12:00'}`
 }
 
 export default function EventForm({ initialData, eventId, mode }: Props) {
@@ -231,25 +251,53 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-white/60 mb-1.5">Start *</label>
+            <label className="block text-sm text-white/60 mb-1.5">Start Date *</label>
             <input
-              type="datetime-local"
-              value={form.startTime}
-              onChange={e => updateForm({ startTime: snapTo15Minutes(e.target.value) })}
-              step={900}
+              type="date"
+              value={splitDateTime(form.startTime).date}
+              onChange={e => updateForm({ startTime: joinDateTime(e.target.value, splitDateTime(form.startTime).time) })}
               className="glass-input w-full px-4 py-3 text-white"
               required
             />
           </div>
           <div>
-            <label className="block text-sm text-white/60 mb-1.5">End</label>
+            <label className="block text-sm text-white/60 mb-1.5">Start Time *</label>
+            <select
+              value={splitDateTime(form.startTime).time}
+              onChange={e => updateForm({ startTime: joinDateTime(splitDateTime(form.startTime).date, e.target.value) })}
+              className="glass-input w-full px-4 py-3 text-white"
+              required
+            >
+              <option value="" disabled>Select time</option>
+              {TIME_OPTIONS.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">End Date</label>
             <input
-              type="datetime-local"
-              value={form.endTime}
-              onChange={e => updateForm({ endTime: snapTo15Minutes(e.target.value) })}
-              step={900}
+              type="date"
+              value={splitDateTime(form.endTime).date}
+              onChange={e => updateForm({ endTime: joinDateTime(e.target.value, splitDateTime(form.endTime).time) })}
               className="glass-input w-full px-4 py-3 text-white"
             />
+          </div>
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">End Time</label>
+            <select
+              value={splitDateTime(form.endTime).time}
+              onChange={e => updateForm({ endTime: joinDateTime(splitDateTime(form.endTime).date, e.target.value) })}
+              className="glass-input w-full px-4 py-3 text-white"
+            >
+              <option value="">No end time</option>
+              {TIME_OPTIONS.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 

@@ -108,6 +108,71 @@ export async function sendContactFormEmail(data: ContactFormData): Promise<void>
   }
 }
 
+// ── Event Published Confirmation ─────────────────────────────────
+
+interface PublishedEventInfo {
+  title: string
+  startTime: string
+  timezone?: string
+  locationName?: string | null
+  locationCity?: string | null
+  isVirtual?: boolean
+  slug: string
+}
+
+export async function sendEventPublishedConfirmation(
+  email: string,
+  hostName: string | null,
+  event: PublishedEventInfo,
+): Promise<void> {
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
+  const eventUrl = `${appUrl}/events/${event.slug}`
+  const d = new Date(event.startTime)
+  const formattedTime = d.toLocaleString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+    timeZone: event.timezone || 'America/New_York',
+  })
+  const greeting = hostName ? `Hi ${escapeHtml(hostName)},` : 'Hi there,'
+  const locationLine = event.isVirtual
+    ? 'Virtual event'
+    : [event.locationName, event.locationCity].filter(Boolean).join(', ') || ''
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold Events <${FROM_EMAIL}>`,
+    to: email,
+    subject: `Your event "${event.title}" is live!`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        <p style="color: #666; margin: 0 0 16px; font-size: 15px;">${greeting}</p>
+        <h2 style="color: #1a1a2e; margin: 0 0 8px;">Your event is published!</h2>
+        <p style="color: #666; margin: 0 0 20px; font-size: 15px;">Share the link below to start getting RSVPs.</p>
+
+        <div style="background: #f5f5ff; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <h3 style="color: #1a1a2e; margin: 0 0 8px; font-size: 18px;">${escapeHtml(event.title)}</h3>
+          <p style="color: #7c3aed; font-size: 14px; margin: 0 0 8px; font-weight: 600;">${escapeHtml(formattedTime)}</p>
+          ${locationLine ? `<p style="color: #666; font-size: 14px; margin: 0;">${escapeHtml(locationLine)}</p>` : ''}
+        </div>
+
+        <a href="${eventUrl}" style="display: inline-block; background: #7c3aed; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Your Event</a>
+
+        <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin-top: 20px;">
+          <p style="color: #1a1a2e; font-size: 13px; font-weight: 600; margin: 0 0 4px;">Share this link:</p>
+          <p style="color: #7c3aed; font-size: 13px; margin: 0; word-break: break-all;">${eventUrl}</p>
+        </div>
+
+        <p style="color: #999; font-size: 12px; margin-top: 24px;">You'll receive reminders 24 hours and 6 hours before the event.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send event published confirmation:', error)
+    // Don't throw — this is a nice-to-have, not critical
+  }
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
