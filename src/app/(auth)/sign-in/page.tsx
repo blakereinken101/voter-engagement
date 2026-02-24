@@ -55,7 +55,7 @@ export default function SignInPage() {
       // Pass product so the server encodes it into the 2FA pending JWT
       const result = await signIn(email, password, productFromUrl || undefined)
       if (result?.requiresVerification) {
-        router.push('/verify-code')
+        router.push(productFromUrl ? `/verify-code?product=${productFromUrl}` : '/verify-code')
         return
       }
       const dest = redirectTo || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')

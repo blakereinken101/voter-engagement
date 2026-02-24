@@ -121,7 +121,7 @@ function SignUpForm() {
 
       if (data.requiresVerification) {
         // Product and plan are now encoded in the vc-2fa-pending JWT by the server
-        router.push('/verify-code')
+        router.push(productFromUrl ? `/verify-code?product=${productFromUrl}` : '/verify-code')
       }
     } catch {
       setError('Network error. Please try again.')

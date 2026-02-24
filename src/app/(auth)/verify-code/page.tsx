@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react'
 
-export default function VerifyCodePage() {
+function VerifyCodeForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const product = searchParams.get('product')
   const { verifyCode, resendCode, user } = useAuth()
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', ''])
   const [error, setError] = useState('')
@@ -22,9 +24,9 @@ export default function VerifyCodePage() {
   useEffect(() => {
     if (user && !didRedirectRef.current) {
       didRedirectRef.current = true
-      router.push('/dashboard')
+      router.push(product === 'events' ? '/events/manage' : '/dashboard')
     }
-  }, [user, router])
+  }, [user, router, product])
 
   // Start cooldown timer on mount (just sent a code)
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function VerifyCodePage() {
       // Server returns the redirect URL computed from the JWT claims
       const redirect = await verifyCode(code)
       didRedirectRef.current = true
-      router.push(redirect || '/dashboard')
+      router.push(redirect || (product === 'events' ? '/events/manage' : '/dashboard'))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed')
       // Clear inputs on error
@@ -60,7 +62,7 @@ export default function VerifyCodePage() {
     } finally {
       setLoading(false)
     }
-  }, [verifyCode, router])
+  }, [verifyCode, router, product])
 
   function handleDigitChange(index: number, value: string) {
     // Only allow digits
@@ -198,7 +200,7 @@ export default function VerifyCodePage() {
         </div>
 
         <Link
-          href="/sign-in"
+          href={product === 'events' ? '/sign-in?product=events' : '/sign-in'}
           className="flex items-center justify-center gap-2 mt-6 text-sm text-white/40 hover:text-white/60 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -206,5 +208,17 @@ export default function VerifyCodePage() {
         </Link>
       </div>
     </div>
+  )
+}
+
+export default function VerifyCodePage() {
+  return (
+    <Suspense fallback={
+      <div className="cosmic-bg constellation min-h-screen flex items-center justify-center p-6">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+      </div>
+    }>
+      <VerifyCodeForm />
+    </Suspense>
   )
 }
