@@ -535,6 +535,19 @@ async function seedDefaults(client: import('pg').PoolClient) {
     )
   }
 
+  // ── Backfill relational product for all users who have memberships ──
+  // (handles existing users who were created before the user_products table)
+  const { rowCount: relationalBackfilled } = await client.query(`
+    INSERT INTO user_products (id, user_id, product)
+    SELECT gen_random_uuid(), m.user_id, 'relational'
+    FROM memberships m
+    WHERE m.is_active = true
+    ON CONFLICT (user_id, product) DO NOTHING
+  `)
+  if (relationalBackfilled && relationalBackfilled > 0) {
+    console.log(`[db] Backfilled relational product for ${relationalBackfilled} users with memberships`)
+  }
+
   // ── Migrate existing users without memberships (legacy relational users only) ──
   const { rows: usersWithoutMembership } = await client.query(`
     SELECT u.id, u.campaign_id, u.role FROM users u
@@ -552,6 +565,13 @@ async function seedDefaults(client: import('pg').PoolClient) {
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (user_id, campaign_id) DO NOTHING`,
       [crypto.randomUUID(), user.id, targetCampaign, memberRole]
+    )
+    // Also grant relational product to these newly-migrated users
+    await client.query(
+      `INSERT INTO user_products (id, user_id, product)
+       VALUES ($1, $2, 'relational')
+       ON CONFLICT (user_id, product) DO NOTHING`,
+      [crypto.randomUUID(), user.id]
     )
   }
 
