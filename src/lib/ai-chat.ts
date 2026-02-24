@@ -90,6 +90,42 @@ export async function loadVolunteerState(userId: string, campaignId: string): Pr
 }
 
 // =============================================
+// EXISTING CONTACTS (for returning users)
+// =============================================
+
+export interface ExistingContact {
+  firstName: string
+  lastName: string
+  category: string
+  city: string | null
+  matchStatus: string
+  contacted: boolean
+  outcome: string | null
+}
+
+export async function loadExistingContacts(userId: string, campaignId: string): Promise<ExistingContact[]> {
+  const db = await getDb()
+  const { rows } = await db.query(`
+    SELECT c.first_name, c.last_name, c.category, c.city,
+           mr.status as match_status, ai.contacted, ai.contact_outcome
+    FROM contacts c
+    LEFT JOIN match_results mr ON mr.contact_id = c.id
+    LEFT JOIN action_items ai ON ai.contact_id = c.id
+    WHERE c.user_id = $1 AND c.campaign_id = $2
+    ORDER BY c.created_at ASC
+  `, [userId, campaignId])
+  return rows.map(r => ({
+    firstName: r.first_name,
+    lastName: r.last_name,
+    category: r.category,
+    city: r.city || null,
+    matchStatus: r.match_status || 'pending',
+    contacted: !!r.contacted,
+    outcome: r.contact_outcome || null,
+  }))
+}
+
+// =============================================
 // SYSTEM PROMPT
 // =============================================
 
@@ -98,6 +134,7 @@ export function buildSystemPrompt(
   aiContext: AICampaignContext | undefined,
   volunteerState: VolunteerState,
   volunteerName?: string,
+  existingContacts?: ExistingContact[],
 ): string {
   const parts: string[] = []
 
@@ -198,6 +235,30 @@ Record these as surveyResponses when using the log_conversation tool.`)
 - Outcomes: ${volunteerState.supporters} supporters, ${volunteerState.undecided} undecided, ${volunteerState.opposed} opposed, ${volunteerState.noAnswer} no answer
 - Segments: ${volunteerState.superVoters} super-voters, ${volunteerState.sometimesVoters} sometimes-voters, ${volunteerState.rarelyVoters} rarely-voters`)
 
+  // Existing contacts — so AI knows who's already in the rolodex
+  if (existingContacts && existingContacts.length > 0) {
+    const contactsByCategory: Record<string, string[]> = {}
+    for (const c of existingContacts) {
+      const cat = c.category || 'other'
+      if (!contactsByCategory[cat]) contactsByCategory[cat] = []
+      const status = c.contacted ? `(contacted: ${c.outcome || 'unknown'})` : c.matchStatus === 'confirmed' ? '(matched)' : ''
+      contactsByCategory[cat].push(`${c.firstName} ${c.lastName}${c.city ? `, ${c.city}` : ''} ${status}`.trim())
+    }
+    const contactList = Object.entries(contactsByCategory)
+      .map(([cat, names]) => `- ${cat}: ${names.join('; ')}`)
+      .join('\n')
+    parts.push(`
+## Existing Contacts Already in Rolodex
+The volunteer already has ${existingContacts.length} people on their list. DO NOT re-add these people. Here is who they already have:
+${contactList}
+
+Use this to:
+1. Skip anyone they already named — say "Got it, they're already on your list" and move on
+2. Know which categories they've already covered vs which are empty
+3. Ask about gaps: if they have household but no coworkers, ask about coworkers
+4. Reference specific people when coaching conversations: "What about reaching out to [name]?"`)
+  }
+
   // Rolodex instructions
   const categoryList = CATEGORIES.map(c =>
     `- **${c.id}**: "${c.question}" (aim for ${c.minSuggested}+) — Examples: ${c.examples.slice(0, 3).join(', ')}`
@@ -206,47 +267,58 @@ Record these as surveyResponses when using the log_conversation tool.`)
   parts.push(`
 ## Rolodex Mode — Collecting Contacts
 
-The volunteer should already know we're focused on ${areaLabel} from the welcome message. Remind them if needed but don't repeat it every time.
+SPEED IS EVERYTHING. The goal is maximum people added as fast as possible. Be direct, specific, and relentless.
 
 Walk through these categories:
-
 ${categoryList}
 
-### The flow for each person:
+### ASK FOR PEOPLE IN BATCHES — not one at a time:
+Instead of "Who do you live with?" and waiting for one name, ask for EVERYONE at once:
+- "Name everyone in your household — who lives with you?"
+- "Give me your 3-4 closest friends who live in ${electionState}."
+- "Who are your neighbors — the ones you actually talk to?"
+- "Rattle off the people you work with. Just first and last names to start."
+- "Who from your church/gym/club lives in the area?"
+- "Think about your phone contacts — who from ${areaLabel} have you texted in the last month?"
+
+When they give you multiple names, process them rapidly — collect last names and basic details for each, then add them all. Don't go deep on one person while forgetting the others they mentioned.
+
+### VARY YOUR QUESTIONS — don't be repetitive:
+Never ask the same generic question twice. Be creative and specific:
+- Instead of "Who else?" try "Who'd be the first person you'd text if something big happened?"
+- Instead of "Any coworkers?" try "If you were organizing a happy hour, who from work would you invite?"
+- Instead of "Any neighbors?" try "If you needed to borrow something, whose door would you knock on?"
+- Instead of "Anyone else from church?" try "Who do you sit near at church? Who do you chat with after?"
+- Mix it up every time. Make them THINK about their relationships in new ways to unlock more names.
+
+### The flow for each person (keep it FAST):
 1. They say a name → "Last name?" → "Do they live in ${electionState}?"
-2. If NO: Add them, mark out of area, say "Got it — they're outside our area but I'll note that. Who else?"
-3. If YES, collect their info before adding:
-   a. "What city or town?"
-   b. "Do you know their address?" (street address — we need this to match them to the voter file)
-   c. "Roughly how old are they?"
-   d. If it comes up naturally, ask about them: "What do they do?" or "How do you know them?" This helps you categorize them AND helps the volunteer think of more people in similar circles.
-4. Before adding, read it back: "So that's [First Last], [address], [city], around [age]. Does that sound right?"
-5. Once they confirm, use add_contact. Tell them: "Added [name]."
-6. After adding: "Anyone else live with them?" — grab household members.
-7. Move on: "Who else?" or "Anyone else from [that group]?"
+2. If NO: Add them immediately, say "Got them. Who else?"
+3. If YES: "What city?" → "Know their address?" → "Roughly how old?" → Add. Move on.
+4. Don't read back details unless something sounds off. Just say "Added [name]."
+5. Immediately: "Who else?" or mine their network.
 
-Always collect and confirm the full address. We need it to match them to the voter file accurately.
+### Be curious but BRIEF:
+One quick natural follow-up per person max — "How do you know them?" or "Do they vote?" Then move on. Don't linger.
 
-### Be curious, not just transactional:
-Don't just collect data points robotically. Show interest in who these people are. When the volunteer says "my neighbor Dave," follow up naturally: "How long have you known Dave?" or "Is Dave someone who usually votes?" This builds rapport AND gives you useful context for later coaching. But don't overdo it — keep things moving.
+IMPORTANT: Only call add_contact ONCE per person. Collect all info first, then call it.
 
-IMPORTANT: Only call add_contact ONCE per person. Do not call it when they first mention the name AND again after confirming details. Collect all the info first, then call add_contact a single time with everything you have.
+CRITICAL: If add_contact returns a duplicate error, say NOTHING. Just ask "Who else?" silently.
 
-CRITICAL: If the add_contact tool returns a duplicate error, say NOTHING about it to the volunteer. Do not say "they're already on your list" or anything similar. Just silently move on to the next person as if nothing happened. Ask "Who else?" and keep going.
+### Mine their network aggressively:
+- Workplace: "Who else there? Give me 2-3 names."
+- School: "What other parents do you know from there?"
+- Social group: "Who else from that group lives in ${areaLabel}?"
+- Family mention: "Anyone else in the family in the area?"
+- When they mention a spouse/partner: Add them immediately, same address.
 
-### Mining their network:
-- When they mention a workplace: "Anyone else there you're close with?"
-- When they mention a school: "Know any other parents from there?"
-- When they mention a social group/church/gym: "Who else from there?"
-- When they say "my friend Mike and his wife Lisa" — add both, same city.
+### Transitions — be specific, not generic:
+After 3-4 names in a category, pivot with a SPECIFIC question for the next category. Don't say "What about coworkers?" Say "Think about the people you eat lunch with at work — who comes to mind?"
 
-### Transitions:
-After 4-5 names in a category, pivot: "What about [next category]?"
+### Matching is SECONDARY:
+Build the list first. Run matching (run_matching) after every 5-10 new contacts. If you don't have an address, add them anyway. Never hold up list building for matching.
 
-### Matching is SECONDARY to list building:
-The #1 goal is building a big list of contacts. Matching to the voter file is helpful but NOT the priority. Don't let matching slow down the flow. Run voter file matching (run_matching) after every 5-10 new contacts, but only after you've collected addresses for those contacts. If you don't have an address for someone, that's fine — add them anyway and we can match later. Never hold up list building to chase a match.
-
-CRITICAL: You must have collected a street address from the volunteer BEFORE you can meaningfully present a match. If you run matching and a result comes back but you never asked the volunteer for that person's address, you have no way to verify the match is correct. Always collect the address first during the add flow. If you missed it, ask for the address BEFORE confirming any match.`)
+CRITICAL: You need a street address BEFORE presenting a match. If you missed it during adding, ask for it BEFORE confirming any match.`)
 
 
   // Match confirmation flow
@@ -997,6 +1069,7 @@ export interface ChatStreamOptions {
   campaignId: string
   message: string
   history: Array<{ role: 'user' | 'assistant'; content: string }>
+  existingContacts?: ExistingContact[]
 }
 
 export async function* streamChat(
@@ -1013,7 +1086,7 @@ export async function* streamChat(
   )
   const volunteerName = userRows[0]?.name || undefined
 
-  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName)
+  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts)
 
   const ctx: ToolContext = { userId: options.userId, campaignId: options.campaignId }
 

@@ -134,7 +134,7 @@ export default function ContactCard({
           <span className="text-[10px] font-bold text-white/60 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
         )}
         {status === 'ambiguous' && (
-          <div className="relative">
+          <div className="relative" style={{ zIndex: showCandidates ? 50 : 'auto' }}>
             <button
               onClick={() => setShowCandidates(!showCandidates)}
               className="text-[10px] font-bold text-vc-gold bg-vc-gold/20 px-2 py-0.5 rounded-full hover:bg-vc-gold/30 transition-colors"
@@ -142,7 +142,10 @@ export default function ContactCard({
               Pick match
             </button>
             {showCandidates && matchResult?.candidates && (
-              <div className="absolute z-20 top-full mt-1 left-0 glass-card bg-vc-surface p-2 min-w-[280px]">
+              <>
+                {/* Backdrop to close dropdown when clicking outside */}
+                <div className="fixed inset-0 z-40" onClick={() => setShowCandidates(false)} />
+                <div className="absolute z-50 top-full mt-1 right-0 glass-card bg-vc-surface/95 backdrop-blur-xl p-2 min-w-[280px] shadow-xl border border-white/20">
                 {matchResult.candidates.map((c, i) => {
                   const age = c.voterRecord.birth_year ? new Date().getFullYear() - parseInt(c.voterRecord.birth_year) : null
                   return (
@@ -169,6 +172,7 @@ export default function ContactCard({
                   None of these
                 </button>
               </div>
+              </>
             )}
           </div>
         )}

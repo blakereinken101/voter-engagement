@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { isAIEnabled, streamChat } from '@/lib/ai-chat'
+import { isAIEnabled, streamChat, loadExistingContacts } from '@/lib/ai-chat'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -47,11 +47,39 @@ export async function POST(request: NextRequest) {
     }
 
     const isInit = rawMessage === '__INIT__'
-    const message = isInit
-      ? '[System: The volunteer just opened the chat. Greet them by name. In 2-3 sentences: mention the campaign name, tell them you\'re going to help them build a list of people they know who live in the state/district, match them to the voter file, and coach conversations. Say the state or district name explicitly. Then ask your first question — start with household: "Who do you live with?" Do NOT use markdown formatting (no ** or * or headers). Do NOT describe your own process or tone. Do NOT say "let\'s move fast" or "I\'ll keep this quick." Just do it.]'
-      : rawMessage
-
     const db = await getDb()
+
+    // Load existing contacts to check if this is a returning user
+    const existingContacts = await loadExistingContacts(ctx.userId, ctx.campaignId)
+    const isReturningUser = existingContacts.length > 0
+
+    let message: string
+    if (!isInit) {
+      message = rawMessage
+    } else if (isReturningUser) {
+      // Returning user with existing contacts — pick up where they left off
+      const uncontacted = existingContacts.filter(c => !c.contacted).length
+      const unmatched = existingContacts.filter(c => c.matchStatus === 'pending').length
+      const contacted = existingContacts.filter(c => c.contacted).length
+      // Figure out which categories they've covered
+      const coveredCategories = new Set(existingContacts.map(c => c.category))
+      const allCatIds = ['household', 'close-family', 'close-friends', 'neighbors', 'coworkers', 'faith-community', 'school-parents', 'social-clubs', 'local-business', 'political', 'online-friends', 'service-providers', 'former-connections', 'who-did-we-miss']
+      const uncoveredCategories = allCatIds.filter(id => !coveredCategories.has(id))
+      message = `[System: The volunteer is returning — they already have ${existingContacts.length} people on their list. ${contacted > 0 ? `They've had ${contacted} conversations so far.` : ''} ${unmatched > 0 ? `${unmatched} contacts still need matching.` : ''} ${uncontacted > 0 ? `${uncontacted} people haven't been contacted yet.` : ''}
+
+Welcome them back by name. Be brief — just one sentence of welcome.
+
+Then get RIGHT back to work. Based on their current state, pick the highest-impact next step:
+${existingContacts.length < 25 ? `- They only have ${existingContacts.length} contacts. Push to add more.${uncoveredCategories.length > 0 ? ` They haven't covered these categories yet: ${uncoveredCategories.slice(0, 4).join(', ')}. Ask about one of those with a specific, direct question.` : ''}` : ''}
+${unmatched > 5 ? `- ${unmatched} contacts are unmatched. Run matching and start confirming.` : ''}
+${uncontacted > 0 && existingContacts.length >= 15 ? `- ${uncontacted} people haven't been contacted. Suggest they reach out to someone.` : ''}
+${contacted > 0 && existingContacts.length >= 25 ? '- They have momentum. Suggest their next conversation or ask them to add more people from an uncovered category.' : ''}
+
+Ask ONE specific question to get them going immediately. Don't recap everything — they know what this is. Do NOT use markdown formatting. Do NOT describe your process.]`
+    } else {
+      // Brand new user — first time
+      message = '[System: The volunteer just opened the chat for the first time. Greet them by name. In 2-3 sentences: mention the campaign name, tell them you\'re going to help them build a list of people they know who live in the state/district, match them to the voter file, and coach conversations. Say the state or district name explicitly. Then ask your first question — be specific and direct. Don\'t just say "who do you live with?" — say something like "Let\'s start with your household. Can you name everyone who lives with you?" Vary your opening naturally. Do NOT use markdown formatting (no ** or * or headers). Do NOT describe your own process or tone. Do NOT say "let\'s move fast" or "I\'ll keep this quick." Just do it.]'
+    }
 
     // Load chat history (last 50 messages)
     const { rows: historyRows } = await db.query(
@@ -90,6 +118,7 @@ export async function POST(request: NextRequest) {
             campaignId: ctx.campaignId,
             message,
             history,
+            existingContacts,
           })) {
             if (event.type === 'text') {
               fullAssistantText += event.text as string
