@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
+import { fireAndForget, syncCanvassResponseToVan } from '@/lib/van-sync'
 
 export async function PUT(request: NextRequest, { params }: { params: { contactId: string } }) {
   try {
@@ -97,6 +98,10 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
     // Log meaningful actions
     if ('contactOutcome' in body) {
       await logActivity(ctx.userId, 'record_outcome', { contactId, outcome: body.contactOutcome }, ctx.campaignId)
+      fireAndForget(
+        () => syncCanvassResponseToVan(ctx.campaignId, contactId, body.contactOutcome as string, body.outreachMethod as string | null),
+        `canvass:${contactId}`,
+      )
     } else if ('contacted' in body && body.contacted) {
       await logActivity(ctx.userId, 'mark_contacted', { contactId, method: body.outreachMethod }, ctx.campaignId)
     }

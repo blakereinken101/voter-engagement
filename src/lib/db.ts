@@ -404,6 +404,27 @@ async function initSchema() {
       console.warn('[db] Could not create trigram index (fuzzy name search will be unavailable):', (err as Error).message)
     }
 
+    // ── VAN Integration ───────────────────────────────────────────────
+    await client.query(`
+      ALTER TABLE contacts ADD COLUMN IF NOT EXISTS van_id BIGINT;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS van_event_id BIGINT;
+
+      CREATE TABLE IF NOT EXISTS van_sync_log (
+        id TEXT PRIMARY KEY,
+        campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        van_endpoint TEXT NOT NULL,
+        sync_status TEXT NOT NULL DEFAULT 'pending',
+        error_message TEXT,
+        van_id BIGINT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_contacts_van_id ON contacts(van_id) WHERE van_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_van_sync_log_campaign ON van_sync_log(campaign_id, created_at DESC);
+    `)
+
     // ── Seed defaults ────────────────────────────────────────────────
     await seedDefaults(client)
   } finally {

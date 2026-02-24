@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
+import { fireAndForget, syncContactToVan } from '@/lib/van-sync'
 
 export async function GET() {
   try {
@@ -141,6 +142,8 @@ export async function POST(request: NextRequest) {
     }
 
     await logActivity(ctx.userId, 'add_contact', { contactId, name: `${firstName} ${lastName}` }, ctx.campaignId)
+
+    fireAndForget(() => syncContactToVan(ctx.campaignId, contactId as string), `contact:${contactId}`)
 
     return NextResponse.json({ id: contactId, success: true })
   } catch (error) {
