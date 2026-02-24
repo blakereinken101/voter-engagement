@@ -1,32 +1,26 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogIn, AlertCircle, CheckCircle } from 'lucide-react'
+import { LogIn, AlertCircle, CheckCircle, Calendar, Users, Loader2 } from 'lucide-react'
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter()
-  const redirectTo = useMemo(() => {
-    if (typeof window === 'undefined') return null
-    return new URLSearchParams(window.location.search).get('redirect')
-  }, [])
-  const productFromUrl = useMemo(() => {
-    if (typeof window === 'undefined') return null
-    return new URLSearchParams(window.location.search).get('product')
-  }, [])
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect')
+  const productFromUrl = searchParams.get('product')
+  const wasReset = searchParams.get('reset') === 'true'
+
   // Read return-url cookie set by middleware (where user was trying to go)
   const returnUrl = useMemo(() => {
     if (typeof window === 'undefined') return null
     const match = document.cookie.match(/(?:^|;\s*)vc-return-url=([^;]*)/)
     return match ? decodeURIComponent(match[1]) : null
   }, [])
-  const wasReset = useMemo(() => {
-    if (typeof window === 'undefined') return false
-    return new URLSearchParams(window.location.search).get('reset') === 'true'
-  }, [])
+
   const { signIn, user, isLoading: authLoading, hasRelationalAccess, hasEventsAccess } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -105,7 +99,17 @@ export default function SignInPage() {
           <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
             <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-48 md:h-64 w-auto mx-auto" priority />
           </Link>
-          <p className="text-white/60 text-sm mt-3">Sign in to your account</p>
+          {productFromUrl === 'relational' ? (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <Users className="w-4 h-4 text-vc-purple-light" />
+              <p className="text-white/60 text-sm">Sign in to <span className="text-vc-purple-light font-semibold">Relational</span></p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <Calendar className="w-4 h-4 text-vc-teal" />
+              <p className="text-white/60 text-sm">Sign in to the <span className="text-vc-teal font-semibold">Events</span> platform</p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
@@ -172,9 +176,29 @@ export default function SignInPage() {
           </Link>
         </p>
         <p className="text-center mt-3 text-sm text-white/50">
-          Need an account? Ask your campaign admin for an invite link.
+          {productFromUrl === 'relational' ? (
+            <>Need an account? Ask your campaign admin for an invite link.</>
+          ) : (
+            <>Need an events account?{' '}
+              <Link href="/sign-up?product=events" className="text-vc-teal font-bold hover:underline">
+                Sign up
+              </Link>
+            </>
+          )}
         </p>
       </div>
     </div>
+  )
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="cosmic-bg constellation min-h-screen flex items-center justify-center p-6">
+        <Loader2 className="w-8 h-8 text-white/50 animate-spin" />
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   )
 }

@@ -15,11 +15,11 @@ import defaultCampaignConfig from '@/lib/campaign-config'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { DashboardView } from '@/types'
-import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Bot, Table } from 'lucide-react'
+import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Bot, Table, Calendar } from 'lucide-react'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
-  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig, isLoading: authLoading } = useAuth()
+  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig, isLoading: authLoading, hasEventsAccess } = useAuth()
 
   // Product access is enforced by middleware — no client-side redirect guard needed
   const campaignConfig = authConfig || defaultCampaignConfig
@@ -53,6 +53,15 @@ export default function DashboardPage() {
             <span className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-vc-purple/20 text-vc-purple-light border border-vc-purple/30 rounded-full">
               Relational
             </span>
+            {hasEventsAccess && (
+              <Link
+                href="/events/manage"
+                className="flex items-center gap-1.5 ml-2 px-3 py-1.5 rounded-btn text-sm font-medium text-vc-teal hover:bg-vc-teal/10 transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden sm:inline">Events</span>
+              </Link>
+            )}
           </div>
           {user && (
             <div className="flex items-center gap-3">

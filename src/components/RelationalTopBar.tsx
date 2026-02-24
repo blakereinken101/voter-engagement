@@ -3,10 +3,10 @@
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogOut, ArrowLeft } from 'lucide-react'
+import { LogOut, ArrowLeft, Calendar } from 'lucide-react'
 
 export default function RelationalTopBar() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, hasEventsAccess } = useAuth()
 
   if (!user) return null
 
@@ -32,6 +32,15 @@ export default function RelationalTopBar() {
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Dashboard</span>
             </Link>
+            {hasEventsAccess && (
+              <Link
+                href="/events/manage"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium text-vc-teal hover:bg-vc-teal/10 transition-colors"
+              >
+                <Calendar className="w-4 h-4" />
+                <span className="hidden sm:inline">Events</span>
+              </Link>
+            )}
             <div className="w-8 h-8 rounded-full bg-vc-purple/30 ring-2 ring-vc-purple/50 flex items-center justify-center text-xs font-bold text-white">
               {user.name?.charAt(0).toUpperCase() || '?'}
             </div>
