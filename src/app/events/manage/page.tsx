@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useSearchParams } from 'next/navigation'
 import EventManageTable from '@/components/events/EventManageTable'
@@ -11,7 +10,6 @@ import { Plus, Lock, Sparkles, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 function EventManageContent() {
-  const router = useRouter()
   const { user, isLoading: authLoading, hasEventsSubscription, freeEventsUsed, freeEventsRemaining } = useAuth()
   const searchParams = useSearchParams()
   const [events, setEvents] = useState<Event[]>([])
@@ -19,16 +17,6 @@ function EventManageContent() {
   const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'cancelled'>('all')
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const didCheckoutRef = useRef(false)
-
-  // Redirect relational-only users (no events subscription, no events created) to pricing
-  useEffect(() => {
-    if (authLoading || !user) return
-    // Don't redirect during Stripe checkout/subscription flows
-    if (searchParams.get('checkout') || searchParams.get('subscription')) return
-    if (!hasEventsSubscription && freeEventsUsed === 0) {
-      router.replace('/events/pricing')
-    }
-  }, [authLoading, user, hasEventsSubscription, freeEventsUsed, searchParams, router])
 
   // Auto-trigger Stripe checkout if redirected here after signup with a plan
   useEffect(() => {

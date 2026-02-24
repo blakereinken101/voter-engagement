@@ -43,10 +43,6 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
   const [uploadingImage, setUploadingImage] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [aiEnabled, setAiEnabled] = useState(false)
-  useEffect(() => {
-    fetch('/api/ai/status').then(r => r.json()).then(d => setAiEnabled(d.enabled)).catch(() => {})
-  }, [])
 
   const [form, setForm] = useState<EventFormData>({
     title: initialData?.title || '',
@@ -160,7 +156,7 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
         <div>
           <label className="flex items-center gap-1.5 text-sm text-white/60 mb-1.5">
             Event Title *
-            {aiEnabled && (
+            {(
               <AISuggestButton
                 field="title"
                 eventType={form.eventType}
@@ -185,7 +181,7 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
         <div>
           <label className="flex items-center gap-1.5 text-sm text-white/60 mb-1.5">
             Description
-            {aiEnabled && (
+            {(
               <AISuggestButton
                 field="description"
                 eventType={form.eventType}
