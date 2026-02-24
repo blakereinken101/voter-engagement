@@ -301,6 +301,58 @@ async function initSchema() {
       );
     `)
 
+    // ── Voter Datasets + Voters (DB-backed voter file storage) ──────
+    await client.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm;`)
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS voter_datasets (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        state TEXT NOT NULL,
+        geography_type TEXT NOT NULL DEFAULT 'state',
+        geography_name TEXT,
+        record_count INTEGER DEFAULT 0,
+        uploaded_by TEXT REFERENCES users(id),
+        status TEXT NOT NULL DEFAULT 'processing',
+        error_message TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS voters (
+        id SERIAL PRIMARY KEY,
+        dataset_id TEXT NOT NULL REFERENCES voter_datasets(id) ON DELETE CASCADE,
+        voter_id TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        date_of_birth TEXT,
+        gender TEXT,
+        residential_address TEXT,
+        city TEXT,
+        state TEXT,
+        zip TEXT,
+        party_affiliation TEXT,
+        registration_date TEXT,
+        voter_status TEXT,
+        vh2024g TEXT DEFAULT '',
+        vh2022g TEXT DEFAULT '',
+        vh2020g TEXT DEFAULT '',
+        vh2024p TEXT DEFAULT '',
+        vh2022p TEXT DEFAULT '',
+        vh2020p TEXT DEFAULT '',
+        lat DOUBLE PRECISION,
+        lng DOUBLE PRECISION,
+        last_name_normalized TEXT,
+        last_name_metaphone TEXT,
+        UNIQUE(dataset_id, voter_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS campaign_voter_datasets (
+        campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+        dataset_id TEXT NOT NULL REFERENCES voter_datasets(id) ON DELETE CASCADE,
+        PRIMARY KEY (campaign_id, dataset_id)
+      );
+    `)
+
     // ── Indexes ──────────────────────────────────────────────────────
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_contacts_user_id ON contacts(user_id);
@@ -328,6 +380,20 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_event_comments_event_id ON event_comments(event_id);
       CREATE INDEX IF NOT EXISTS idx_event_reactions_event_id ON event_reactions(event_id);
       CREATE INDEX IF NOT EXISTS idx_event_reminder_log_event_id ON event_reminder_log(event_id);
+
+      CREATE INDEX IF NOT EXISTS idx_voters_dataset_id ON voters(dataset_id);
+      CREATE INDEX IF NOT EXISTS idx_voters_last_name_norm ON voters(dataset_id, last_name_normalized);
+      CREATE INDEX IF NOT EXISTS idx_voters_last_name_metaphone ON voters(dataset_id, last_name_metaphone);
+      CREATE INDEX IF NOT EXISTS idx_voters_zip ON voters(dataset_id, zip);
+      CREATE INDEX IF NOT EXISTS idx_voters_status ON voters(dataset_id, voter_status);
+      CREATE INDEX IF NOT EXISTS idx_voters_dataset_voter ON voters(dataset_id, voter_id);
+      CREATE INDEX IF NOT EXISTS idx_campaign_voter_datasets_campaign ON campaign_voter_datasets(campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_campaign_voter_datasets_dataset ON campaign_voter_datasets(dataset_id);
+    `)
+
+    // Trigram GIN indexes for fuzzy name matching (requires pg_trgm)
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_voters_last_name_trgm ON voters USING gin(last_name_normalized gin_trgm_ops);
     `)
 
     // ── Seed defaults ────────────────────────────────────────────────

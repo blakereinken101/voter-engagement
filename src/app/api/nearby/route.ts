@@ -4,6 +4,7 @@ import { SafeVoterRecord, VoterRecord } from '@/types'
 import { geocodeAddress, geocodeZip } from '@/lib/geocode'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
+import { getDatasetForCampaign, queryVotersByZip, queryVotersByZipPrefix } from '@/lib/voter-db'
 
 function sanitizeVoterRecord(record: VoterRecord): SafeVoterRecord {
   const { voter_id, date_of_birth, ...rest } = record
@@ -120,9 +121,13 @@ export async function POST(request: NextRequest) {
   const safeLimit = Math.min(Math.max(1, Number(limit) || 50), 200)
   const safeOffset = Math.max(0, Number(offset) || 0)
 
-  // Load campaign config to get campaign-specific voter file
-  const campaignConfig = await getCampaignConfig(ctx.campaignId)
-  const voterFile = getVoterFile(cleanState, campaignConfig.voterFile)
+  // Try DB-backed dataset first, fall back to file
+  const datasetId = await getDatasetForCampaign(ctx.campaignId)
+  let voterFile: VoterRecord[] | null = null
+  if (!datasetId) {
+    const campaignConfig = await getCampaignConfig(ctx.campaignId)
+    voterFile = getVoterFile(cleanState, campaignConfig.voterFile)
+  }
 
   // ─── ADDRESS-BASED SEARCH ────────────────────────────────────────────
   if (address && typeof address === 'string' && address.trim().length > 2) {
@@ -139,15 +144,23 @@ export async function POST(request: NextRequest) {
     // Get active voters in same zip + neighboring zips
     let candidates: VoterRecord[] = []
     if (searchZip) {
-      const sameZip = voterFile.filter(v =>
-        v.zip.slice(0, 5) === searchZip && v.voter_status === 'Active'
-      )
-      const neighborZip = voterFile.filter(v =>
-        v.zip.slice(0, 3) === searchZip.slice(0, 3) &&
-        v.zip.slice(0, 5) !== searchZip &&
-        v.voter_status === 'Active'
-      )
-      candidates = [...sameZip, ...neighborZip]
+      if (datasetId) {
+        const [sameZip, neighborZip] = await Promise.all([
+          queryVotersByZip(datasetId, searchZip, true),
+          queryVotersByZipPrefix(datasetId, searchZip.slice(0, 3), searchZip, true),
+        ])
+        candidates = [...sameZip, ...neighborZip]
+      } else {
+        const sameZip = voterFile!.filter(v =>
+          v.zip.slice(0, 5) === searchZip && v.voter_status === 'Active'
+        )
+        const neighborZip = voterFile!.filter(v =>
+          v.zip.slice(0, 3) === searchZip.slice(0, 3) &&
+          v.zip.slice(0, 5) !== searchZip &&
+          v.voter_status === 'Active'
+        )
+        candidates = [...sameZip, ...neighborZip]
+      }
     }
 
     if (candidates.length === 0) {
@@ -221,13 +234,22 @@ export async function POST(request: NextRequest) {
   // Geocode the zip center
   const zipGeo = await geocodeZip(cleanZip, cleanState)
 
-  const sameZip = voterFile.filter(v => v.zip.slice(0, 5) === cleanZip && v.voter_status === 'Active')
-  const samePrefix = voterFile.filter(v =>
-    v.zip.slice(0, 3) === cleanZip.slice(0, 3) &&
-    v.zip.slice(0, 5) !== cleanZip &&
-    v.voter_status === 'Active'
-  )
-  const combined = [...sameZip, ...samePrefix]
+  let combined: VoterRecord[]
+  if (datasetId) {
+    const [sameZip, samePrefix] = await Promise.all([
+      queryVotersByZip(datasetId, cleanZip, true),
+      queryVotersByZipPrefix(datasetId, cleanZip.slice(0, 3), cleanZip, true),
+    ])
+    combined = [...sameZip, ...samePrefix]
+  } else {
+    const sameZip = voterFile!.filter(v => v.zip.slice(0, 5) === cleanZip && v.voter_status === 'Active')
+    const samePrefix = voterFile!.filter(v =>
+      v.zip.slice(0, 3) === cleanZip.slice(0, 3) &&
+      v.zip.slice(0, 5) !== cleanZip &&
+      v.voter_status === 'Active'
+    )
+    combined = [...sameZip, ...samePrefix]
+  }
 
   let sorted: { voter: VoterRecord; distance: number }[]
 

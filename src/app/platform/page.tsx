@@ -1,21 +1,23 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
 import {
   BarChart3, Building2, Users, CreditCard, Loader2, Search,
-  Plus, Check, X, Shield, ShieldOff,
+  Plus, Check, X, Shield, ShieldOff, Database, Upload, Trash2,
+  ChevronDown, ChevronRight, Link,
 } from 'lucide-react'
 
-type PlatformTab = 'overview' | 'organizations' | 'users' | 'subscriptions'
+type PlatformTab = 'overview' | 'organizations' | 'users' | 'subscriptions' | 'voter-data'
 
 const TABS: { id: PlatformTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'overview', label: 'Overview', Icon: BarChart3 },
   { id: 'organizations', label: 'Organizations', Icon: Building2 },
   { id: 'users', label: 'Users', Icon: Users },
   { id: 'subscriptions', label: 'Subscriptions', Icon: CreditCard },
+  { id: 'voter-data', label: 'Voter Data', Icon: Database },
 ]
 
 // ========== OVERVIEW ==========
@@ -401,6 +403,421 @@ function SubscriptionsTab() {
   )
 }
 
+// ========== VOTER DATA ==========
+
+interface VoterDataset {
+  id: string
+  name: string
+  state: string
+  geography_type: string
+  geography_name: string | null
+  record_count: number
+  status: string
+  error_message: string | null
+  created_at: string
+  campaign_count: number
+}
+
+interface Campaign {
+  id: string
+  name: string
+  slug: string
+  org_name: string
+}
+
+interface DatasetDetail {
+  dataset: VoterDataset
+  cities: string[]
+  assignedCampaigns: Campaign[]
+}
+
+const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
+
+function VoterDataTab() {
+  const [datasets, setDatasets] = useState<VoterDataset[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [detailCache, setDetailCache] = useState<Record<string, DatasetDetail>>({})
+  const [allCampaigns, setAllCampaigns] = useState<Campaign[]>([])
+  const [deleting, setDeleting] = useState<string | null>(null)
+
+  // Form state
+  const [formName, setFormName] = useState('')
+  const [formState, setFormState] = useState('NC')
+  const [formGeoType, setFormGeoType] = useState('state')
+  const [formGeoName, setFormGeoName] = useState('')
+  const [formFile, setFormFile] = useState<File | null>(null)
+
+  const loadDatasets = useCallback(() => {
+    setLoading(true)
+    fetch('/api/platform/voter-datasets')
+      .then(r => r.json())
+      .then(d => setDatasets(d.datasets || []))
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { loadDatasets() }, [loadDatasets])
+
+  // Load all campaigns for assignment dropdown
+  useEffect(() => {
+    fetch('/api/platform/campaigns')
+      .then(r => r.json())
+      .then(d => setAllCampaigns(d.campaigns || []))
+  }, [])
+
+  async function loadDetail(datasetId: string) {
+    if (detailCache[datasetId]) return
+    const res = await fetch(`/api/platform/voter-datasets/${datasetId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetailCache(prev => ({ ...prev, [datasetId]: data }))
+    }
+  }
+
+  async function handleUpload(e: React.FormEvent) {
+    e.preventDefault()
+    if (!formName.trim() || !formFile) return
+    setUploading(true)
+    setUploadProgress('Uploading...')
+
+    const fd = new FormData()
+    fd.append('name', formName.trim())
+    fd.append('state', formState)
+    fd.append('geographyType', formGeoType)
+    if (formGeoName.trim()) fd.append('geographyName', formGeoName.trim())
+    fd.append('file', formFile)
+
+    try {
+      const res = await fetch('/api/platform/voter-datasets', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (res.ok) {
+        setUploadProgress(`Done! ${data.recordCount?.toLocaleString()} records imported.`)
+        setFormName('')
+        setFormGeoName('')
+        setFormFile(null)
+        setShowForm(false)
+        loadDatasets()
+      } else {
+        setUploadProgress(`Error: ${data.error}`)
+      }
+    } catch (err) {
+      setUploadProgress(`Upload failed: ${err}`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleDelete(datasetId: string) {
+    if (!confirm('Delete this voter dataset and all its records? This cannot be undone.')) return
+    setDeleting(datasetId)
+    await fetch(`/api/platform/voter-datasets/${datasetId}`, { method: 'DELETE' })
+    setDeleting(null)
+    loadDatasets()
+  }
+
+  async function handleAssign(datasetId: string, campaignId: string) {
+    await fetch(`/api/platform/voter-datasets/${datasetId}/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaignId }),
+    })
+    // Refresh detail
+    const res = await fetch(`/api/platform/voter-datasets/${datasetId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetailCache(prev => ({ ...prev, [datasetId]: data }))
+    }
+  }
+
+  async function handleUnassign(datasetId: string, campaignId: string) {
+    await fetch(`/api/platform/voter-datasets/${datasetId}/assign`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaignId }),
+    })
+    const res = await fetch(`/api/platform/voter-datasets/${datasetId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetailCache(prev => ({ ...prev, [datasetId]: data }))
+    }
+  }
+
+  function toggleExpand(datasetId: string) {
+    if (expandedId === datasetId) {
+      setExpandedId(null)
+    } else {
+      setExpandedId(datasetId)
+      loadDetail(datasetId)
+    }
+  }
+
+  if (loading) return <LoadingState />
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-white/50 text-sm">{datasets.length} dataset{datasets.length !== 1 ? 's' : ''}</p>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium bg-vc-purple text-white hover:bg-vc-purple-light transition-colors"
+        >
+          <Upload className="w-4 h-4" />
+          Upload Dataset
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleUpload} className="glass-card p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Dataset Name</label>
+              <input
+                value={formName}
+                onChange={e => setFormName(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
+                placeholder="e.g. Mecklenburg County NC 2024"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">State</label>
+              <select
+                value={formState}
+                onChange={e => setFormState(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm bg-transparent"
+              >
+                {US_STATES.map(s => <option key={s} value={s} className="bg-vc-surface">{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Geography Type</label>
+              <select
+                value={formGeoType}
+                onChange={e => setFormGeoType(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm bg-transparent"
+              >
+                <option value="state" className="bg-vc-surface">State</option>
+                <option value="county" className="bg-vc-surface">County</option>
+                <option value="district" className="bg-vc-surface">District</option>
+                <option value="city" className="bg-vc-surface">City</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Geography Name</label>
+              <input
+                value={formGeoName}
+                onChange={e => setFormGeoName(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
+                placeholder="e.g. Mecklenburg County"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-white/50 mb-1">Voter File (JSON)</label>
+            <input
+              type="file"
+              accept=".json"
+              onChange={e => setFormFile(e.target.files?.[0] || null)}
+              className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm file:mr-3 file:px-3 file:py-1 file:rounded-btn file:border-0 file:bg-vc-purple/30 file:text-white/70 file:text-xs"
+              required
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={uploading || !formFile}
+              className="px-4 py-2 rounded-btn text-sm font-medium bg-vc-teal text-white hover:bg-vc-teal/80 transition-colors disabled:opacity-50"
+            >
+              {uploading ? 'Uploading...' : 'Upload & Import'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="px-4 py-2 rounded-btn text-sm text-white/50 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            {uploadProgress && (
+              <span className="text-xs text-white/40">{uploadProgress}</span>
+            )}
+          </div>
+        </form>
+      )}
+
+      <div className="glass-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="w-8 px-2 py-3" />
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Name</th>
+                <th className="text-center px-4 py-3 text-white/50 font-medium">State</th>
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Geography</th>
+                <th className="text-right px-4 py-3 text-white/50 font-medium">Records</th>
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Status</th>
+                <th className="text-center px-4 py-3 text-white/50 font-medium">Campaigns</th>
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Created</th>
+                <th className="w-10 px-2 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {datasets.map(ds => (
+                <React.Fragment key={ds.id}>
+                  <tr
+                    className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={() => toggleExpand(ds.id)}
+                  >
+                    <td className="px-2 py-3 text-white/30">
+                      {expandedId === ds.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </td>
+                    <td className="px-4 py-3 text-white font-medium">{ds.name}</td>
+                    <td className="px-4 py-3 text-center text-white/70 font-mono text-xs">{ds.state}</td>
+                    <td className="px-4 py-3 text-white/60 text-xs">
+                      <span className="capitalize">{ds.geography_type}</span>
+                      {ds.geography_name && <span className="text-white/40"> &middot; {ds.geography_name}</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right text-white/70 font-mono">{ds.record_count.toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <StatusPill status={ds.status} label={ds.status} />
+                    </td>
+                    <td className="px-4 py-3 text-center text-white/70">{ds.campaign_count}</td>
+                    <td className="px-4 py-3 text-white/50 text-xs">{formatDate(ds.created_at)}</td>
+                    <td className="px-2 py-3">
+                      <button
+                        onClick={e => { e.stopPropagation(); handleDelete(ds.id) }}
+                        disabled={deleting === ds.id}
+                        className="p-1 text-white/20 hover:text-red-400 transition-colors disabled:opacity-50"
+                        title="Delete dataset"
+                      >
+                        {deleting === ds.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedId === ds.id && (
+                    <tr key={`${ds.id}-detail`} className="border-b border-white/5 bg-white/[0.02]">
+                      <td colSpan={9} className="px-6 py-4">
+                        <DatasetExpandedRow
+                          datasetId={ds.id}
+                          detail={detailCache[ds.id]}
+                          allCampaigns={allCampaigns}
+                          onAssign={handleAssign}
+                          onUnassign={handleUnassign}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+              {datasets.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-white/30">No voter datasets uploaded yet</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DatasetExpandedRow({
+  datasetId,
+  detail,
+  allCampaigns,
+  onAssign,
+  onUnassign,
+}: {
+  datasetId: string
+  detail?: DatasetDetail
+  allCampaigns: Campaign[]
+  onAssign: (datasetId: string, campaignId: string) => void
+  onUnassign: (datasetId: string, campaignId: string) => void
+}) {
+  const [assigning, setAssigning] = useState(false)
+
+  if (!detail) return <LoadingState />
+
+  const assignedIds = new Set(detail.assignedCampaigns.map(c => c.id))
+  const unassignedCampaigns = allCampaigns.filter(c => !assignedIds.has(c.id))
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-8">
+        <div>
+          <p className="text-xs text-white/40 mb-1">Cities ({detail.cities.length})</p>
+          <p className="text-xs text-white/60 max-w-md">
+            {detail.cities.length > 0
+              ? detail.cities.slice(0, 15).join(', ') + (detail.cities.length > 15 ? ` +${detail.cities.length - 15} more` : '')
+              : 'No city data'}
+          </p>
+        </div>
+        {detail.dataset.error_message && (
+          <div>
+            <p className="text-xs text-red-400/80 mb-1">Error</p>
+            <p className="text-xs text-red-400/60">{detail.dataset.error_message}</p>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-xs text-white/40 mb-2">Assigned Campaigns</p>
+        {detail.assignedCampaigns.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {detail.assignedCampaigns.map(c => (
+              <span key={c.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-vc-purple/20 text-vc-purple-light border border-vc-purple/30">
+                <Link className="w-3 h-3" />
+                {c.name}
+                <span className="text-white/30">({c.org_name})</span>
+                <button
+                  onClick={() => onUnassign(datasetId, c.id)}
+                  className="ml-1 text-white/30 hover:text-red-400 transition-colors"
+                  title="Unassign"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-white/30">No campaigns assigned</p>
+        )}
+      </div>
+
+      {unassignedCampaigns.length > 0 && (
+        <div className="flex items-center gap-2">
+          <select
+            id={`assign-${datasetId}`}
+            className="glass-input px-3 py-1.5 rounded-btn text-white text-xs bg-transparent max-w-xs"
+            defaultValue=""
+          >
+            <option value="" disabled className="bg-vc-surface">Assign to campaign...</option>
+            {unassignedCampaigns.map(c => (
+              <option key={c.id} value={c.id} className="bg-vc-surface">{c.name} ({c.org_name})</option>
+            ))}
+          </select>
+          <button
+            onClick={async () => {
+              const sel = document.getElementById(`assign-${datasetId}`) as HTMLSelectElement
+              if (!sel?.value) return
+              setAssigning(true)
+              await onAssign(datasetId, sel.value)
+              sel.value = ''
+              setAssigning(false)
+            }}
+            disabled={assigning}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-btn text-xs font-medium bg-vc-teal/80 text-white hover:bg-vc-teal transition-colors disabled:opacity-50"
+          >
+            {assigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link className="w-3 h-3" />}
+            Assign
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ========== SHARED COMPONENTS ==========
 
 function LoadingState() {
@@ -414,7 +831,10 @@ function LoadingState() {
 function StatusPill({ status, label }: { status: string | null; label: string }) {
   const colors: Record<string, string> = {
     active: 'bg-vc-teal/20 text-vc-teal border-vc-teal/30',
+    ready: 'bg-vc-teal/20 text-vc-teal border-vc-teal/30',
+    processing: 'bg-yellow-400/20 text-yellow-400 border-yellow-400/30',
     trialing: 'bg-yellow-400/20 text-yellow-400 border-yellow-400/30',
+    error: 'bg-red-400/20 text-red-400 border-red-400/30',
     past_due: 'bg-red-400/20 text-red-400 border-red-400/30',
     cancelled: 'bg-white/10 text-white/40 border-white/20',
     canceled: 'bg-white/10 text-white/40 border-white/20',
@@ -482,6 +902,7 @@ export default function PlatformPage() {
         {activeTab === 'organizations' && <OrganizationsTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'subscriptions' && <SubscriptionsTab />}
+        {activeTab === 'voter-data' && <VoterDataTab />}
       </div>
     </div>
   )

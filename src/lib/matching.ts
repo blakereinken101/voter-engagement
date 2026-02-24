@@ -2,6 +2,11 @@ import Fuse from 'fuse.js'
 import { VoterRecord, PersonEntry, MatchResult, MatchCandidate, MatchStatus, ConfidenceLevel, MatchedField, SafeVoterRecord } from '@/types'
 import { calculateVoteScore, determineSegment } from './voter-segments'
 import { getCityMatchScore } from './city-aliases'
+import {
+  queryVotersForMatch,
+  queryVotersByMetaphone,
+  queryVotersFuzzy,
+} from './voter-db'
 
 let jaroWinklerDistance: (s1: string, s2: string) => number
 
@@ -594,4 +599,191 @@ function buildMatchResult(
     voteScore,
     segment: voteScore !== undefined ? determineSegment(voteScore) : undefined,
   }
+}
+
+// =============================================
+// DB-BACKED MATCHING (replaces in-memory file)
+// =============================================
+
+/**
+ * Match people against voter records stored in PostgreSQL.
+ * Same 4-pass algorithm as matchPeopleToVoterFile, but fetches
+ * candidates from DB instead of scanning in-memory arrays.
+ */
+export async function matchPeopleToVoterDb(
+  people: PersonEntry[],
+  datasetId: string,
+  options: Partial<MatchingOptions> = {}
+): Promise<MatchResult[]> {
+  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const jw = await getJaroWinkler()
+  const dm = await getDoubleMetaphone()
+
+  const results: MatchResult[] = []
+
+  for (const person of people) {
+    const result = await matchSinglePersonDb(person, datasetId, jw, dm, opts)
+    results.push(result)
+  }
+
+  return results
+}
+
+async function matchSinglePersonDb(
+  person: PersonEntry,
+  datasetId: string,
+  jw: (s1: string, s2: string) => number,
+  dm: (word: string) => string[],
+  opts: MatchingOptions
+): Promise<MatchResult> {
+  const normalFirst = normalizeName(person.firstName)
+  const normalLast = normalizeName(person.lastName)
+  const nicknameForms = expandNicknames(normalFirst)
+
+  // PASS 1: Exact last name lookup via DB index
+  const lastNameMatches = await queryVotersForMatch(datasetId, [normalLast])
+
+  const exactMatches = lastNameMatches.filter(record => {
+    const recFirst = normalizeName(record.first_name)
+    return nicknameForms.includes(recFirst) || recFirst === normalFirst
+  })
+
+  if (exactMatches.length > 0) {
+    const candidates = rankExactCandidates(exactMatches, person, jw, opts)
+    return buildMatchResult(person, candidates, opts)
+  }
+
+  // PASS 1.5: Phonetic name lookup via DB
+  const lastNameCodes = dm(normalLast)
+  const phoneticLastNameMatches = await queryVotersByMetaphone(datasetId, lastNameCodes)
+
+  // Deduplicate
+  const phoneticUnique = new Map<string, VoterRecord>()
+  for (const record of phoneticLastNameMatches) {
+    if (!phoneticUnique.has(record.voter_id)) {
+      phoneticUnique.set(record.voter_id, record)
+    }
+  }
+
+  if (phoneticUnique.size > 0) {
+    const inputFirstCodes = dm(normalFirst)
+    const nicknameFirstCodes = nicknameForms.flatMap(n => dm(n))
+    const allFirstCodes = new Set([...inputFirstCodes, ...nicknameFirstCodes].filter(Boolean))
+
+    const phoneticMatches = Array.from(phoneticUnique.values()).filter(record => {
+      const recFirst = normalizeName(record.first_name)
+      const recFirstCodes = dm(recFirst)
+      return recFirstCodes.some(code => code && allFirstCodes.has(code))
+    })
+
+    if (phoneticMatches.length > 0) {
+      const candidates = rankPhoneticCandidates(phoneticMatches, person, jw, opts)
+      return buildMatchResult(person, candidates, opts)
+    }
+  }
+
+  // PASS 2: Fuzzy search via trigram similarity in DB
+  const candidatePool = await queryVotersFuzzy(datasetId, normalLast, person.zip)
+
+  if (candidatePool.length === 0) {
+    return { personEntry: person, status: 'unmatched', candidates: [] }
+  }
+
+  // Build Fuse index on the narrowed pool (same as in-memory version)
+  const fuse = new Fuse(candidatePool, {
+    keys: [
+      { name: 'first_name', weight: 0.5 },
+      { name: 'last_name', weight: 0.5 },
+    ],
+    threshold: 0.5,
+    includeScore: true,
+  })
+
+  const fuseResults = fuse.search(`${person.firstName} ${person.lastName}`, { limit: 20 })
+
+  // PASS 3+4: Jaro-Winkler scoring + contextual boosters (identical to in-memory)
+  const scoredCandidates: MatchCandidate[] = fuseResults
+    .map(r => {
+      const record = r.item
+      const recFirst = normalizeName(record.first_name)
+      const recLast = normalizeName(record.last_name)
+
+      const lastScore = jw(normalLast, recLast)
+      const firstScore = Math.max(...nicknameForms.map(n => jw(n, recFirst)))
+
+      let combinedScore = (lastScore * 0.55) + (firstScore * 0.45)
+      const matchedOn: MatchedField[] = ['fuzzy-name']
+
+      if (person.city && record.city) {
+        const smartCityScore = getCityMatchScore(person.city, record.city, person.zip, record.zip, jw)
+        if (smartCityScore > 0.85) {
+          combinedScore = Math.min(1.0, combinedScore * 1.1)
+          matchedOn.push('city')
+        } else if (smartCityScore < 0.3) {
+          combinedScore *= 0.85
+        }
+      }
+
+      if (person.zip && record.zip) {
+        if (person.zip.trim() === record.zip.trim()) {
+          combinedScore = Math.min(1.0, combinedScore * 1.08)
+          matchedOn.push('zip')
+        }
+      }
+
+      if (person.address && record.residential_address) {
+        const addrScore = jw(
+          person.address.toLowerCase().trim(),
+          record.residential_address.toLowerCase().trim()
+        )
+        if (addrScore > 0.80) {
+          combinedScore = Math.min(1.0, combinedScore * 1.15)
+          matchedOn.push('address')
+        }
+      }
+
+      if (person.age && record.date_of_birth) {
+        const birthYear = parseInt(record.date_of_birth.slice(0, 4))
+        const currentYear = new Date().getFullYear()
+        const estimatedAge = currentYear - birthYear
+        if (Math.abs(estimatedAge - person.age) <= 1) {
+          combinedScore = Math.min(1.0, combinedScore * 1.08)
+          matchedOn.push('exact-age')
+        } else if (Math.abs(estimatedAge - person.age) > 5) {
+          combinedScore *= 0.88
+        }
+      } else if (person.ageRange && record.date_of_birth) {
+        if (birthYearInRange(record.date_of_birth, person.ageRange)) {
+          combinedScore = Math.min(1.0, combinedScore * 1.05)
+          matchedOn.push('age-range')
+        } else {
+          combinedScore *= 0.90
+        }
+      }
+
+      if (person.gender && record.gender) {
+        if (person.gender === record.gender) {
+          combinedScore = Math.min(1.0, combinedScore * 1.03)
+          matchedOn.push('gender')
+        } else {
+          combinedScore *= 0.90
+        }
+      }
+
+      const confidenceLevel: ConfidenceLevel =
+        combinedScore >= opts.highConfidenceThreshold ? 'high'
+          : combinedScore >= opts.mediumConfidenceThreshold ? 'medium' : 'low'
+
+      return {
+        voterRecord: sanitizeVoterRecord(record),
+        score: combinedScore,
+        confidenceLevel,
+        matchedOn,
+      }
+    })
+    .filter(c => c.score >= opts.lowCutoff)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, opts.maxCandidatesPerPerson)
+
+  return buildMatchResult(person, scoredCandidates, opts)
 }

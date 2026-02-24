@@ -12,7 +12,8 @@ import { getDb, logActivity } from './db'
 import { getCampaignConfig } from './campaign-config.server'
 import type { CampaignConfig } from './campaign-config'
 import { getVoterFile } from './mock-data'
-import { matchPeopleToVoterFile } from './matching'
+import { matchPeopleToVoterFile, matchPeopleToVoterDb } from './matching'
+import { getDatasetForCampaign } from './voter-db'
 import { calculatePriority, sortByPriority } from './contact-priority'
 import { calculateVoteScore, determineSegment } from './voter-segments'
 import { CATEGORIES } from './wizard-config'
@@ -757,9 +758,15 @@ async function executeRunMatching(ctx: ToolContext): Promise<Record<string, unkn
     category: row.category,
   }))
 
-  const config = await getCampaignConfig(ctx.campaignId)
-  const voterFile = getVoterFile(config.state, config.voterFile)
-  const results = await matchPeopleToVoterFile(people, voterFile)
+  const datasetId = await getDatasetForCampaign(ctx.campaignId)
+  let results: MatchResult[]
+  if (datasetId) {
+    results = await matchPeopleToVoterDb(people, datasetId)
+  } else {
+    const config = await getCampaignConfig(ctx.campaignId)
+    const voterFile = getVoterFile(config.state, config.voterFile)
+    results = await matchPeopleToVoterFile(people, voterFile)
+  }
 
   // Update match_results in DB
   for (const result of results) {

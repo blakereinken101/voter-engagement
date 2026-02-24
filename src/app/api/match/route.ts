@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getVoterFile } from '@/lib/mock-data'
-import { matchPeopleToVoterFile } from '@/lib/matching'
+import { matchPeopleToVoterFile, matchPeopleToVoterDb } from '@/lib/matching'
 import { MatchRequestBody, PersonEntry } from '@/types'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
+import { getDatasetForCampaign } from '@/lib/voter-db'
 
 // Sanitize string inputs — strip HTML tags and control characters
 function sanitizeString(input: unknown): string {
@@ -77,9 +78,15 @@ export async function POST(request: NextRequest) {
   }
 
   const start = Date.now()
-  const campaignConfig = await getCampaignConfig(ctx.campaignId)
-  const voterFile = getVoterFile(state.toUpperCase(), campaignConfig.voterFile)
-  const results = await matchPeopleToVoterFile(sanitizedPeople, voterFile)
+  const datasetId = await getDatasetForCampaign(ctx.campaignId)
+  let results
+  if (datasetId) {
+    results = await matchPeopleToVoterDb(sanitizedPeople, datasetId)
+  } else {
+    const campaignConfig = await getCampaignConfig(ctx.campaignId)
+    const voterFile = getVoterFile(state.toUpperCase(), campaignConfig.voterFile)
+    results = await matchPeopleToVoterFile(sanitizedPeople, voterFile)
+  }
   const processingTimeMs = Date.now() - start
 
   return NextResponse.json({ results, processingTimeMs })
