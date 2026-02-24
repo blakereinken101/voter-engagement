@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 
 export async function POST() {
   const response = NextResponse.json({ success: true })
-  response.headers.set('Set-Cookie', 'vc-session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0')
+  // Clear both session and campaign cookies to prevent cross-account bleed
+  response.headers.append('Set-Cookie', 'vc-session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0')
+  response.headers.append('Set-Cookie', 'vc-campaign=; Path=/; SameSite=Lax; Max-Age=0')
   return response
 }

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-import { getSessionFromRequest, getActiveCampaignId } from '@/lib/auth'
+import { getSessionFromRequest, getActiveCampaignId, createSessionToken } from '@/lib/auth'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
 import { FREE_EVENT_LIMIT } from '@/types/events'
+
+// Force this route to never be cached by Next.js or CDNs
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function GET() {
   try {
@@ -108,6 +112,28 @@ export async function GET() {
       freeEventsRemaining = Math.max(0, FREE_EVENT_LIMIT - freeEventsUsed)
     }
 
+    // Silently refresh the JWT if DB products diverged from the token's products.
+    // This closes the split-brain window between middleware (reads JWT) and the DB.
+    const headers = new Headers()
+    const sessionProducts = [...(session.products || [])].sort()
+    const dbProducts = [...userProducts].sort()
+    if (JSON.stringify(sessionProducts) !== JSON.stringify(dbProducts)) {
+      const newToken = createSessionToken({
+        userId: user.id,
+        email: user.email,
+        products: userProducts,
+      })
+      headers.append(
+        'Set-Cookie',
+        `vc-session=${newToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`
+      )
+    }
+
+    // Strict anti-cache headers — prevents CDN/browser from serving User A's profile to User B
+    headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    headers.set('Pragma', 'no-cache')
+    headers.set('Expires', '0')
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -124,7 +150,7 @@ export async function GET() {
       organizationSlug: orgSlugRows[0]?.slug || null,
       freeEventsUsed,
       freeEventsRemaining,
-    })
+    }, { headers })
   } catch (error) {
     console.error('[auth/me] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

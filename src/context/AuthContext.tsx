@@ -187,7 +187,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     const isEvents = window.location.pathname.startsWith('/events')
-    await fetch('/api/auth/sign-out', { method: 'POST' })
+    try {
+      await fetch('/api/auth/sign-out', { method: 'POST' })
+    } catch {
+      // Server call failed — still clear client state below
+    }
     setUser(null)
     setMemberships([])
     setActiveMembership(null)
@@ -197,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setOrganizationSlug(null)
     setFreeEventsUsed(0)
     setFreeEventsRemaining(2)
-    document.cookie = 'vc-campaign=; Path=/; SameSite=Lax; Max-Age=0'
+    document.cookie = 'vc-campaign=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax'
     window.location.href = isEvents ? '/sign-in?product=events' : '/sign-in'
   }, [])
 
