@@ -9,7 +9,7 @@ import type { EventType } from '@/types/events'
 export const runtime = 'nodejs'
 export const maxDuration = 15
 
-const MODEL = process.env.ANTHROPIC_SUGGEST_MODEL || 'claude-haiku-4-5-20250515'
+const MODEL = process.env.ANTHROPIC_SUGGEST_MODEL || 'claude-haiku-4-5-20251001'
 
 const SYSTEM_PROMPT = `You are a writing assistant for political event organizers. You help write compelling, concise event titles and descriptions.
 
