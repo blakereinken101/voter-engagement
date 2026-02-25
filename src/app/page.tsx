@@ -327,7 +327,7 @@ export default function LandingPage() {
 
       {/* Photo divider 3 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
+        <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" style={{ objectPosition: 'center 70%' }} />
       </div>
 
       {/* Events Platform CTA */}

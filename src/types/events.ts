@@ -7,16 +7,15 @@ export type EventType =
   | 'phone_bank'
   | 'rally'
   | 'town_hall'
-  | 'watch_party'
+  | 'debate_watch'
   | 'meetup'
   | 'happy_hour'
   | 'fundraiser'
   | 'volunteer_training'
   | 'community'
   | 'voter_registration'
-  | 'protest'
-  | 'debate_watch'
   | 'ballot_party'
+  | 'other'
 
 export type EventVisibility = 'public' | 'org' | 'invite_only'
 export type EventStatus = 'draft' | 'published' | 'cancelled'
@@ -229,16 +228,15 @@ export const EVENT_TYPE_CONFIG: Record<EventType, EventTypeConfig> = {
   phone_bank:          { label: 'Phone Bank',          emoji: '📞', color: 'vc-gold',        bgClass: 'bg-vc-gold/15 text-vc-gold border-vc-gold/30' },
   rally:               { label: 'Rally',               emoji: '📢', color: 'vc-coral',       bgClass: 'bg-vc-coral/15 text-vc-coral border-vc-coral/30' },
   town_hall:           { label: 'Town Hall',           emoji: '🏛️', color: 'vc-purple',      bgClass: 'bg-vc-purple/15 text-vc-purple-light border-vc-purple/30' },
-  watch_party:         { label: 'Watch Party',         emoji: '📺', color: 'vc-purple-light', bgClass: 'bg-vc-purple-light/15 text-vc-purple-light border-vc-purple-light/30' },
+  debate_watch:        { label: 'Debate Watch',       emoji: '🎙️', color: 'vc-purple',      bgClass: 'bg-vc-purple/15 text-vc-purple-light border-vc-purple/30' },
   meetup:              { label: 'Meetup',              emoji: '🤝', color: 'vc-teal',        bgClass: 'bg-vc-teal/15 text-vc-teal border-vc-teal/30' },
   happy_hour:          { label: 'Happy Hour',          emoji: '🍻', color: 'vc-gold',        bgClass: 'bg-vc-gold/15 text-vc-gold border-vc-gold/30' },
   fundraiser:          { label: 'Fundraiser',          emoji: '💰', color: 'vc-gold',        bgClass: 'bg-vc-gold/15 text-vc-gold border-vc-gold/30' },
   volunteer_training:  { label: 'Volunteer Training',  emoji: '📋', color: 'vc-purple',      bgClass: 'bg-vc-purple/15 text-vc-purple-light border-vc-purple/30' },
   community:           { label: 'Community Event',     emoji: '🌟', color: 'vc-teal',        bgClass: 'bg-vc-teal/15 text-vc-teal border-vc-teal/30' },
   voter_registration:  { label: 'Voter Registration', emoji: '📝', color: 'vc-teal',        bgClass: 'bg-vc-teal/15 text-vc-teal border-vc-teal/30' },
-  protest:             { label: 'Protest / March',    emoji: '✊', color: 'vc-coral',       bgClass: 'bg-vc-coral/15 text-vc-coral border-vc-coral/30' },
-  debate_watch:        { label: 'Debate Watch',       emoji: '🎙️', color: 'vc-purple',      bgClass: 'bg-vc-purple/15 text-vc-purple-light border-vc-purple/30' },
   ballot_party:        { label: 'Ballot Party',       emoji: '🗳️', color: 'vc-gold',        bgClass: 'bg-vc-gold/15 text-vc-gold border-vc-gold/30' },
+  other:               { label: 'Other',              emoji: '📌', color: 'vc-purple',      bgClass: 'bg-vc-purple/15 text-vc-purple-light border-vc-purple/30' },
 }
 
 export const DEFAULT_REACTION_EMOJIS = ['🔥', '❤️', '🙌', '🎉', '⭐', '💯']
