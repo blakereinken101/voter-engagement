@@ -242,8 +242,8 @@ export async function POST(
       const smsBody = formatEventBlastSms(hostName, event.title, message.trim(), event.slug)
       for (const recipient of smsRecipients) {
         try {
-          await sendSms(recipient.phone, smsBody)
-          smsSent++
+          const sent = await sendSms(recipient.phone, smsBody)
+          if (sent) smsSent++
         } catch (err) {
           console.error(`[blast] Failed to send SMS to ${recipient.phone}:`, err)
         }

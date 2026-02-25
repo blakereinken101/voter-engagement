@@ -25,12 +25,12 @@ function normalizePhone(phone: string): string {
   return `+${digits}`
 }
 
-export async function sendSms(to: string, body: string): Promise<void> {
+export async function sendSms(to: string, body: string): Promise<boolean> {
   const client = getClient()
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
   if (!client || !messagingServiceSid) {
     console.warn('[sms] Twilio not configured, skipping SMS')
-    return
+    return false
   }
 
   await client.messages.create({
@@ -38,6 +38,7 @@ export async function sendSms(to: string, body: string): Promise<void> {
     messagingServiceSid,
     body,
   })
+  return true
 }
 
 export function formatEventReminderSms(

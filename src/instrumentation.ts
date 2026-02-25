@@ -35,8 +35,8 @@ async function runReminderCron(appUrl: string, secret: string) {
       headers: { 'Authorization': `Bearer ${secret}` },
     })
     const data = await res.json()
-    if (data.sent > 0) {
-      console.log(`[cron] Sent ${data.sent} reminder email(s)`)
+    if (data.emailsSent > 0 || data.smsSent > 0) {
+      console.log(`[cron] Sent ${data.emailsSent} email(s) and ${data.smsSent} SMS(s)`)
     }
   } catch (err) {
     console.error('[cron] Reminder check failed:', err)

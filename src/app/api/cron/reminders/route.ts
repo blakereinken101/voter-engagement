@@ -215,8 +215,8 @@ export async function GET(request: NextRequest) {
           if (rowCount === 0) continue
 
           try {
-            await sendSms(recipient.phone, smsBody)
-            smsSent++
+            const sent = await sendSms(recipient.phone, smsBody)
+            if (sent) smsSent++
           } catch (err) {
             console.error(`[cron/reminders] Failed to send ${window.type} SMS to ${recipient.phone}:`, err)
             await db.query('DELETE FROM event_reminder_log WHERE id = $1', [logId])
