@@ -120,7 +120,7 @@ export default function LandingPage() {
             <span className="text-gradient">actually run.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-6 leading-relaxed">
-            Threshold is two AI-powered tools built for Democratic campaigns. Our events platform is open to Democrats &mdash; create a page, collect RSVPs, and message your attendees in minutes. Our relational organizing tool is in limited access: volunteers add the people they know, AI matches them to the voter file, and an AI coach helps your team know who to call, what to say, and when to follow up.
+            Threshold is <span className="text-gradient font-semibold">two AI-powered tools</span> built for Democratic campaigns. Our <span className="text-gradient font-semibold">events platform</span> is open to Democrats &mdash; create a page, collect RSVPs, and message your attendees in minutes. Our <span className="text-gradient font-semibold">relational organizing tool</span> is in limited access: it gives organizers and volunteers an AI coach &mdash; customized to your campaign &mdash; that helps them work through their networks, match contacts to the voter file, and know who to call, what to say, and when to follow up.
           </p>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed">
             AI isn&rsquo;t a feature we bolted on &mdash; it&rsquo;s how Threshold works. From matching contacts to the voter file to coaching volunteers through conversations to surfacing who needs follow-up, the AI does the heavy lifting so your team can focus on making real connections.
@@ -154,10 +154,10 @@ export default function LandingPage() {
           <span>Relational Organizing Tool</span>
         </div>
         <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 text-center tracking-tight">
-          Everything your team needs to run a voter contact program
+          Give every organizer an AI-powered campaign coach
         </h2>
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-14">
-          Volunteers add the people they already know. AI matches them to the voter file, coaches every conversation, and flags who needs follow-up &mdash; all in one place, in real time.
+          Threshold helps organizers and volunteers do what they already do &mdash; just faster and better. Through a simple chat conversation, the AI helps them work through their full networks and build a contact list they&rsquo;d never put together on their own. No forms, no menus &mdash; if they can text, they can use Threshold. The model is fully customizable to your campaign&rsquo;s priorities, issues, and messaging.
         </p>
         <div className="grid md:grid-cols-3 gap-6 text-left">
           {[
@@ -170,7 +170,7 @@ export default function LandingPage() {
             {
               icon: BarChart3,
               title: 'Voter File Integration',
-              desc: 'AI automatically matches every contact against your state voter file \u2014 even with partial names or addresses. Volunteers instantly see registration status, party affiliation, voting history, and district info without lifting a finger.',
+              desc: 'AI automatically matches every contact against your state voter file \u2014 even with partial names or addresses. Volunteers instantly see registration status, party affiliation, voting history, and district info without wasting time filling out forms.',
               color: 'bg-vc-teal/10 text-vc-teal',
             },
             {
@@ -182,7 +182,7 @@ export default function LandingPage() {
             {
               icon: Settings,
               title: 'Campaign Customization',
-              desc: 'Each campaign trains the AI coach on its own issues, endorsements, and messaging. Every volunteer\u2019s conversations are guided by your talking points \u2014 consistently, at scale, without a field director in every room.',
+              desc: 'Each campaign trains the AI coach on its own issues, endorsements, and messaging. Every volunteer\u2019s conversations are guided by your talking points \u2014 consistently and at scale.',
               color: 'bg-vc-gold/10 text-vc-gold',
             },
             {
@@ -349,7 +349,7 @@ export default function LandingPage() {
                 Threshold Events Platform
               </h2>
               <p className="text-white/60 leading-relaxed mb-6 max-w-xl">
-                Any Democrat can sign up and use it today. Host canvassing shifts, phone banks, rallies, fundraisers, voter registration drives, watch parties, and 14 other event types. Each event gets its own shareable page, RSVP management, attendee messaging, comment threads, and countdown timers.
+                Any Democrat can sign up and have their first event page live in minutes &mdash; no onboarding calls, no week-long setup. Host canvasses, phone banks, rallies, fundraisers, watch parties, and more. AI helps you write event descriptions, message your attendees, and manage follow-ups. It&rsquo;s clean, modern, easy to use, and more affordable than the major competitors. Each event gets a shareable page, RSVP management, attendee messaging, and comment threads.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link
@@ -384,10 +384,10 @@ export default function LandingPage() {
               Join the waitlist for our relational organizing tool
             </h2>
             <p className="text-white/50 max-w-xl mx-auto mb-4 leading-relaxed">
-              This is a separate tool from our events platform and is currently in limited access. Your volunteers add the people they know, AI matches them to the voter file, an AI coach preps every conversation, and you see every outcome in real time.
+              This is a separate tool from our events platform and is currently in limited access. It helps your organizers and volunteers work through their networks, match contacts to the voter file, and prep for every conversation &mdash; with an AI model customized to your campaign&rsquo;s priorities. If they can text, they can use Threshold.
             </p>
             <p className="text-white/40 max-w-lg mx-auto leading-relaxed text-sm">
-              We&rsquo;ll reach out to set up a workspace trained on your race, your district, and your issues. The Events Platform is open to Democrats — no waitlist required.
+              We&rsquo;ll reach out to set up a workspace trained on your race, your district, and your issues. The Events Platform is open to all Democrats &mdash; no waitlist required. We built this for people like us.
             </p>
           </div>
 
@@ -474,7 +474,10 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="text-center py-6 border-t border-white/5 mt-auto">
-        <p className="text-white/30 text-xs">
+        <Link href="/about" className="text-white/40 text-sm font-medium hover:text-white/60 transition-colors">
+          About Threshold
+        </Link>
+        <p className="text-white/30 text-xs mt-3">
           &copy; {new Date().getFullYear()} Vote Threshold LLC. All Rights Reserved.
         </p>
         <div className="flex items-center justify-center gap-3 mt-1">

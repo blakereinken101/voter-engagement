@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getSessionFromRequest, handleAuthError, AuthError } from '@/lib/auth'
-import { canViewEvent, canManageEvent, mapEventRow } from '@/lib/events'
+import { canViewEvent, canManageEvent, mapEventRow, getEventsSubscription } from '@/lib/events'
+import { sanitizeSlug } from '@/lib/slugs'
 
 export async function GET(
   request: NextRequest,
@@ -99,6 +100,31 @@ export async function PUT(
     }
 
     const body = await request.json()
+
+    // Handle custom slug update for growth/scale plans
+    if (body.slug !== undefined && body.slug !== rows[0].slug) {
+      const orgId = rows[0].organization_id
+      const subscription = await getEventsSubscription(orgId)
+      const plan = subscription?.plan
+      if (plan !== 'growth' && plan !== 'scale') {
+        return NextResponse.json({ error: 'Custom event URLs require a Growth or Scale plan' }, { status: 403 })
+      }
+      if (body.slug.trim()) {
+        const sanitized = sanitizeSlug(body.slug.trim())
+        if (sanitized.length < 3) {
+          return NextResponse.json({ error: 'Custom URL must be at least 3 characters' }, { status: 400 })
+        }
+        const { rows: existing } = await db.query('SELECT id FROM events WHERE slug = $1 AND id != $2', [sanitized, eventId])
+        if (existing.length > 0) {
+          return NextResponse.json({ error: 'This event URL is already taken' }, { status: 400 })
+        }
+        body.slug = sanitized
+      } else {
+        // Remove slug from body so it doesn't get cleared
+        delete body.slug
+      }
+    }
+
     const updatableFields: Record<string, string> = {
       title: 'title',
       description: 'description',
@@ -120,6 +146,7 @@ export async function PUT(
       maxAttendees: 'max_attendees',
       rsvpEnabled: 'rsvp_enabled',
       status: 'status',
+      slug: 'slug',
     }
 
     const setClauses: string[] = ['updated_at = NOW()']
@@ -157,7 +184,9 @@ export async function PUT(
 
     await logActivity(session.userId, 'event_updated', { eventId, fields: Object.keys(body) })
 
-    return NextResponse.json({ success: true })
+    // Return slug so frontend can redirect correctly if it changed
+    const slug = body.slug || rows[0].slug
+    return NextResponse.json({ success: true, slug })
   } catch (error) {
     const { error: msg, status } = handleAuthError(error)
     return NextResponse.json({ error: msg }, { status })

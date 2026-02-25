@@ -11,7 +11,8 @@ import type { EventFormData } from '@/types/events'
 export default function EditEventPage() {
   const params = useParams()
   const router = useRouter()
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading, productSubscriptions } = useAuth()
+  const eventsPlan = productSubscriptions.find(s => s.product === 'events' && (s.status === 'active' || s.status === 'trialing'))?.plan || 'free'
   const slug = params.slug as string
 
   const [event, setEvent] = useState<{ id: string; data: Partial<EventFormData> } | null>(null)
@@ -53,6 +54,7 @@ export default function EditEventPage() {
                 maxAttendees: e.maxAttendees?.toString() || '',
                 rsvpEnabled: e.rsvpEnabled,
                 status: e.status,
+                slug: e.slug || '',
               },
             })
           }
@@ -104,7 +106,7 @@ export default function EditEventPage() {
         <h1 className="font-display text-3xl font-bold text-white">Edit Event</h1>
       </div>
 
-      <EventForm mode="edit" eventId={event.id} initialData={event.data} />
+      <EventForm mode="edit" eventId={event.id} initialData={event.data} plan={eventsPlan} />
     </div>
   )
 }

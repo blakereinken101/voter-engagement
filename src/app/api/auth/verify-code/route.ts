@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getPendingSession, createSessionToken } from '@/lib/auth'
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 verification attempts per IP per 15 minutes
+    const ip = getClientIP(request)
+    const rl = checkRateLimit(`verify-code:${ip}`)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many verification attempts. Try again in ${rl.retryAfterSeconds} seconds.` },
+        { status: 429 }
+      )
+    }
+
     const pending = getPendingSession()
     if (!pending) {
       return NextResponse.json({ error: 'No pending verification. Please sign in again.' }, { status: 401 })

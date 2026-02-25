@@ -6,7 +6,7 @@ import { PLAN_LIMITS } from '@/types/events'
 // Only enable SSL for external connections.
 const dbUrl = process.env.DATABASE_URL || ''
 const useSSL = dbUrl.includes('.railway.internal') ? false
-  : process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false }
+  : process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true }
   : false
 
 const pool = new Pool({
@@ -542,6 +542,9 @@ async function seedDefaults(client: import('pg').PoolClient) {
 
   // Ensure admin user exists
   const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@thresholdvote.com'
+  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_SEED_PASSWORD) {
+    throw new Error('ADMIN_SEED_PASSWORD must be set in production')
+  }
   const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'changeme123'
   const { rows: existingAdmin } = await client.query('SELECT id FROM users WHERE email = $1', [adminEmail])
 

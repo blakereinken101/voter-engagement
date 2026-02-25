@@ -34,6 +34,9 @@ export async function POST(request: NextRequest) {
     if (!organizationName || typeof organizationName !== 'string' || organizationName.trim().length === 0) {
       return NextResponse.json({ error: 'Organization name is required' }, { status: 400 })
     }
+    if (product === 'events' && (!phone || typeof phone !== 'string' || phone.trim().length === 0)) {
+      return NextResponse.json({ error: 'Phone number is required' }, { status: 400 })
+    }
 
     const slug = sanitizeSlug(rawSlug || organizationName)
     const slugCheck = validateSlug(slug)

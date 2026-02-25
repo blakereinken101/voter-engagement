@@ -43,7 +43,7 @@ export default function EventsPricingPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
             <div className="border-t border-white/10 pt-4 space-y-2.5">
-              {['2 published events', 'Shareable public event pages', 'Guest & member RSVPs', 'Comment threads & emoji reactions', 'Automatic email reminders'].map(feature => (
+              {['2 published events', 'AI writing assistant', 'Shareable public event pages', 'Guest & member RSVPs', 'Comment threads & emoji reactions', 'Email reminders'].map(feature => (
                 <div key={feature} className="flex items-start gap-2">
                   <svg className="w-4 h-4 text-vc-teal shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                   <span className="text-sm text-white/70">{feature}</span>

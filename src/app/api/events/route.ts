@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getSessionFromRequest, handleAuthError } from '@/lib/auth'
 import { getEventsContext, generateSlug, mapEventRow, canViewEvent } from '@/lib/events'
+import { sanitizeSlug } from '@/lib/slugs'
 import { sendEventPublishedConfirmation } from '@/lib/email'
 import { fireAndForget, syncEventToVan, findVanCampaignForOrg } from '@/lib/van-sync'
 
@@ -160,7 +161,22 @@ export async function POST(request: NextRequest) {
     }
 
     const id = crypto.randomUUID()
-    const slug = generateSlug(title)
+
+    // Allow custom slug for growth/scale plans
+    const canCustomSlug = ctx.subscription.plan === 'growth' || ctx.subscription.plan === 'scale'
+    let slug: string
+    if (body.slug?.trim() && canCustomSlug) {
+      slug = sanitizeSlug(body.slug.trim())
+      if (slug.length < 3) {
+        return NextResponse.json({ error: 'Custom URL must be at least 3 characters' }, { status: 400 })
+      }
+      const { rows: existing } = await db.query('SELECT id FROM events WHERE slug = $1', [slug])
+      if (existing.length > 0) {
+        return NextResponse.json({ error: 'This event URL is already taken' }, { status: 400 })
+      }
+    } else {
+      slug = generateSlug(title)
+    }
 
     const tz = timezone || 'America/New_York'
 

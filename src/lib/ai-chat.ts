@@ -776,7 +776,7 @@ async function executeRunMatching(ctx: ToolContext): Promise<Record<string, unkn
     results = await matchPeopleToVoterDb(people, datasetId)
   } else {
     const config = await getCampaignConfig(ctx.campaignId)
-    const voterFile = getVoterFile(config.state, config.voterFile)
+    const voterFile = await getVoterFile(config.state, config.voterFile)
     results = await matchPeopleToVoterFile(people, voterFile)
   }
 

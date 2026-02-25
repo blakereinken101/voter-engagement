@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     // Fall back to file-based
     const campaignConfig = await getCampaignConfig(ctx.campaignId)
-    const voterFile = getVoterFile(state.toUpperCase(), campaignConfig.voterFile)
+    const voterFile = await getVoterFile(state.toUpperCase(), campaignConfig.voterFile)
 
     return NextResponse.json({
       state: state.toUpperCase(),

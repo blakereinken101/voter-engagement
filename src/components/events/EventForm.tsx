@@ -12,6 +12,7 @@ interface Props {
   initialData?: Partial<EventFormData>
   eventId?: string  // If editing
   mode: 'create' | 'edit'
+  plan?: string  // user's subscription plan (free, grassroots, growth, scale)
 }
 
 const TIMEZONES = [
@@ -56,7 +57,8 @@ function joinDateTime(date: string, time: string): string {
   return `${date}T${time || '12:00'}`
 }
 
-export default function EventForm({ initialData, eventId, mode }: Props) {
+export default function EventForm({ initialData, eventId, mode, plan }: Props) {
+  const canCustomSlug = plan === 'growth' || plan === 'scale'
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -85,6 +87,7 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
     maxAttendees: initialData?.maxAttendees || '',
     rsvpEnabled: initialData?.rsvpEnabled !== false,
     status: initialData?.status || 'published',
+    slug: initialData?.slug || '',
   })
 
   function updateForm(updates: Partial<EventFormData>) {
@@ -499,6 +502,26 @@ export default function EventForm({ initialData, eventId, mode }: Props) {
             ))}
           </div>
         </div>
+
+        {canCustomSlug && (
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Custom Event URL</label>
+            <div className="flex items-center gap-0">
+              <span className="text-sm text-white/40 bg-white/5 border border-white/10 border-r-0 rounded-l-btn px-3 py-3 whitespace-nowrap">
+                /events/
+              </span>
+              <input
+                type="text"
+                value={form.slug}
+                onChange={e => updateForm({ slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                placeholder="my-custom-url"
+                className="glass-input w-full px-4 py-3 text-white rounded-l-none"
+                maxLength={50}
+              />
+            </div>
+            <p className="text-xs text-white/40 mt-1">Leave blank to auto-generate from title. Lowercase letters, numbers, and hyphens only.</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>

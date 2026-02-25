@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     results = await matchPeopleToVoterDb(sanitizedPeople, datasetId)
   } else {
     const campaignConfig = await getCampaignConfig(ctx.campaignId)
-    const voterFile = getVoterFile(state.toUpperCase(), campaignConfig.voterFile)
+    const voterFile = await getVoterFile(state.toUpperCase(), campaignConfig.voterFile)
     results = await matchPeopleToVoterFile(sanitizedPeople, voterFile)
   }
   const processingTimeMs = Date.now() - start

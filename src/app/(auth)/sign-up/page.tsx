@@ -139,6 +139,10 @@ function SignUpForm() {
       setError('Please choose an available URL')
       return
     }
+    if (!phone.trim()) {
+      setError('Phone number is required for event notifications')
+      return
+    }
     if (!agreedToTerms) {
       setError('You must agree to the Terms of Service and Privacy Policy')
       return
@@ -258,13 +262,14 @@ function SignUpForm() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Phone Number <span className="text-white/30 font-normal">(optional)</span></label>
+              <label className="block text-sm font-medium text-white/70 mb-1">Phone Number *</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 className="glass-input w-full px-4 py-2.5 rounded-btn text-white text-sm"
                 placeholder="(555) 555-1234"
+                required
               />
               <p className="text-white/30 text-xs mt-1">For event text reminders. Msg & data rates may apply.</p>
             </div>

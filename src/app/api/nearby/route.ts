@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
   let voterFile: VoterRecord[] | null = null
   if (!datasetId) {
     const campaignConfig = await getCampaignConfig(ctx.campaignId)
-    voterFile = getVoterFile(cleanState, campaignConfig.voterFile)
+    voterFile = await getVoterFile(cleanState, campaignConfig.voterFile)
   }
 
   // ─── ADDRESS-BASED SEARCH ────────────────────────────────────────────

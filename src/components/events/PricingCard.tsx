@@ -18,9 +18,11 @@ const PLAN_DETAILS: Record<EventsPlan, { name: string; description: string; feat
     description: 'For local progressive clubs, small orgs, and first-time campaigns',
     features: [
       'Unlimited events',
-      'Custom event page URL',
       '200 RSVPs per month',
       '3 team members',
+      'Custom organization page URL',
+      'Text message notifications',
+      'AI writing assistant',
       'Shareable public event pages',
       'Guest & member RSVPs',
       'Comment threads & reactions',
@@ -32,6 +34,7 @@ const PLAN_DETAILS: Record<EventsPlan, { name: string; description: string; feat
     description: 'For active campaigns and statewide organizations',
     features: [
       'Everything in Grassroots',
+      'Custom event page URL',
       'Unlimited RSVPs',
       '10 team members',
       'Analytics dashboard',

@@ -202,6 +202,7 @@ export interface EventFormData {
   maxAttendees: string  // string for form input, parsed to number
   rsvpEnabled: boolean
   status: EventStatus
+  slug?: string  // custom slug, only for growth/scale plans
 }
 
 export interface RSVPFormData {

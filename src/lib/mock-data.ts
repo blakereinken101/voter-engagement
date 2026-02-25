@@ -8,7 +8,7 @@ import path from 'path'
 
 const voterFileCache = new Map<string, VoterRecord[]>()
 
-function loadRealVoterData(state: string, campaignVoterFile?: string): VoterRecord[] | null {
+async function loadRealVoterData(state: string, campaignVoterFile?: string): Promise<VoterRecord[] | null> {
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
 
   // Priority: campaign-specific file > env var > default discovery
@@ -34,20 +34,20 @@ function loadRealVoterData(state: string, campaignVoterFile?: string): VoterReco
   const isGeo = dataPath.includes('-geo')
   console.log(`[voter-data] Loading voter data from ${path.basename(dataPath)}${isGeo ? ' (geocoded)' : ''}...`)
   const start = Date.now()
-  const raw = fs.readFileSync(dataPath, 'utf-8')
+  const raw = await fs.promises.readFile(dataPath, 'utf-8')
   const data = JSON.parse(raw) as VoterRecord[]
   const elapsed = Date.now() - start
   console.log(`[voter-data] Loaded ${data.length.toLocaleString()} voter records in ${elapsed}ms`)
   return data
 }
 
-export function getVoterFile(state: string, campaignVoterFile?: string): VoterRecord[] {
+export async function getVoterFile(state: string, campaignVoterFile?: string): Promise<VoterRecord[]> {
   const stateKey = state.toUpperCase()
   const cacheKey = campaignVoterFile ? `${stateKey}:${campaignVoterFile}` : stateKey
   if (voterFileCache.has(cacheKey)) return voterFileCache.get(cacheKey)!
 
   // Try loading real data first
-  const realData = loadRealVoterData(stateKey, campaignVoterFile)
+  const realData = await loadRealVoterData(stateKey, campaignVoterFile)
   if (realData) {
     voterFileCache.set(cacheKey, realData)
     return realData

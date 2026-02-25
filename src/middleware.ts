@@ -37,7 +37,9 @@ export async function middleware(request: NextRequest) {
   // Allow public paths
   if (
     pathname === '/' ||
+    pathname === '/about' ||
     pathname === '/privacy' ||
+    pathname === '/terms' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
     pathname.startsWith('/api/contact') ||
@@ -140,5 +142,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|favicon\\.png|apple-touch-icon\\.png|logo\\.png|hero-.*\\.jpg|sw\\.js).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|favicon\\.png|apple-touch-icon\\.png|logo\\.png|hero-.*\\.jpg|blake-headshot\\.jpg|sw\\.js).*)'],
 }
