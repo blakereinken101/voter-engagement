@@ -123,7 +123,7 @@ export default function LandingPage() {
             Threshold is <span className="text-gradient font-semibold">two AI-powered tools</span> built for Democratic campaigns. Our <span className="text-gradient font-semibold">events platform</span> is open to Democrats &mdash; create a page, collect RSVPs, and message your attendees in minutes. Our <span className="text-gradient font-semibold">relational organizing tool</span> is in limited access: it gives organizers and volunteers an AI coach &mdash; customized to your campaign &mdash; that helps them work through their networks, match contacts to the voter file, and know who to call, what to say, and when to follow up.
           </p>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed">
-            AI isn&rsquo;t a feature we bolted on &mdash; it&rsquo;s how Threshold works. From matching contacts to the voter file to coaching volunteers through conversations to surfacing who needs follow-up, the AI does the heavy lifting so your team can focus on making real connections.
+            AI isn&rsquo;t a feature we bolted on &mdash; it&rsquo;s how Threshold works. From rolodexing volunteers to suggesting conversation tactics, the AI makes using the products easier, so you and your team can focus on organizing and talking to voters.
           </p>
           <div className="flex flex-wrap gap-4">
             <a
