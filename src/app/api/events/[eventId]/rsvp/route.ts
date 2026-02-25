@@ -112,15 +112,16 @@ export async function POST(
           updated_at = NOW()
       `, [id, eventId, session.userId, rsvpStatus, guestCount || 1, note || null, !!smsOptIn])
 
-      // If user provided a phone and opted in, save to their user record
-      if (phone?.trim() && smsOptIn) {
-        await db.query(
-          'UPDATE users SET phone = $1, sms_opt_in = true WHERE id = $2',
-          [phone.trim(), session.userId]
-        )
-      } else if (smsOptIn === false) {
-        // Explicitly opted out — clear sms_opt_in on user
-        await db.query('UPDATE users SET sms_opt_in = false WHERE id = $1', [session.userId])
+      // Only update user SMS settings when phone field was explicitly included
+      if (phone !== undefined) {
+        if (phone.trim() && smsOptIn) {
+          await db.query(
+            'UPDATE users SET phone = $1, sms_opt_in = true WHERE id = $2',
+            [phone.trim(), session.userId]
+          )
+        } else if (smsOptIn === false) {
+          await db.query('UPDATE users SET sms_opt_in = false WHERE id = $1', [session.userId])
+        }
       }
 
       await logActivity(session.userId, 'event_rsvp', { eventId, status: rsvpStatus })

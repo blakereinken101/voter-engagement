@@ -42,13 +42,19 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
     setError('')
 
     try {
-      const body: Record<string, unknown> = { status: newStatus, smsOptIn }
+      const body: Record<string, unknown> = { status: newStatus }
       if (!user) {
         body.guestName = guestName
         body.guestEmail = guestEmail
-        if (phoneNumber.trim()) body.guestPhone = phoneNumber.trim()
+        if (phoneNumber.trim()) {
+          body.guestPhone = phoneNumber.trim()
+          body.smsOptIn = smsOptIn
+        }
       } else {
-        if (phoneNumber.trim()) body.phone = phoneNumber.trim()
+        if (phoneNumber.trim()) {
+          body.phone = phoneNumber.trim()
+          body.smsOptIn = smsOptIn
+        }
       }
 
       const res = await fetch(`/api/events/${eventId}/rsvp`, {

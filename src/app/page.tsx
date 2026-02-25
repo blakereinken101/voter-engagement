@@ -86,7 +86,7 @@ export default function LandingPage() {
                 href="#waitlist"
                 className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
               >
-                Get Started
+                Relational
               </a>
             ) : (
               <>
@@ -97,7 +97,7 @@ export default function LandingPage() {
                   href="#waitlist"
                   className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
                 >
-                  Get Started
+                  Relational
                 </a>
               </>
             )}

@@ -12,6 +12,19 @@ function getClient() {
   return _client
 }
 
+/**
+ * Normalize a phone number to E.164 format (+1XXXXXXXXXX for US numbers).
+ * Strips non-digit characters and prepends +1 if missing.
+ */
+function normalizePhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.startsWith('1') && digits.length === 11) return `+${digits}`
+  if (digits.length === 10) return `+1${digits}`
+  // Already has country code or international number
+  if (phone.startsWith('+')) return phone
+  return `+${digits}`
+}
+
 export async function sendSms(to: string, body: string): Promise<void> {
   const client = getClient()
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
@@ -21,7 +34,7 @@ export async function sendSms(to: string, body: string): Promise<void> {
   }
 
   await client.messages.create({
-    to,
+    to: normalizePhone(to),
     messagingServiceSid,
     body,
   })
