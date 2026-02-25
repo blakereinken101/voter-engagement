@@ -66,6 +66,9 @@ function SignUpForm() {
   const [slugSuggestion, setSlugSuggestion] = useState<string | null>(null)
   const [slugError, setSlugError] = useState<string | null>(null)
 
+  const [phone, setPhone] = useState('')
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -136,6 +139,10 @@ function SignUpForm() {
       setError('Please choose an available URL')
       return
     }
+    if (!agreedToTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy')
+      return
+    }
 
     setLoading(true)
     try {
@@ -146,6 +153,7 @@ function SignUpForm() {
           name: name.trim(),
           email: email.trim(),
           password,
+          phone: phone.trim() || undefined,
           organizationName: organizationName.trim(),
           slug,
           product: 'events',
@@ -248,6 +256,19 @@ function SignUpForm() {
               </div>
             </div>
 
+            {/* Phone */}
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1">Phone Number <span className="text-white/30 font-normal">(optional)</span></label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                className="glass-input w-full px-4 py-2.5 rounded-btn text-white text-sm"
+                placeholder="(555) 555-1234"
+              />
+              <p className="text-white/30 text-xs mt-1">For event text reminders. Msg & data rates may apply.</p>
+            </div>
+
             {/* Organization Name */}
             <div>
               <label className="block text-sm font-medium text-white/70 mb-1">Organization Name</label>
@@ -320,10 +341,31 @@ function SignUpForm() {
               </div>
             )}
 
+            {/* Terms agreement */}
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 accent-vc-purple"
+                required
+              />
+              <span className="text-xs text-white/60 leading-relaxed">
+                I agree to the{' '}
+                <Link href="/terms" target="_blank" className="text-vc-purple-light hover:underline">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/privacy" target="_blank" className="text-vc-purple-light hover:underline">
+                  Privacy Policy
+                </Link>.
+              </span>
+            </label>
+
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading || slugStatus === 'taken'}
+              disabled={loading || slugStatus === 'taken' || !agreedToTerms}
               className="w-full bg-vc-purple hover:bg-vc-purple-light text-white px-6 py-3 rounded-btn font-medium shadow-glow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (

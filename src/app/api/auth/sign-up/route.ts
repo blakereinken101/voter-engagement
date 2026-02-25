@@ -7,7 +7,7 @@ import { sanitizeSlug, validateSlug } from '@/lib/slugs'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, password, organizationName, slug: rawSlug, product, plan } = body
+    const { name, email, password, phone, organizationName, slug: rawSlug, product, plan } = body
 
     // Self-signup for relational is not supported — relational access is invite-only
     if (product === 'relational') {
@@ -151,9 +151,9 @@ export async function POST(request: NextRequest) {
 
       // Create user (no campaign_id or role — those are relational-only concerns)
       await client.query(
-        `INSERT INTO users (id, email, password_hash, name, is_platform_admin)
-         VALUES ($1, $2, $3, $4, false)`,
-        [userId, normalizedEmail, passwordHash, name.trim()]
+        `INSERT INTO users (id, email, password_hash, name, phone, sms_opt_in, is_platform_admin)
+         VALUES ($1, $2, $3, $4, $5, $6, false)`,
+        [userId, normalizedEmail, passwordHash, name.trim(), phone?.trim() || null, !!phone?.trim()]
       )
 
       // Create organization (events need an org for events.organization_id)

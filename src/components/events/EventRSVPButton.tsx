@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import type { RSVPStatus } from '@/types/events'
+import Link from 'next/link'
 import { Check, HelpCircle, X, Phone } from 'lucide-react'
 
 interface Props {
@@ -115,39 +116,46 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
             value={guestName}
             onChange={e => setGuestName(e.target.value)}
             className="glass-input w-full px-3 py-2 text-sm"
+            required
           />
           <input
             type="email"
-            placeholder="Email (optional)"
+            placeholder="Email *"
             value={guestEmail}
             onChange={e => setGuestEmail(e.target.value)}
             className="glass-input w-full px-3 py-2 text-sm"
+            required
           />
           <input
             type="tel"
-            placeholder="Phone number (optional)"
+            placeholder="Phone number *"
             value={phoneNumber}
             onChange={e => setPhoneNumber(e.target.value)}
             className="glass-input w-full px-3 py-2 text-sm"
+            required
           />
-          {phoneNumber.trim() && (
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={smsOptIn}
-                onChange={e => setSmsOptIn(e.target.checked)}
-                className="mt-0.5 accent-vc-teal"
-              />
-              <span className="text-xs text-white/60">
-                <Phone className="w-3 h-3 inline mr-1" />
-                Text me event reminders (24h & 6h before). Msg & data rates may apply. Reply STOP to unsubscribe.
-              </span>
-            </label>
-          )}
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={smsOptIn}
+              onChange={e => setSmsOptIn(e.target.checked)}
+              className="mt-0.5 accent-vc-teal"
+            />
+            <span className="text-xs text-white/60">
+              <Phone className="w-3 h-3 inline mr-1" />
+              Text me event reminders and updates. Msg & data rates may apply. Reply STOP to unsubscribe.
+            </span>
+          </label>
+          <p className="text-[11px] text-white/40 leading-relaxed">
+            By RSVPing you agree to the{' '}
+            <Link href="/terms" target="_blank" className="text-vc-purple-light hover:underline">Terms of Service</Link>{' '}
+            and{' '}
+            <Link href="/privacy" target="_blank" className="text-vc-purple-light hover:underline">Privacy Policy</Link>.
+          </p>
           <div className="flex gap-2">
             <button
               onClick={() => handleRsvp('going')}
-              disabled={!guestName.trim() || isLoading}
+              disabled={!guestName.trim() || !guestEmail.trim() || !phoneNumber.trim() || isLoading}
               className="flex-1 bg-vc-teal text-white px-4 py-2 rounded-btn text-sm font-medium disabled:opacity-50"
             >
               {isLoading ? 'Saving...' : 'Confirm RSVP'}

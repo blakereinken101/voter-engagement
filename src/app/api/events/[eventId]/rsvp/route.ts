@@ -143,6 +143,12 @@ export async function POST(
       if (!guestName?.trim()) {
         return NextResponse.json({ error: 'Name is required for guest RSVP' }, { status: 400 })
       }
+      if (!guestEmail?.trim()) {
+        return NextResponse.json({ error: 'Email is required to RSVP' }, { status: 400 })
+      }
+      if (!guestPhone?.trim()) {
+        return NextResponse.json({ error: 'Phone number is required to RSVP' }, { status: 400 })
+      }
 
       const id = crypto.randomUUID()
       await db.query(`
