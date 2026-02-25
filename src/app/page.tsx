@@ -120,17 +120,17 @@ export default function LandingPage() {
             <span className="text-gradient">actually run.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-6 leading-relaxed">
-            Threshold is a relational organizing platform that helps your volunteers turn their personal networks into a voter contact program. Add the people they already know, match them against state voter files, and track every conversation &mdash; with an AI coach that helps your team know who to call, what to say, and when to follow up.
+            Threshold is two AI-powered tools built for Democratic campaigns. Our events platform is open to Democrats &mdash; create a page, collect RSVPs, and message your attendees in minutes. Our relational organizing tool is in limited access: volunteers add the people they know, AI matches them to the voter file, and an AI coach helps your team know who to call, what to say, and when to follow up.
           </p>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed">
-            Our events platform is live now &mdash; host canvassing shifts, phone banks, rallies, and more with tools built specifically for progressive organizers.
+            AI isn&rsquo;t a feature we bolted on &mdash; it&rsquo;s how Threshold works. From matching contacts to the voter file to coaching volunteers through conversations to surfacing who needs follow-up, the AI does the heavy lifting so your team can focus on making real connections.
           </p>
           <div className="flex flex-wrap gap-4">
             <a
               href="#waitlist"
               className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
             >
-              Join the Waitlist
+              Relational Tool
               <ArrowRight className="w-5 h-5" />
             </a>
             <Link
@@ -138,7 +138,7 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 glass text-white font-bold font-display text-lg px-10 py-4 rounded-btn transition-all hover:bg-white/10"
             >
               <Calendar className="w-5 h-5" />
-              Try the Events Platform
+              Events Platform
             </Link>
           </div>
         </div>
@@ -157,38 +157,38 @@ export default function LandingPage() {
           Everything your team needs to run a voter contact program
         </h2>
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-14">
-          Volunteers add people they know, match them to the voter file, log every text, call, and one-on-one, and track who&rsquo;s a supporter &mdash; all in one place.
+          Volunteers add the people they already know. AI matches them to the voter file, coaches every conversation, and flags who needs follow-up &mdash; all in one place, in real time.
         </p>
         <div className="grid md:grid-cols-3 gap-6 text-left">
           {[
             {
               icon: Users,
               title: 'Relational Contact Lists',
-              desc: 'Volunteers add people they already know — family, friends, neighbors, coworkers — and build a personal outreach list. Contacts can be added manually, through the AI coach, or from their phone\u2019s contact list.',
+              desc: 'Volunteers add the people they already know \u2014 family, friends, neighbors, coworkers. The AI coach helps them think through their full network and builds their outreach list automatically, or they can add contacts manually.',
               color: 'bg-vc-purple/10 text-vc-purple',
             },
             {
               icon: BarChart3,
               title: 'Voter File Integration',
-              desc: 'Automatically match contacts against your state voter file to see registration status, party affiliation, voting history, and district info. AI-powered fuzzy matching finds the right voter even with incomplete names or addresses.',
+              desc: 'AI automatically matches every contact against your state voter file \u2014 even with partial names or addresses. Volunteers instantly see registration status, party affiliation, voting history, and district info without lifting a finger.',
               color: 'bg-vc-teal/10 text-vc-teal',
             },
             {
               icon: Phone,
               title: 'Outreach Tracking',
-              desc: 'Log every text, call, and one-on-one meeting. Record outcomes — supporter, undecided, opposed, no answer — recruit volunteer prospects, and add custom survey responses. Campaign managers see it all in real time.',
+              desc: 'Log every text, call, and one-on-one. After each conversation, the AI helps volunteers record the outcome, write a follow-up note, and decide who to contact next. Campaign managers see every result in real time.',
               color: 'bg-vc-coral/10 text-vc-coral',
             },
             {
               icon: Settings,
               title: 'Campaign Customization',
-              desc: 'Each campaign gets its own workspace with custom survey questions, branding, election dates, and talking points. Campaigns can train the AI coach on their specific issues, endorsements, and messaging.',
+              desc: 'Each campaign trains the AI coach on its own issues, endorsements, and messaging. Every volunteer\u2019s conversations are guided by your talking points \u2014 consistently, at scale, without a field director in every room.',
               color: 'bg-vc-gold/10 text-vc-gold',
             },
             {
               icon: Mail,
               title: 'Team Management',
-              desc: 'Invite volunteers by email, assign admin or volunteer roles, and track who\u2019s making the most contacts. Leaderboards and conversion stats show your campaign\u2019s progress at a glance.',
+              desc: 'Invite volunteers by email and track who\u2019s making the most contacts. Leaderboards, conversion rates, and AI-generated summaries show your campaign\u2019s progress \u2014 so you know where to focus your energy.',
               color: 'bg-vc-purple/10 text-vc-purple-light',
             },
             {
@@ -229,7 +229,7 @@ export default function LandingPage() {
               An AI campaign coach that actually knows your race
             </h2>
             <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-              Every volunteer gets an AI assistant trained on your campaign&rsquo;s issues, endorsements, and messaging. It helps them add contacts, prep for conversations, and log outcomes &mdash; all through a simple chat interface.
+              Threshold&rsquo;s AI isn&rsquo;t a chatbot you have to prompt carefully &mdash; it&rsquo;s a purpose-built campaign coach. Every volunteer on your team gets an assistant trained on your specific race: your district, your issues, your endorsements, your messaging. It knows the voter file. It knows the script. It helps with every step.
             </p>
           </div>
 
@@ -240,34 +240,34 @@ export default function LandingPage() {
               </div>
               <h3 className="font-display font-bold text-lg text-white mb-2">Always on the cutting edge</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                Threshold runs on the latest AI models and upgrades automatically. Your campaign coach gets smarter over time.
+                Threshold runs on the most capable AI models available and upgrades automatically. You get state-of-the-art AI without managing it yourself.
               </p>
             </div>
             <div className="glass-card p-7">
               <div className="w-12 h-12 rounded-xl bg-vc-purple/10 text-vc-purple-light flex items-center justify-center mb-4">
                 <BookUser className="w-6 h-6" />
               </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">Smart contact rolodex</h3>
+              <h3 className="font-display font-bold text-lg text-white mb-2">AI-powered contact building</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                The AI coach helps volunteers think through who they know &mdash; by neighborhood, workplace, church, gym, or social circle &mdash; and adds them to their outreach list with the right details already filled in.
+                The AI coach walks volunteers through their full network &mdash; neighborhood, workplace, church, gym, social circles &mdash; and populates their outreach list faster than any spreadsheet. Most volunteers find contacts they forgot they had.
               </p>
             </div>
             <div className="glass-card p-7">
               <div className="w-12 h-12 rounded-xl bg-vc-coral/10 text-vc-coral flex items-center justify-center mb-4">
                 <MessageCircle className="w-6 h-6" />
               </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">Better conversations, faster</h3>
+              <h3 className="font-display font-bold text-lg text-white mb-2">Conversation coaching in real time</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                Before every call or knock, volunteers can ask the AI for talking points tailored to that voter&rsquo;s history and interests. After the conversation, it helps them log the outcome and suggests a follow-up plan.
+                Before every call or knock, volunteers get AI talking points tailored to that specific voter. After the conversation, the AI helps them log the outcome and tells them exactly what to do next.
               </p>
             </div>
             <div className="glass-card p-7">
               <div className="w-12 h-12 rounded-xl bg-vc-purple/10 text-vc-purple flex items-center justify-center mb-4">
                 <Brain className="w-6 h-6" />
               </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">Works the way you do</h3>
+              <h3 className="font-display font-bold text-lg text-white mb-2">No tech background needed</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                No tech background needed. Everything is in plain language anyone on your team can use &mdash; just tell it what you need and it handles the rest.
+                Volunteers interact through plain conversation &mdash; no forms to fill out, no menus to navigate. If they can text, they can use Threshold. The AI figures out the rest.
               </p>
             </div>
             <div className="glass-card p-7">
@@ -276,16 +276,16 @@ export default function LandingPage() {
               </div>
               <h3 className="font-display font-bold text-lg text-white mb-2">Your data stays yours</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                Your voter data, campaign strategy, and conversation logs are never used to train AI models or shared with third parties. Your campaign context stays private to your team.
+                Your voter data, campaign strategy, and conversation logs are never used to train AI models or shared with anyone outside your team. The AI is powerful because it knows your race &mdash; that knowledge stays private.
               </p>
             </div>
             <div className="glass-card p-7">
               <div className="w-12 h-12 rounded-xl bg-vc-teal/10 text-vc-teal flex items-center justify-center mb-4">
                 <BarChart3 className="w-6 h-6" />
               </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">AI-powered voter matching</h3>
+              <h3 className="font-display font-bold text-lg text-white mb-2">AI voter file matching</h3>
               <p className="text-white/60 text-sm leading-relaxed">
-                When a volunteer adds a contact, AI fuzzy-matches them against the state voter file &mdash; even with partial names or missing addresses. Matched contacts show registration status, vote history, and district info instantly.
+                The moment a contact is added, AI matches them to the state voter file &mdash; even with a nickname or a partial address. Volunteers see registration status, voting history, and district info before they ever pick up the phone.
               </p>
             </div>
           </div>
@@ -307,14 +307,14 @@ export default function LandingPage() {
             Why relational organizing wins
           </h2>
           <p className="text-white/50 text-center max-w-xl mx-auto mb-10">
-            Voters are more likely to engage when asked by someone they know and trust. Threshold makes that process scalable.
+            Voters are far more likely to engage when asked by someone they know. Threshold gives every volunteer the tools and AI coaching to make that ask count.
           </p>
           <div className="grid md:grid-cols-2 gap-5 text-left">
             {[
-              'A personal ask from someone you trust is 10x more effective than a mailer or digital ad.',
-              'Most people who skip elections aren\'t opposed to voting — they just need a nudge from someone they know.',
-              'Your volunteers already have the relationships. Threshold gives them voter file data, conversation guides, and an AI coach to make every contact count.',
-              'Relational organizing scales with your people, not your ad spend. Every volunteer who joins multiplies your reach.',
+              'A personal ask from someone you trust is 10x more effective than a mailer or digital ad \u2014 and AI helps your volunteers make that ask confidently.',
+              'Most people who skip elections aren\u2019t opposed to voting \u2014 they just need a nudge from someone they know. Your volunteers are that person.',
+              'Your volunteers already have the relationships. Threshold\u2019s AI gives them voter file data, tailored talking points, and step-by-step coaching to make every contact count.',
+              'Relational organizing scales with your people, not your ad spend. Every volunteer who joins multiplies your reach \u2014 and the AI makes each of them more effective.',
             ].map((text, i) => (
               <div key={i} className="flex gap-4 items-start glass-dark rounded-card p-5">
                 <CheckCircle className="w-5 h-5 text-vc-teal flex-shrink-0 mt-0.5" />
@@ -348,11 +348,8 @@ export default function LandingPage() {
               <h2 className="font-display text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight">
                 Threshold Events Platform
               </h2>
-              <p className="text-white/60 leading-relaxed mb-3 max-w-xl">
-                Host canvassing shifts, phone banks, rallies, fundraisers, voter registration drives, watch parties, and 14 other event types &mdash; each with its own shareable page, RSVP management, comment threads, emoji reactions, and countdown timers. Built for organizing, not generic event software.
-              </p>
-              <p className="text-white/40 leading-relaxed mb-6 max-w-xl text-sm">
-                Create an account in minutes. Start free with 2 events, no credit card required. Paid plans add unlimited events, team members, custom branding, and analytics.
+              <p className="text-white/60 leading-relaxed mb-6 max-w-xl">
+                Any Democrat can sign up and use it today. Host canvassing shifts, phone banks, rallies, fundraisers, voter registration drives, watch parties, and 14 other event types. Each event gets its own shareable page, RSVP management, attendee messaging, comment threads, and countdown timers.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link
@@ -384,13 +381,13 @@ export default function LandingPage() {
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
-              Get early access to our relational organizing tool
+              Join the waitlist for our relational organizing tool
             </h2>
             <p className="text-white/50 max-w-xl mx-auto mb-4 leading-relaxed">
-              Your volunteers add the people they know, we match them to the voter file, an AI coach helps prep every conversation, and you see every outcome in real time. One platform for your entire voter contact program.
+              This is a separate tool from our events platform and is currently in limited access. Your volunteers add the people they know, AI matches them to the voter file, an AI coach preps every conversation, and you see every outcome in real time.
             </p>
             <p className="text-white/40 max-w-lg mx-auto leading-relaxed text-sm">
-              Join the waitlist and we&rsquo;ll reach out to set up a workspace tailored to your race, your district, and your issues.
+              We&rsquo;ll reach out to set up a workspace trained on your race, your district, and your issues. The Events Platform is open to Democrats — no waitlist required.
             </p>
           </div>
 
