@@ -23,7 +23,6 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
-  const [smsOptIn, setSmsOptIn] = useState(false)
   const [error, setError] = useState('')
 
   if (!rsvpEnabled) return null
@@ -49,12 +48,12 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
         body.guestEmail = guestEmail
         if (phoneNumber.trim()) {
           body.guestPhone = phoneNumber.trim()
-          body.smsOptIn = smsOptIn
+          body.smsOptIn = true
         }
       } else {
         if (phoneNumber.trim()) {
           body.phone = phoneNumber.trim()
-          body.smsOptIn = smsOptIn
+          body.smsOptIn = true
         }
       }
 
@@ -134,20 +133,8 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
             className="glass-input w-full px-3 py-2 text-sm"
             required
           />
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={smsOptIn}
-              onChange={e => setSmsOptIn(e.target.checked)}
-              className="mt-0.5 accent-vc-teal"
-            />
-            <span className="text-xs text-white/60">
-              <Phone className="w-3 h-3 inline mr-1" />
-              Text me event reminders and updates. Msg & data rates may apply. Reply STOP to unsubscribe.
-            </span>
-          </label>
           <p className="text-[11px] text-white/40 leading-relaxed">
-            By RSVPing you agree to the{' '}
+            By RSVPing you agree to receive text reminders and updates about this event. Msg &amp; data rates may apply. Reply STOP to unsubscribe. See our{' '}
             <Link href="/terms" target="_blank" className="text-vc-purple-light hover:underline">Terms of Service</Link>{' '}
             and{' '}
             <Link href="/privacy" target="_blank" className="text-vc-purple-light hover:underline">Privacy Policy</Link>.
@@ -170,14 +157,14 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
         </div>
       )}
 
-      {/* SMS opt-in for authenticated users who just RSVP'd going/maybe */}
+      {/* Phone number input for authenticated users who just RSVP'd going/maybe */}
       {user && status && (status === 'going' || status === 'maybe') && !showSmsForm && (
         <button
           onClick={() => setShowSmsForm(true)}
           className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/60 transition-colors"
         >
           <Phone className="w-3 h-3" />
-          Get text reminders
+          Add phone for text reminders
         </button>
       )}
 
@@ -185,7 +172,7 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
         <div className="glass-card p-4 space-y-3 animate-fade-in">
           <p className="text-sm text-white/70 flex items-center gap-1.5">
             <Phone className="w-4 h-4" />
-            Get text reminders for this event
+            Add your phone for text reminders
           </p>
           <input
             type="tel"
@@ -194,21 +181,13 @@ export default function EventRSVPButton({ eventId, currentStatus, isPublic, rsvp
             onChange={e => setPhoneNumber(e.target.value)}
             className="glass-input w-full px-3 py-2 text-sm"
           />
-          <label className="flex items-start gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={smsOptIn}
-              onChange={e => setSmsOptIn(e.target.checked)}
-              className="mt-0.5 accent-vc-teal"
-            />
-            <span className="text-xs text-white/60">
-              Text me event reminders (24h & 6h before). Msg & data rates may apply. Reply STOP to unsubscribe.
-            </span>
-          </label>
+          <p className="text-[11px] text-white/40 leading-relaxed">
+            By adding your number you agree to receive text reminders about this event. Msg &amp; data rates may apply. Reply STOP to unsubscribe.
+          </p>
           <div className="flex gap-2">
             <button
               onClick={() => { if (status) handleRsvp(status) }}
-              disabled={!phoneNumber.trim() || !smsOptIn || isLoading}
+              disabled={!phoneNumber.trim() || isLoading}
               className="flex-1 bg-vc-teal text-white px-4 py-2 rounded-btn text-sm font-medium disabled:opacity-50"
             >
               {isLoading ? 'Saving...' : 'Save'}
