@@ -666,7 +666,9 @@ async function seedDefaults(client: import('pg').PoolClient) {
   }
 
   // ── Seed placeholder events ──────────────────────────────────
-  await seedEvents(client, orgId, adminId)
+  if (adminId) {
+    await seedEvents(client, orgId, adminId)
+  }
 }
 
 async function seedEvents(client: import('pg').PoolClient, orgId: string, adminId: string) {
