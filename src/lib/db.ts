@@ -542,14 +542,13 @@ async function seedDefaults(client: import('pg').PoolClient) {
 
   // Ensure admin user exists
   const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@thresholdvote.com'
-  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_SEED_PASSWORD) {
-    throw new Error('ADMIN_SEED_PASSWORD must be set in production')
-  }
-  const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'changeme123'
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD || (
+    process.env.NODE_ENV === 'production' ? '' : 'changeme123'
+  )
   const { rows: existingAdmin } = await client.query('SELECT id FROM users WHERE email = $1', [adminEmail])
 
-  let adminId: string
-  if (existingAdmin.length === 0) {
+  let adminId: string | null = null
+  if (existingAdmin.length === 0 && adminPassword) {
     adminId = crypto.randomUUID()
     const passwordHash = hashSync(adminPassword, 10)
     await client.query(
@@ -558,32 +557,36 @@ async function seedDefaults(client: import('pg').PoolClient) {
       [adminId, adminEmail, passwordHash, 'Admin', campaignId]
     )
     console.log(`[db] Seeded admin user: ${adminEmail}`)
+  } else if (existingAdmin.length === 0) {
+    console.warn('[db] No ADMIN_SEED_PASSWORD set — skipping admin user creation')
   } else {
     adminId = existingAdmin[0].id as string
     await client.query('UPDATE users SET is_platform_admin = true WHERE id = $1', [adminId])
   }
 
-  // Ensure admin has membership in default campaign
-  const { rows: existingMembership } = await client.query(
-    'SELECT id FROM memberships WHERE user_id = $1 AND campaign_id = $2',
-    [adminId, campaignId]
-  )
-  if (existingMembership.length === 0) {
-    await client.query(
-      `INSERT INTO memberships (id, user_id, campaign_id, role) VALUES ($1, $2, $3, 'campaign_admin')`,
-      [crypto.randomUUID(), adminId, campaignId]
+  if (adminId) {
+    // Ensure admin has membership in default campaign
+    const { rows: existingMembership } = await client.query(
+      'SELECT id FROM memberships WHERE user_id = $1 AND campaign_id = $2',
+      [adminId, campaignId]
     )
-    console.log(`[db] Seeded admin membership in campaign: ${campaignId}`)
-  }
+    if (existingMembership.length === 0) {
+      await client.query(
+        `INSERT INTO memberships (id, user_id, campaign_id, role) VALUES ($1, $2, $3, 'campaign_admin')`,
+        [crypto.randomUUID(), adminId, campaignId]
+      )
+      console.log(`[db] Seeded admin membership in campaign: ${campaignId}`)
+    }
 
-  // Ensure admin has both product access grants
-  for (const product of ['events', 'relational']) {
-    await client.query(
-      `INSERT INTO user_products (id, user_id, product)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (user_id, product) DO NOTHING`,
-      [crypto.randomUUID(), adminId, product]
-    )
+    // Ensure admin has both product access grants
+    for (const product of ['events', 'relational']) {
+      await client.query(
+        `INSERT INTO user_products (id, user_id, product)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, product) DO NOTHING`,
+        [crypto.randomUUID(), adminId, product]
+      )
+    }
   }
 
   // ── Backfill relational product for all users who have memberships ──
@@ -604,8 +607,8 @@ async function seedDefaults(client: import('pg').PoolClient) {
     SELECT u.id, u.campaign_id, u.role FROM users u
     WHERE NOT EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = u.id)
     AND u.campaign_id IS NOT NULL
-    AND u.id != $1
-  `, [adminId])
+    ${adminId ? 'AND u.id != $1' : ''}
+  `, adminId ? [adminId] : [])
 
   for (const user of usersWithoutMembership) {
     const { rows: camp } = await client.query('SELECT id FROM campaigns WHERE id = $1', [user.campaign_id])
