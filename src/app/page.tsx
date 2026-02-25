@@ -480,6 +480,8 @@ export default function LandingPage() {
         <div className="flex items-center justify-center gap-3 mt-1">
           <Link href="/privacy" className="text-white/20 text-[10px] hover:text-white/40 transition-colors">Privacy Policy</Link>
           <span className="text-white/10 text-[10px]">|</span>
+          <Link href="/terms" className="text-white/20 text-[10px] hover:text-white/40 transition-colors">Terms of Service</Link>
+          <span className="text-white/10 text-[10px]">|</span>
           <a href="mailto:info@thresholdvote.com" className="text-white/20 text-[10px] hover:text-white/40 transition-colors">info@thresholdvote.com</a>
         </div>
       </footer>

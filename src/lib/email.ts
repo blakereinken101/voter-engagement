@@ -68,7 +68,7 @@ interface ContactFormData {
 
 export async function sendContactFormEmail(data: ContactFormData): Promise<void> {
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
-  const TO_EMAIL = 'info@votethreshold.com'
+  const TO_EMAIL = 'info@thresholdvote.com'
 
   const { error } = await getResend().emails.send({
     from: `Threshold Contact Form <${FROM_EMAIL}>`,

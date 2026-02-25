@@ -101,7 +101,7 @@ export default function PrivacyPolicyPage() {
               <li>Opt out of non-essential communications</li>
             </ul>
             <p className="mt-3">
-              To exercise any of these rights, contact us at <a href="mailto:info@votethreshold.com" className="text-vc-purple-light hover:underline">info@votethreshold.com</a>.
+              To exercise any of these rights, contact us at <a href="mailto:info@thresholdvote.com" className="text-vc-purple-light hover:underline">info@thresholdvote.com</a>.
             </p>
           </section>
 
@@ -133,7 +133,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="mt-3 glass-card p-4 text-sm">
               <p className="text-white font-bold">Vote Threshold LLC</p>
-              <p>Email: <a href="mailto:info@votethreshold.com" className="text-vc-purple-light hover:underline">info@votethreshold.com</a></p>
+              <p>Email: <a href="mailto:info@thresholdvote.com" className="text-vc-purple-light hover:underline">info@thresholdvote.com</a></p>
             </div>
           </section>
         </div>
