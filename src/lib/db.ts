@@ -16,17 +16,17 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 })
 
-let _initialized = false
+let _initPromise: Promise<void> | null = null
 
 export function getPool(): Pool {
   return pool
 }
 
 export async function getDb(): Promise<Pool> {
-  if (!_initialized) {
-    await initSchema()
-    _initialized = true
+  if (!_initPromise) {
+    _initPromise = initSchema()
   }
+  await _initPromise
   return pool
 }
 

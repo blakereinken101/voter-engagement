@@ -76,7 +76,11 @@ export async function middleware(request: NextRequest) {
 
   let payload: Record<string, unknown>
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'dev-secret-change-me')
+    const jwtSecret = process.env.JWT_SECRET
+    if (!jwtSecret && process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: JWT_SECRET environment variable is missing in production.')
+    }
+    const secret = new TextEncoder().encode(jwtSecret || 'dev-secret-change-me')
     const { payload: p } = await jwtVerify(token, secret)
     payload = p as Record<string, unknown>
   } catch {
