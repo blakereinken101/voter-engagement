@@ -233,6 +233,12 @@ interface UserDetail {
   products: { product: string; granted_at: string; is_active: boolean }[]
   memberships: { id: string; role: string; is_active: boolean; campaign_name: string; campaign_id: string; org_name: string }[]
   textCampaignMemberships: { id: string; role: string; is_active: boolean; campaign_title: string; campaign_id: string; campaign_status: string }[]
+  organizations: { id: string; name: string; slug: string }[]
+}
+
+interface AllCampaigns {
+  relationalCampaigns: { id: string; name: string; slug: string; is_active: boolean; org_name: string }[]
+  textingCampaigns: { id: string; title: string; status: string; org_name: string }[]
 }
 
 const PRODUCT_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; Icon: typeof Users }> = {
@@ -250,6 +256,7 @@ function UsersTab() {
   const [showCreate, setShowCreate] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [detailCache, setDetailCache] = useState<Record<string, UserDetail>>({})
+  const [allCampaigns, setAllCampaigns] = useState<AllCampaigns | null>(null)
 
   // Create form state
   const [formName, setFormName] = useState('')
@@ -269,6 +276,11 @@ function UsersTab() {
   }, [])
 
   useEffect(() => { loadUsers() }, [loadUsers])
+
+  // Load all campaigns once for assignment dropdowns
+  useEffect(() => {
+    fetch('/api/platform/campaigns').then(r => r.json()).then(setAllCampaigns)
+  }, [])
 
   async function toggleAdmin(userId: string, current: boolean) {
     if (userId === currentUser?.id) return
@@ -370,6 +382,60 @@ function UsersTab() {
       setDetailCache(prev => ({ ...prev, [userId]: data }))
     }
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, products: u.products.filter(p => p !== product) } : u))
+  }
+
+  async function refreshDetail(userId: string) {
+    const res = await fetch(`/api/platform/users/${userId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetailCache(prev => ({ ...prev, [userId]: data }))
+    }
+    loadUsers()
+  }
+
+  async function assignCampaign(userId: string, campaignId: string, role: string) {
+    await fetch(`/api/platform/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignCampaign: { campaignId, role } }),
+    })
+    await refreshDetail(userId)
+  }
+
+  async function removeCampaign(userId: string, campaignId: string) {
+    await fetch(`/api/platform/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ removeCampaign: { campaignId } }),
+    })
+    await refreshDetail(userId)
+  }
+
+  async function assignTextingCampaign(userId: string, campaignId: string, role: string) {
+    await fetch(`/api/platform/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignTextingCampaign: { campaignId, role } }),
+    })
+    await refreshDetail(userId)
+  }
+
+  async function removeTextingCampaign(userId: string, campaignId: string) {
+    await fetch(`/api/platform/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ removeTextingCampaign: { campaignId } }),
+    })
+    await refreshDetail(userId)
+  }
+
+  async function renameOrganization(userId: string, orgId: string, name: string) {
+    await fetch(`/api/platform/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ renameOrganization: { orgId, name } }),
+    })
+    await refreshDetail(userId)
   }
 
   if (loading) return <LoadingState />
@@ -563,8 +629,14 @@ function UsersTab() {
                         <UserExpandedRow
                           userId={u.id}
                           detail={detailCache[u.id]}
+                          allCampaigns={allCampaigns}
                           onGrant={grantProduct}
                           onRevoke={revokeProduct}
+                          onAssignCampaign={assignCampaign}
+                          onRemoveCampaign={removeCampaign}
+                          onAssignTextingCampaign={assignTextingCampaign}
+                          onRemoveTextingCampaign={removeTextingCampaign}
+                          onRenameOrganization={renameOrganization}
                         />
                       </td>
                     </tr>
@@ -585,19 +657,43 @@ function UsersTab() {
 function UserExpandedRow({
   userId,
   detail,
+  allCampaigns,
   onGrant,
   onRevoke,
+  onAssignCampaign,
+  onRemoveCampaign,
+  onAssignTextingCampaign,
+  onRemoveTextingCampaign,
+  onRenameOrganization,
 }: {
   userId: string
   detail?: UserDetail
+  allCampaigns: AllCampaigns | null
   onGrant: (userId: string, product: string) => void
   onRevoke: (userId: string, product: string) => void
+  onAssignCampaign: (userId: string, campaignId: string, role: string) => Promise<void>
+  onRemoveCampaign: (userId: string, campaignId: string) => Promise<void>
+  onAssignTextingCampaign: (userId: string, campaignId: string, role: string) => Promise<void>
+  onRemoveTextingCampaign: (userId: string, campaignId: string) => Promise<void>
+  onRenameOrganization: (userId: string, orgId: string, name: string) => Promise<void>
 }) {
   const [granting, setGranting] = useState<string | null>(null)
+  const [assigningRelational, setAssigningRelational] = useState(false)
+  const [assigningTexting, setAssigningTexting] = useState(false)
+  const [removingId, setRemovingId] = useState<string | null>(null)
+  const [selectedRelCampaign, setSelectedRelCampaign] = useState('')
+  const [selectedRelRole, setSelectedRelRole] = useState('volunteer')
+  const [selectedTextCampaign, setSelectedTextCampaign] = useState('')
+  const [selectedTextRole, setSelectedTextRole] = useState('texter')
+  const [editingOrgId, setEditingOrgId] = useState<string | null>(null)
+  const [orgNameInput, setOrgNameInput] = useState('')
+  const [savingOrg, setSavingOrg] = useState(false)
 
   if (!detail) return <LoadingState />
 
   const activeProducts = new Set(detail.products.filter(p => p.is_active).map(p => p.product))
+  const activeMembershipIds = new Set(detail.memberships.filter(m => m.is_active).map(m => m.campaign_id))
+  const activeTextMemberIds = new Set(detail.textCampaignMemberships.filter(m => m.is_active).map(m => m.campaign_id))
 
   return (
     <div className="space-y-4">
@@ -641,42 +737,187 @@ function UserExpandedRow({
         </div>
       </div>
 
-      {/* Relational memberships */}
-      {detail.memberships.length > 0 && (
-        <div>
-          <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">Relational Campaigns</p>
-          <div className="flex flex-wrap gap-2">
-            {detail.memberships.map(m => (
-              <span key={m.id} className={clsx(
-                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border',
-                m.is_active
-                  ? 'bg-vc-purple/20 text-vc-purple-light border-vc-purple/30'
-                  : 'bg-white/5 text-white/30 border-white/10 line-through'
-              )}>
-                <Users className="w-3 h-3" />
-                {m.campaign_name}
-                <span className="text-white/30">({m.role})</span>
-              </span>
-            ))}
-          </div>
+      {/* Relational campaigns */}
+      <div>
+        <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">Relational Campaigns</p>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {detail.memberships.filter(m => m.is_active).map(m => (
+            <span key={m.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border bg-vc-purple/20 text-vc-purple-light border-vc-purple/30">
+              <Users className="w-3 h-3" />
+              {m.campaign_name}
+              <span className="text-white/30">({m.role})</span>
+              <button
+                onClick={async () => {
+                  setRemovingId(m.campaign_id)
+                  await onRemoveCampaign(userId, m.campaign_id)
+                  setRemovingId(null)
+                }}
+                disabled={removingId === m.campaign_id}
+                className="ml-0.5 text-white/30 hover:text-red-400 transition-colors"
+                title="Remove from campaign"
+              >
+                {removingId === m.campaign_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+              </button>
+            </span>
+          ))}
+          {detail.memberships.filter(m => m.is_active).length === 0 && (
+            <span className="text-xs text-white/20">No relational campaigns</span>
+          )}
         </div>
-      )}
+        {allCampaigns && allCampaigns.relationalCampaigns.length > 0 && (
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedRelCampaign}
+              onChange={e => setSelectedRelCampaign(e.target.value)}
+              className="glass-input px-2 py-1.5 rounded-btn text-xs text-white min-w-[180px]"
+            >
+              <option value="">Assign to campaign...</option>
+              {allCampaigns.relationalCampaigns
+                .filter(c => !activeMembershipIds.has(c.id))
+                .map(c => (
+                  <option key={c.id} value={c.id}>{c.name} ({c.org_name})</option>
+                ))}
+            </select>
+            <select
+              value={selectedRelRole}
+              onChange={e => setSelectedRelRole(e.target.value)}
+              className="glass-input px-2 py-1.5 rounded-btn text-xs text-white"
+            >
+              <option value="volunteer">Volunteer</option>
+              <option value="organizer">Organizer</option>
+              <option value="campaign_admin">Admin</option>
+            </select>
+            <button
+              onClick={async () => {
+                if (!selectedRelCampaign) return
+                setAssigningRelational(true)
+                await onAssignCampaign(userId, selectedRelCampaign, selectedRelRole)
+                setSelectedRelCampaign('')
+                setAssigningRelational(false)
+              }}
+              disabled={!selectedRelCampaign || assigningRelational}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-btn text-xs font-medium bg-vc-purple/30 text-vc-purple-light border border-vc-purple/30 hover:bg-vc-purple/40 transition-colors disabled:opacity-30"
+            >
+              {assigningRelational ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+              Assign
+            </button>
+          </div>
+        )}
+      </div>
 
-      {/* Texting campaign memberships */}
-      {detail.textCampaignMemberships.length > 0 && (
+      {/* Texting campaigns */}
+      <div>
+        <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">Texting Campaigns</p>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {detail.textCampaignMemberships.filter(m => m.is_active).map(m => (
+            <span key={m.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border bg-amber-500/20 text-amber-400 border-amber-500/30">
+              <MessageSquare className="w-3 h-3" />
+              {m.campaign_title}
+              <span className="text-white/30">({m.role})</span>
+              <button
+                onClick={async () => {
+                  setRemovingId(`text-${m.campaign_id}`)
+                  await onRemoveTextingCampaign(userId, m.campaign_id)
+                  setRemovingId(null)
+                }}
+                disabled={removingId === `text-${m.campaign_id}`}
+                className="ml-0.5 text-white/30 hover:text-red-400 transition-colors"
+                title="Remove from campaign"
+              >
+                {removingId === `text-${m.campaign_id}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+              </button>
+            </span>
+          ))}
+          {detail.textCampaignMemberships.filter(m => m.is_active).length === 0 && (
+            <span className="text-xs text-white/20">No texting campaigns</span>
+          )}
+        </div>
+        {allCampaigns && allCampaigns.textingCampaigns.length > 0 && (
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedTextCampaign}
+              onChange={e => setSelectedTextCampaign(e.target.value)}
+              className="glass-input px-2 py-1.5 rounded-btn text-xs text-white min-w-[180px]"
+            >
+              <option value="">Assign to campaign...</option>
+              {allCampaigns.textingCampaigns
+                .filter(c => !activeTextMemberIds.has(c.id))
+                .map(c => (
+                  <option key={c.id} value={c.id}>{c.title} ({c.org_name})</option>
+                ))}
+            </select>
+            <select
+              value={selectedTextRole}
+              onChange={e => setSelectedTextRole(e.target.value)}
+              className="glass-input px-2 py-1.5 rounded-btn text-xs text-white"
+            >
+              <option value="texter">Texter</option>
+              <option value="admin">Admin</option>
+            </select>
+            <button
+              onClick={async () => {
+                if (!selectedTextCampaign) return
+                setAssigningTexting(true)
+                await onAssignTextingCampaign(userId, selectedTextCampaign, selectedTextRole)
+                setSelectedTextCampaign('')
+                setAssigningTexting(false)
+              }}
+              disabled={!selectedTextCampaign || assigningTexting}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-btn text-xs font-medium bg-amber-500/30 text-amber-400 border border-amber-500/30 hover:bg-amber-500/40 transition-colors disabled:opacity-30"
+            >
+              {assigningTexting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+              Assign
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Organizations */}
+      {detail.organizations && detail.organizations.length > 0 && (
         <div>
-          <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">Texting Campaigns</p>
+          <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">Organizations</p>
           <div className="flex flex-wrap gap-2">
-            {detail.textCampaignMemberships.map(m => (
-              <span key={m.id} className={clsx(
-                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border',
-                m.is_active
-                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                  : 'bg-white/5 text-white/30 border-white/10 line-through'
-              )}>
-                <MessageSquare className="w-3 h-3" />
-                {m.campaign_title}
-                <span className="text-white/30">({m.role})</span>
+            {detail.organizations.map(org => (
+              <span key={org.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border bg-white/5 text-white/60 border-white/10">
+                <Building2 className="w-3 h-3" />
+                {editingOrgId === org.id ? (
+                  <form
+                    className="inline-flex items-center gap-1"
+                    onSubmit={async (e) => {
+                      e.preventDefault()
+                      if (!orgNameInput.trim()) return
+                      setSavingOrg(true)
+                      await onRenameOrganization(userId, org.id, orgNameInput)
+                      setEditingOrgId(null)
+                      setSavingOrg(false)
+                    }}
+                  >
+                    <input
+                      value={orgNameInput}
+                      onChange={e => setOrgNameInput(e.target.value)}
+                      className="glass-input px-1.5 py-0.5 rounded text-xs text-white w-32"
+                      autoFocus
+                    />
+                    <button type="submit" disabled={savingOrg} className="text-vc-teal hover:text-vc-teal/80">
+                      {savingOrg ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                    </button>
+                    <button type="button" onClick={() => setEditingOrgId(null)} className="text-white/30 hover:text-white/60">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    {org.name}
+                    <span className="text-white/20">/{org.slug}</span>
+                    <button
+                      onClick={() => { setEditingOrgId(org.id); setOrgNameInput(org.name) }}
+                      className="text-white/20 hover:text-white/50 transition-colors"
+                      title="Rename organization"
+                    >
+                      ✎
+                    </button>
+                  </>
+                )}
               </span>
             ))}
           </div>

@@ -2,6 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { requirePlatformAdmin, handleAuthError } from '@/lib/platform-guard'
 
+export async function GET() {
+  try {
+    await requirePlatformAdmin()
+    const db = await getDb()
+
+    const { rows: relationalCampaigns } = await db.query(`
+      SELECT c.id, c.name, c.slug, c.is_active, o.name as org_name, o.id as org_id
+      FROM campaigns c
+      JOIN organizations o ON o.id = c.org_id
+      ORDER BY c.name
+    `)
+
+    const { rows: textingCampaigns } = await db.query(`
+      SELECT tc.id, tc.title, tc.status, o.name as org_name, o.id as org_id
+      FROM text_campaigns tc
+      JOIN organizations o ON o.id = tc.organization_id
+      ORDER BY tc.title
+    `)
+
+    return NextResponse.json({ relationalCampaigns, textingCampaigns })
+  } catch (error) {
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     await requirePlatformAdmin()

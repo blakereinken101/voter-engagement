@@ -48,11 +48,18 @@ export async function GET(
       ORDER BY tcm.joined_at DESC
     `, [userId])
 
+    // Organizations created by this user
+    const { rows: orgRows } = await db.query(
+      `SELECT id, name, slug FROM organizations WHERE created_by = $1 ORDER BY created_at`,
+      [userId]
+    )
+
     return NextResponse.json({
       user: userRows[0],
       products: productRows,
       memberships: membershipRows,
       textCampaignMemberships: textMemberRows,
+      organizations: orgRows,
     })
   } catch (error) {
     const { error: msg, status } = handleAuthError(error)
@@ -128,6 +135,134 @@ export async function PATCH(
       await db.query(
         'UPDATE user_products SET is_active = false WHERE user_id = $1 AND product = $2',
         [userId, product]
+      )
+      return NextResponse.json({ success: true })
+    }
+
+    // Assign to relational campaign
+    if (body.assignCampaign) {
+      const { campaignId, role } = body.assignCampaign
+      const validRoles = ['volunteer', 'organizer', 'campaign_admin']
+      if (!campaignId || !validRoles.includes(role)) {
+        return NextResponse.json({ error: 'Valid campaignId and role required' }, { status: 400 })
+      }
+
+      // Upsert membership
+      const { rows: existing } = await db.query(
+        'SELECT id, is_active FROM memberships WHERE user_id = $1 AND campaign_id = $2',
+        [userId, campaignId]
+      )
+      if (existing.length > 0) {
+        await db.query(
+          'UPDATE memberships SET is_active = true, role = $1 WHERE id = $2',
+          [role, existing[0].id]
+        )
+      } else {
+        await db.query(
+          'INSERT INTO memberships (id, user_id, campaign_id, role, invited_by) VALUES ($1, $2, $3, $4, $5)',
+          [crypto.randomUUID(), userId, campaignId, role, session.userId]
+        )
+      }
+
+      // Auto-grant relational product if missing
+      const { rows: hasProduct } = await db.query(
+        `SELECT 1 FROM user_products WHERE user_id = $1 AND product = 'relational' AND is_active = true`,
+        [userId]
+      )
+      if (hasProduct.length === 0) {
+        const { rows: inactiveProduct } = await db.query(
+          `SELECT id FROM user_products WHERE user_id = $1 AND product = 'relational'`,
+          [userId]
+        )
+        if (inactiveProduct.length > 0) {
+          await db.query('UPDATE user_products SET is_active = true, granted_by = $1 WHERE id = $2', [session.userId, inactiveProduct[0].id])
+        } else {
+          await db.query(
+            'INSERT INTO user_products (id, user_id, product, granted_by) VALUES ($1, $2, $3, $4)',
+            [crypto.randomUUID(), userId, 'relational', session.userId]
+          )
+        }
+      }
+
+      return NextResponse.json({ success: true })
+    }
+
+    // Remove from relational campaign
+    if (body.removeCampaign) {
+      const { campaignId } = body.removeCampaign
+      await db.query(
+        'UPDATE memberships SET is_active = false WHERE user_id = $1 AND campaign_id = $2',
+        [userId, campaignId]
+      )
+      return NextResponse.json({ success: true })
+    }
+
+    // Assign to texting campaign
+    if (body.assignTextingCampaign) {
+      const { campaignId, role } = body.assignTextingCampaign
+      const validRoles = ['admin', 'texter']
+      if (!campaignId || !validRoles.includes(role)) {
+        return NextResponse.json({ error: 'Valid campaignId and role required' }, { status: 400 })
+      }
+
+      const { rows: existing } = await db.query(
+        'SELECT id, is_active FROM text_campaign_members WHERE user_id = $1 AND text_campaign_id = $2',
+        [userId, campaignId]
+      )
+      if (existing.length > 0) {
+        await db.query(
+          'UPDATE text_campaign_members SET is_active = true, role = $1 WHERE id = $2',
+          [role, existing[0].id]
+        )
+      } else {
+        await db.query(
+          'INSERT INTO text_campaign_members (id, text_campaign_id, user_id, role) VALUES ($1, $2, $3, $4)',
+          [crypto.randomUUID(), campaignId, userId, role]
+        )
+      }
+
+      // Auto-grant texting product if missing
+      const { rows: hasProduct } = await db.query(
+        `SELECT 1 FROM user_products WHERE user_id = $1 AND product = 'texting' AND is_active = true`,
+        [userId]
+      )
+      if (hasProduct.length === 0) {
+        const { rows: inactiveProduct } = await db.query(
+          `SELECT id FROM user_products WHERE user_id = $1 AND product = 'texting'`,
+          [userId]
+        )
+        if (inactiveProduct.length > 0) {
+          await db.query('UPDATE user_products SET is_active = true, granted_by = $1 WHERE id = $2', [session.userId, inactiveProduct[0].id])
+        } else {
+          await db.query(
+            'INSERT INTO user_products (id, user_id, product, granted_by) VALUES ($1, $2, $3, $4)',
+            [crypto.randomUUID(), userId, 'texting', session.userId]
+          )
+        }
+      }
+
+      return NextResponse.json({ success: true })
+    }
+
+    // Remove from texting campaign
+    if (body.removeTextingCampaign) {
+      const { campaignId } = body.removeTextingCampaign
+      await db.query(
+        'UPDATE text_campaign_members SET is_active = false WHERE user_id = $1 AND text_campaign_id = $2',
+        [userId, campaignId]
+      )
+      return NextResponse.json({ success: true })
+    }
+
+    // Rename organization
+    if (body.renameOrganization) {
+      const { orgId, name } = body.renameOrganization
+      if (!orgId || !name || typeof name !== 'string' || !name.trim()) {
+        return NextResponse.json({ error: 'orgId and name are required' }, { status: 400 })
+      }
+      await db.query(
+        'UPDATE organizations SET name = $1 WHERE id = $2',
+        [name.trim(), orgId]
       )
       return NextResponse.json({ success: true })
     }
