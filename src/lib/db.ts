@@ -442,20 +442,6 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_campaign_voter_datasets_campaign ON campaign_voter_datasets(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_campaign_voter_datasets_dataset ON campaign_voter_datasets(dataset_id);
 
-      CREATE INDEX IF NOT EXISTS idx_text_campaigns_org ON text_campaigns(organization_id);
-      CREATE INDEX IF NOT EXISTS idx_text_campaigns_status ON text_campaigns(status);
-      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_campaign ON text_campaign_contacts(text_campaign_id);
-      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_status ON text_campaign_contacts(text_campaign_id, status);
-      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_assigned ON text_campaign_contacts(text_campaign_id, assigned_to);
-      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_cell ON text_campaign_contacts(text_campaign_id, cell);
-      CREATE INDEX IF NOT EXISTS idx_text_messages_campaign ON text_messages(text_campaign_id, created_at);
-      CREATE INDEX IF NOT EXISTS idx_text_messages_contact ON text_messages(contact_id, created_at);
-      CREATE INDEX IF NOT EXISTS idx_text_messages_twilio_sid ON text_messages(twilio_sid) WHERE twilio_sid IS NOT NULL;
-      CREATE INDEX IF NOT EXISTS idx_text_opt_outs_org_phone ON text_opt_outs(organization_id, phone);
-      CREATE INDEX IF NOT EXISTS idx_text_campaign_members_campaign ON text_campaign_members(text_campaign_id);
-      CREATE INDEX IF NOT EXISTS idx_text_campaign_members_user ON text_campaign_members(user_id);
-      CREATE INDEX IF NOT EXISTS idx_text_campaign_scripts_campaign ON text_campaign_scripts(text_campaign_id);
-      CREATE INDEX IF NOT EXISTS idx_text_campaign_settings_campaign ON text_campaign_settings(text_campaign_id);
     `)
 
     // Trigram GIN indexes for fuzzy name matching (requires pg_trgm)
@@ -633,6 +619,24 @@ async function initSchema() {
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_user_products_user ON user_products(user_id);
       CREATE INDEX IF NOT EXISTS idx_user_products_product ON user_products(product, is_active);
+    `)
+
+    // ── Texting indexes (must come after texting table creation) ────
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_text_campaigns_org ON text_campaigns(organization_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaigns_status ON text_campaigns(status);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_campaign ON text_campaign_contacts(text_campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_status ON text_campaign_contacts(text_campaign_id, status);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_assigned ON text_campaign_contacts(text_campaign_id, assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_cell ON text_campaign_contacts(text_campaign_id, cell);
+      CREATE INDEX IF NOT EXISTS idx_text_messages_campaign ON text_messages(text_campaign_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_text_messages_contact ON text_messages(contact_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_text_messages_twilio_sid ON text_messages(twilio_sid) WHERE twilio_sid IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_text_opt_outs_org_phone ON text_opt_outs(organization_id, phone);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_members_campaign ON text_campaign_members(text_campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_members_user ON text_campaign_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_scripts_campaign ON text_campaign_scripts(text_campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_settings_campaign ON text_campaign_settings(text_campaign_id);
     `)
 
     // Make legacy columns nullable for events-only users (no campaign needed)
