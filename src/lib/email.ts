@@ -12,6 +12,10 @@ function getResend(): Resend {
 }
 
 export async function sendVerificationCode(email: string, code: string): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[email/dev] Verification code for ${email}: ${code}`)
+    return
+  }
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
   const { error } = await getResend().emails.send({
     from: `Threshold <${FROM_EMAIL}>`,

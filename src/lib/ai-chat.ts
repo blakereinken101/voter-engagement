@@ -2,7 +2,7 @@
  * AI Chat Service Layer
  *
  * Handles system prompt construction, tool definitions, and tool execution
- * for the AI chat agent. Uses Anthropic SDK with Claude Sonnet 4.6.
+ * for the AI chat agent. Supports both Anthropic (Claude) and Google (Gemini).
  *
  * Server-only module — do not import from client components.
  */
@@ -18,6 +18,8 @@ import { calculatePriority, sortByPriority } from './contact-priority'
 import { calculateVoteScore, determineSegment } from './voter-segments'
 import { CATEGORIES } from './wizard-config'
 import { CONVERSATION_SCRIPTS, getRelationshipTip } from './scripts'
+import { getAISettings } from './ai-settings'
+import { streamGeminiChat } from './gemini-provider'
 import type { AICampaignContext, PersonEntry, MatchResult, ActionPlanItem } from '@/types'
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
@@ -32,7 +34,7 @@ function getAnthropicClient(): Anthropic {
 }
 
 export function isAIEnabled(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY
+  return !!process.env.ANTHROPIC_API_KEY || !!process.env.GEMINI_API_KEY
 }
 
 // =============================================
@@ -1094,10 +1096,10 @@ export interface ChatStreamOptions {
 export async function* streamChat(
   options: ChatStreamOptions,
 ): AsyncGenerator<{ type: string; [key: string]: unknown }> {
-  const client = getAnthropicClient()
   const db = await getDb()
   const config = await getCampaignConfig(options.campaignId)
   const volunteerState = await loadVolunteerState(options.userId, options.campaignId)
+  const aiSettings = await getAISettings()
 
   // Load volunteer name
   const { rows: userRows } = await db.query(
@@ -1107,6 +1109,22 @@ export async function* streamChat(
 
   const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts)
 
+  // Delegate to Gemini provider if configured
+  if (aiSettings.provider === 'gemini') {
+    yield* streamGeminiChat({
+      model: aiSettings.chatModel,
+      maxTokens: aiSettings.maxTokens,
+      systemPrompt,
+      history: options.history,
+      message: options.message,
+      userId: options.userId,
+      campaignId: options.campaignId,
+    })
+    return
+  }
+
+  // Default: Anthropic provider
+  const client = getAnthropicClient()
   const ctx: ToolContext = { userId: options.userId, campaignId: options.campaignId }
 
   // Build messages array
@@ -1122,8 +1140,8 @@ export async function* streamChat(
 
   while (continueLoop) {
     const stream = client.messages.stream({
-      model: MODEL,
-      max_tokens: 1024,
+      model: aiSettings.chatModel,
+      max_tokens: aiSettings.maxTokens,
       system: systemPrompt,
       messages,
       tools: TOOL_DEFINITIONS,

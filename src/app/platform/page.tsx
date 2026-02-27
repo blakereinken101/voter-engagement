@@ -8,9 +8,10 @@ import {
   BarChart3, Building2, Users, CreditCard, Loader2, Search,
   Plus, Check, X, Shield, ShieldOff, Database, Upload, Trash2,
   ChevronDown, ChevronRight, Link, MessageSquare, Calendar, UserPlus,
+  Settings,
 } from 'lucide-react'
 
-type PlatformTab = 'overview' | 'organizations' | 'users' | 'subscriptions' | 'voter-data'
+type PlatformTab = 'overview' | 'organizations' | 'users' | 'subscriptions' | 'voter-data' | 'settings'
 
 const TABS: { id: PlatformTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'overview', label: 'Overview', Icon: BarChart3 },
@@ -18,6 +19,7 @@ const TABS: { id: PlatformTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'users', label: 'Users', Icon: Users },
   { id: 'subscriptions', label: 'Subscriptions', Icon: CreditCard },
   { id: 'voter-data', label: 'Voter Data', Icon: Database },
+  { id: 'settings', label: 'Settings', Icon: Settings },
 ]
 
 // ========== OVERVIEW ==========
@@ -1588,6 +1590,273 @@ function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+// ========== SETTINGS ==========
+
+interface AISettingsData {
+  provider: 'anthropic' | 'gemini'
+  chatModel: string
+  suggestModel: string
+  maxTokens: number
+  rateLimitMessages: number
+  rateLimitWindowMinutes: number
+  suggestRateLimit: number
+}
+
+interface ModelOption {
+  id: string
+  label: string
+  cost: string
+}
+
+interface SettingsResponse {
+  settings: AISettingsData
+  modelOptions: {
+    anthropic: { chat: ModelOption[]; suggest: ModelOption[] }
+    gemini: { chat: ModelOption[]; suggest: ModelOption[] }
+  }
+  apiKeysConfigured: { anthropic: boolean; gemini: boolean }
+}
+
+function SettingsTab() {
+  const [data, setData] = useState<SettingsResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [form, setForm] = useState<AISettingsData | null>(null)
+
+  useEffect(() => {
+    fetch('/api/platform/settings').then(r => r.json()).then((d: SettingsResponse) => {
+      setData(d)
+      setForm(d.settings)
+      setLoading(false)
+    })
+  }, [])
+
+  const save = async () => {
+    if (!form) return
+    setSaving(true)
+    setSaved(false)
+    const res = await fetch('/api/platform/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    if (res.ok) {
+      const d = await res.json()
+      setForm(d.settings)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 3000)
+    }
+    setSaving(false)
+  }
+
+  if (loading || !data || !form) return <LoadingState />
+
+  const { modelOptions, apiKeysConfigured } = data
+  const chatModels = modelOptions[form.provider]?.chat || []
+  const suggestModels = modelOptions[form.provider]?.suggest || []
+
+  // Cost estimator: 500 volunteers, ~20 messages/day, ~2K tokens input + 500 output per message
+  const selectedChatModel = chatModels.find(m => m.id === form.chatModel)
+  const selectedSuggestModel = suggestModels.find(m => m.id === form.suggestModel)
+
+  return (
+    <div className="space-y-6">
+      {/* Provider Selection */}
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-bold text-white mb-4">AI Provider</h3>
+        <p className="text-white/50 text-sm mb-4">Choose which AI service powers the volunteer coaching chat and event suggestions.</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {(['anthropic', 'gemini'] as const).map(provider => (
+            <button
+              key={provider}
+              onClick={() => {
+                const defaults = provider === 'anthropic'
+                  ? { chatModel: 'claude-sonnet-4-6', suggestModel: 'claude-haiku-4-5-20251001' }
+                  : { chatModel: 'gemini-2.5-flash', suggestModel: 'gemini-2.5-flash-lite' }
+                setForm({ ...form, provider, ...defaults })
+              }}
+              className={clsx(
+                'p-4 rounded-lg border-2 text-left transition-all',
+                form.provider === provider
+                  ? 'border-vc-purple bg-vc-purple/20 shadow-glow'
+                  : 'border-white/10 bg-white/5 hover:border-white/20'
+              )}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-lg font-bold text-white">
+                  {provider === 'anthropic' ? 'Anthropic (Claude)' : 'Google (Gemini)'}
+                </span>
+                {form.provider === provider && <Check className="w-5 h-5 text-vc-purple-light" />}
+              </div>
+              <div className="text-xs text-white/40">
+                {apiKeysConfigured[provider]
+                  ? <span className="text-vc-teal">API key configured</span>
+                  : <span className="text-red-400">No API key — set {provider === 'anthropic' ? 'ANTHROPIC_API_KEY' : 'GEMINI_API_KEY'} in environment</span>
+                }
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Model Selection */}
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-bold text-white mb-4">Models</h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Chat model */}
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Chat Model (volunteer coaching)</label>
+            <select
+              value={form.chatModel}
+              onChange={e => setForm({ ...form, chatModel: e.target.value })}
+              className="w-full bg-white/10 text-white border border-white/20 rounded-btn px-3 py-2 text-sm focus:border-vc-purple focus:outline-none"
+            >
+              {chatModels.map(m => (
+                <option key={m.id} value={m.id} className="bg-[#1a1a2e]">{m.label}</option>
+              ))}
+            </select>
+            {selectedChatModel && (
+              <p className="text-xs text-white/40 mt-1">{selectedChatModel.cost}</p>
+            )}
+          </div>
+
+          {/* Suggest model */}
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Suggest Model (event descriptions)</label>
+            <select
+              value={form.suggestModel}
+              onChange={e => setForm({ ...form, suggestModel: e.target.value })}
+              className="w-full bg-white/10 text-white border border-white/20 rounded-btn px-3 py-2 text-sm focus:border-vc-purple focus:outline-none"
+            >
+              {suggestModels.map(m => (
+                <option key={m.id} value={m.id} className="bg-[#1a1a2e]">{m.label}</option>
+              ))}
+            </select>
+            {selectedSuggestModel && (
+              <p className="text-xs text-white/40 mt-1">{selectedSuggestModel.cost}</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Token & Rate Limits */}
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-bold text-white mb-4">Limits</h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Max Tokens (chat response length)</label>
+            <input
+              type="number" min={256} max={8192} step={256}
+              value={form.maxTokens}
+              onChange={e => setForm({ ...form, maxTokens: parseInt(e.target.value) || 1024 })}
+              className="w-full bg-white/10 text-white border border-white/20 rounded-btn px-3 py-2 text-sm focus:border-vc-purple focus:outline-none"
+            />
+            <p className="text-xs text-white/30 mt-1">256–8192</p>
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Chat rate limit (msgs)</label>
+            <input
+              type="number" min={5} max={500}
+              value={form.rateLimitMessages}
+              onChange={e => setForm({ ...form, rateLimitMessages: parseInt(e.target.value) || 60 })}
+              className="w-full bg-white/10 text-white border border-white/20 rounded-btn px-3 py-2 text-sm focus:border-vc-purple focus:outline-none"
+            />
+            <p className="text-xs text-white/30 mt-1">Per user per window</p>
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Rate limit window (min)</label>
+            <input
+              type="number" min={1} max={60}
+              value={form.rateLimitWindowMinutes}
+              onChange={e => setForm({ ...form, rateLimitWindowMinutes: parseInt(e.target.value) || 15 })}
+              className="w-full bg-white/10 text-white border border-white/20 rounded-btn px-3 py-2 text-sm focus:border-vc-purple focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/60 mb-1.5">Suggest rate limit (msgs)</label>
+            <input
+              type="number" min={5} max={200}
+              value={form.suggestRateLimit}
+              onChange={e => setForm({ ...form, suggestRateLimit: parseInt(e.target.value) || 30 })}
+              className="w-full bg-white/10 text-white border border-white/20 rounded-btn px-3 py-2 text-sm focus:border-vc-purple focus:outline-none"
+            />
+            <p className="text-xs text-white/30 mt-1">Per user per window</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Cost Estimate */}
+      <div className="glass-card p-6 border border-white/10">
+        <h3 className="text-lg font-bold text-white mb-2">Estimated Cost (500 volunteers/day)</h3>
+        <p className="text-white/40 text-xs mb-4">Rough estimate assuming ~20 messages per volunteer per day, ~2.5K input tokens + 500 output tokens per message.</p>
+
+        <CostEstimate provider={form.provider} chatModel={form.chatModel} />
+      </div>
+
+      {/* Save Button */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="px-6 py-2.5 bg-vc-purple text-white rounded-btn font-medium hover:bg-vc-purple-light transition-all disabled:opacity-50 flex items-center gap-2"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          {saving ? 'Saving...' : 'Save Settings'}
+        </button>
+        {saved && <span className="text-vc-teal text-sm">Settings saved — takes effect immediately</span>}
+      </div>
+    </div>
+  )
+}
+
+function CostEstimate({ provider, chatModel }: { provider: string; chatModel: string }) {
+  // Price per 1M tokens: [input, output]
+  const prices: Record<string, [number, number]> = {
+    'claude-sonnet-4-6': [3, 15],
+    'claude-haiku-4-5-20251001': [0.8, 4],
+    'claude-opus-4-6': [15, 75],
+    'gemini-2.5-flash-lite': [0.10, 0.40],
+    'gemini-2.5-flash': [0.15, 0.60],
+    'gemini-2.5-pro': [1.25, 10],
+  }
+
+  const [inputPrice, outputPrice] = prices[chatModel] || [1, 5]
+
+  // 500 volunteers * 20 msgs * tokens per message
+  const dailyInputTokens = 500 * 20 * 2500
+  const dailyOutputTokens = 500 * 20 * 500
+  const dailyCost = (dailyInputTokens / 1_000_000) * inputPrice + (dailyOutputTokens / 1_000_000) * outputPrice
+  const monthlyCost = dailyCost * 30
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div>
+        <p className="text-white/50 text-xs">Daily</p>
+        <p className="text-xl font-bold text-white">${dailyCost.toFixed(0)}</p>
+      </div>
+      <div>
+        <p className="text-white/50 text-xs">Monthly</p>
+        <p className="text-xl font-bold text-white">${monthlyCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+      </div>
+      <div>
+        <p className="text-white/50 text-xs">Input price</p>
+        <p className="text-sm text-white/70">${inputPrice}/1M tokens</p>
+      </div>
+      <div>
+        <p className="text-white/50 text-xs">Output price</p>
+        <p className="text-sm text-white/70">${outputPrice}/1M tokens</p>
+      </div>
+    </div>
+  )
+}
+
 // ========== MAIN PAGE ==========
 
 export default function PlatformPage() {
@@ -1637,6 +1906,7 @@ export default function PlatformPage() {
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'subscriptions' && <SubscriptionsTab />}
         {activeTab === 'voter-data' && <VoterDataTab />}
+        {activeTab === 'settings' && <SettingsTab />}
       </div>
     </div>
   )

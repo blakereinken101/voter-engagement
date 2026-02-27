@@ -639,6 +639,15 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_text_campaign_settings_campaign ON text_campaign_settings(text_campaign_id);
     `)
 
+    // ── Platform Settings (key-value store for admin config) ─────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS platform_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `)
+
     // Make legacy columns nullable for events-only users (no campaign needed)
     await client.query(`
       ALTER TABLE users ALTER COLUMN role DROP NOT NULL;

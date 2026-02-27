@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { isAIEnabled, streamChat, loadExistingContacts } from '@/lib/ai-chat'
+import { getAISettings } from '@/lib/ai-settings'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -17,11 +18,12 @@ export async function POST(request: NextRequest) {
     }
 
     const ctx = await getRequestContext()
+    const aiSettings = await getAISettings()
 
-    // Rate limit: 60 messages per 15 minutes
+    // Rate limit: configurable via platform settings
     const rateCheck = checkRateLimit(`ai-chat:${ctx.userId}`, {
-      maxAttempts: 60,
-      windowMs: 15 * 60 * 1000,
+      maxAttempts: aiSettings.rateLimitMessages,
+      windowMs: aiSettings.rateLimitWindowMinutes * 60 * 1000,
       blockDurationMs: 5 * 60 * 1000,
     })
     if (!rateCheck.allowed) {

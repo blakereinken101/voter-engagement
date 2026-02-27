@@ -3,13 +3,13 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getSessionFromRequest } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { isAIEnabled } from '@/lib/ai-chat'
+import { getAISettings } from '@/lib/ai-settings'
+import { geminiComplete } from '@/lib/gemini-provider'
 import { EVENT_TYPE_CONFIG } from '@/types/events'
 import type { EventType } from '@/types/events'
 
 export const runtime = 'nodejs'
 export const maxDuration = 15
-
-const MODEL = process.env.ANTHROPIC_SUGGEST_MODEL || 'claude-haiku-4-5-20251001'
 
 const SYSTEM_PROMPT = `You are a writing assistant for political event organizers. You help write compelling, concise event titles and descriptions.
 
@@ -58,9 +58,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
+    const aiSettings = await getAISettings()
+
     const rateCheck = checkRateLimit(`ai-suggest:${session.userId}`, {
-      maxAttempts: 30,
-      windowMs: 15 * 60 * 1000,
+      maxAttempts: aiSettings.suggestRateLimit,
+      windowMs: aiSettings.rateLimitWindowMinutes * 60 * 1000,
       blockDurationMs: 5 * 60 * 1000,
     })
     if (!rateCheck.allowed) {
@@ -122,16 +124,27 @@ export async function POST(request: NextRequest) {
 
     parts.push(`Respond with ONLY the ${field} text.`)
 
-    const client = new Anthropic()
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: field === 'title' ? 100 : 300,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: parts.join('\n') }],
-    })
+    const maxTokens = field === 'title' ? 100 : 300
+    let suggestion = ''
 
-    const textBlock = response.content.find(b => b.type === 'text')
-    const suggestion = textBlock?.text?.trim() || ''
+    if (aiSettings.provider === 'gemini') {
+      suggestion = (await geminiComplete({
+        model: aiSettings.suggestModel,
+        systemPrompt: SYSTEM_PROMPT,
+        userMessage: parts.join('\n'),
+        maxTokens,
+      })).trim()
+    } else {
+      const client = new Anthropic()
+      const response = await client.messages.create({
+        model: aiSettings.suggestModel,
+        max_tokens: maxTokens,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: parts.join('\n') }],
+      })
+      const textBlock = response.content.find(b => b.type === 'text')
+      suggestion = textBlock?.text?.trim() || ''
+    }
 
     if (!suggestion) {
       return NextResponse.json({ error: 'No suggestion generated' }, { status: 500 })
