@@ -129,6 +129,8 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
               allToolCalls.push({ name: event.name as string, input: event.input as Record<string, unknown> })
               allToolResults.push({ name: event.name as string, result: event.result as Record<string, unknown> })
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+            } else if (event.type === 'error') {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
             } else if (event.type === 'done') {
               controller.enqueue(encoder.encode('data: [DONE]\n\n'))
             }
