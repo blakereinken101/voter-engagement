@@ -8,7 +8,7 @@ import {
   BarChart3, Building2, Users, CreditCard, Loader2, Search,
   Plus, Check, X, Shield, ShieldOff, Database, Upload, Trash2,
   ChevronDown, ChevronRight, Link, MessageSquare, Calendar, UserPlus,
-  Settings,
+  Settings, RotateCcw, FileText,
 } from 'lucide-react'
 
 type PlatformTab = 'overview' | 'organizations' | 'users' | 'subscriptions' | 'voter-data' | 'settings'
@@ -1812,6 +1812,16 @@ function SettingsTab() {
         </button>
         {saved && <span className="text-vc-teal text-sm">Settings saved — takes effect immediately</span>}
       </div>
+
+      {/* Divider */}
+      <div className="border-t border-white/10 my-2" />
+
+      {/* AI Prompt Instructions */}
+      <div className="glass-card p-6">
+        <h3 className="text-lg font-bold text-white mb-2">AI Prompt Instructions</h3>
+        <p className="text-white/50 text-sm mb-4">View and edit what the AI bots are instructed to do. Each section controls a different part of the coaching behavior. Optionally override per campaign type.</p>
+        <PromptEditor />
+      </div>
     </div>
   )
 }
@@ -1853,6 +1863,203 @@ function CostEstimate({ provider, chatModel }: { provider: string; chatModel: st
         <p className="text-white/50 text-xs">Output price</p>
         <p className="text-sm text-white/70">${outputPrice}/1M tokens</p>
       </div>
+    </div>
+  )
+}
+
+// ========== PROMPT EDITOR ==========
+
+interface PromptSectionData {
+  id: string
+  label: string
+  description: string
+  content: string
+  isDefault: boolean
+  availableVariables: string[]
+}
+
+function PromptEditor() {
+  const [sections, setSections] = useState<PromptSectionData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [campaignType, setCampaignType] = useState<string>('')
+  const [editContent, setEditContent] = useState<Record<string, string>>({})
+  const [savingId, setSavingId] = useState<string | null>(null)
+  const [savedId, setSavedId] = useState<string | null>(null)
+
+  const loadSections = useCallback(async (ct?: string) => {
+    setLoading(true)
+    const url = ct ? `/api/platform/prompts?campaignType=${ct}` : '/api/platform/prompts'
+    const res = await fetch(url)
+    if (res.ok) {
+      const data = await res.json()
+      setSections(data.sections)
+      const edits: Record<string, string> = {}
+      for (const s of data.sections) edits[s.id] = s.content
+      setEditContent(edits)
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { loadSections(campaignType || undefined) }, [campaignType, loadSections])
+
+  const saveSection = async (sectionId: string) => {
+    setSavingId(sectionId)
+    setSavedId(null)
+    const res = await fetch('/api/platform/prompts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sectionId,
+        content: editContent[sectionId],
+        campaignType: campaignType || undefined,
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setSections(prev => prev.map(s => s.id === sectionId ? data.section : s))
+      setSavedId(sectionId)
+      setTimeout(() => setSavedId(null), 3000)
+    }
+    setSavingId(null)
+  }
+
+  const resetSection = async (sectionId: string) => {
+    setSavingId(sectionId)
+    const res = await fetch('/api/platform/prompts', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sectionId,
+        campaignType: campaignType || undefined,
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setEditContent(prev => ({ ...prev, [sectionId]: data.defaultContent }))
+      setSections(prev => prev.map(s => s.id === sectionId ? { ...s, content: data.defaultContent, isDefault: true } : s))
+    }
+    setSavingId(null)
+  }
+
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 text-white/30 animate-spin" /></div>
+
+  return (
+    <div className="space-y-4">
+      {/* Campaign type filter */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-sm text-white/50">Viewing:</span>
+        {[
+          { value: '', label: 'Base (all campaigns)' },
+          { value: 'candidate', label: 'Candidate' },
+          { value: 'ballot-measure', label: 'Ballot Measure' },
+          { value: 'issue-advocacy', label: 'Issue Advocacy' },
+        ].map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => { setCampaignType(opt.value); setExpandedId(null) }}
+            className={clsx(
+              'px-3 py-1 rounded-full text-xs font-medium transition-all',
+              campaignType === opt.value
+                ? 'bg-vc-purple text-white'
+                : 'bg-white/10 text-white/50 hover:bg-white/15'
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {campaignType && (
+        <p className="text-xs text-white/40">
+          Editing overrides for <strong className="text-white/60">{campaignType}</strong> campaigns. Sections without an override will fall back to the base prompt.
+        </p>
+      )}
+
+      {/* Section accordion */}
+      {sections.map(section => {
+        const isExpanded = expandedId === section.id
+        const hasChanges = editContent[section.id] !== section.content
+        const charCount = (editContent[section.id] || '').length
+        const estimatedTokens = Math.round(charCount / 4)
+
+        return (
+          <div key={section.id} className="glass-card overflow-hidden">
+            <button
+              onClick={() => setExpandedId(isExpanded ? null : section.id)}
+              className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/5 transition-colors"
+            >
+              {isExpanded
+                ? <ChevronDown className="w-4 h-4 text-white/40 flex-shrink-0" />
+                : <ChevronRight className="w-4 h-4 text-white/40 flex-shrink-0" />
+              }
+              <FileText className="w-4 h-4 text-white/30 flex-shrink-0" />
+              <span className="text-sm font-medium text-white flex-1">{section.label}</span>
+              <span className={clsx(
+                'text-xs px-2 py-0.5 rounded-full',
+                section.isDefault ? 'bg-white/10 text-white/40' : 'bg-vc-purple/30 text-vc-purple-light'
+              )}>
+                {section.isDefault ? 'default' : 'customized'}
+              </span>
+            </button>
+
+            {isExpanded && (
+              <div className="px-4 pb-4 space-y-3">
+                <p className="text-xs text-white/40">{section.description}</p>
+
+                {section.availableVariables.length > 0 && (
+                  <div className="text-xs text-white/30">
+                    <span className="text-white/50">Variables: </span>
+                    {section.availableVariables.map(v => (
+                      <code key={v} className="bg-white/10 px-1 py-0.5 rounded text-vc-teal mr-1">{`{{${v}}}`}</code>
+                    ))}
+                  </div>
+                )}
+
+                <textarea
+                  value={editContent[section.id] || ''}
+                  onChange={e => setEditContent(prev => ({ ...prev, [section.id]: e.target.value }))}
+                  rows={16}
+                  className="w-full bg-black/30 text-white/90 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono leading-relaxed focus:border-vc-purple focus:outline-none resize-y"
+                  placeholder="Enter prompt instructions..."
+                />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/30">
+                    {charCount.toLocaleString()} chars / ~{estimatedTokens.toLocaleString()} tokens
+                  </span>
+
+                  <div className="flex items-center gap-2">
+                    {savedId === section.id && (
+                      <span className="text-vc-teal text-xs">Saved</span>
+                    )}
+                    {!section.isDefault && (
+                      <button
+                        onClick={() => resetSection(section.id)}
+                        disabled={savingId === section.id}
+                        className="px-3 py-1.5 text-xs text-white/50 hover:text-white border border-white/10 rounded-btn flex items-center gap-1.5 hover:bg-white/5 transition-all disabled:opacity-50"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        Reset to Default
+                      </button>
+                    )}
+                    <button
+                      onClick={() => saveSection(section.id)}
+                      disabled={savingId === section.id || !hasChanges}
+                      className="px-4 py-1.5 text-xs bg-vc-purple text-white rounded-btn font-medium hover:bg-vc-purple-light transition-all disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      {savingId === section.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                      Save Section
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+
+      <p className="text-xs text-white/30">Changes take effect within 60 seconds for active chat sessions.</p>
     </div>
   )
 }

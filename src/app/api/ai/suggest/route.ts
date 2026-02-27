@@ -5,44 +5,12 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { isAIEnabled } from '@/lib/ai-chat'
 import { getAISettings } from '@/lib/ai-settings'
 import { geminiComplete } from '@/lib/gemini-provider'
+import { getPromptSection } from '@/lib/ai-prompts'
 import { EVENT_TYPE_CONFIG } from '@/types/events'
 import type { EventType } from '@/types/events'
 
 export const runtime = 'nodejs'
 export const maxDuration = 15
-
-const SYSTEM_PROMPT = `You are a writing assistant for political event organizers. You help write compelling, concise event titles and descriptions.
-
-CRITICAL: USE YOUR KNOWLEDGE. When the user mentions well-known public figures (politicians, activists, celebrities), organizations, movements, legislation, or current events, USE what you know about them. Reference their actual roles, accomplishments, positions, or relevance. Do NOT treat Hillary Clinton, Barack Obama, AOC, or any other widely known figure as if they were an unknown local person. If someone mentions a specific cause, bill, or movement, demonstrate you understand what it is and why it matters.
-
-Read the user's existing draft carefully. Understand the CONTEXT and INTENT of what they've written. Your suggestion should build on their ideas, not replace them with generic filler. If they mention a specific topic, person, or cause, your output must reflect that specificity.
-
-Rules for TITLES:
-- Keep it under 60 characters
-- Be specific and action-oriented
-- Include the neighborhood or area when location info is available
-- Match the energy of the event type
-- Do NOT use generic filler like "Join us for..." — lead with the action or purpose
-- If a notable person is involved, use their name and role appropriately
-
-Rules for DESCRIPTIONS:
-- 2-4 sentences maximum
-- NEVER repeat the event title
-- NEVER mention date, time, or location — those are displayed separately in the UI
-- Focus on: what attendees will DO, why it MATTERS, what to BRING or expect
-- If the event involves a known public figure, reference their actual significance — don't describe them generically
-- Match the tone to the event type:
-  - canvassing: practical, energizing — "here's what we'll accomplish together"
-  - phone_bank: practical, clear — what the calls are about, who they're reaching
-  - rally/protest: urgent, inspiring, movement-building language
-  - town_hall/debate_watch: informative, civic-minded, what they'll learn
-  - happy_hour/meetup: casual, welcoming, community-building
-  - fundraiser: compelling case for support, mention the impact of donations
-  - volunteer_training: practical, what skills they'll gain, who it's for
-  - community/voter_registration: inclusive, empowering, grassroots energy
-  - ballot_party: fun, informative, help people feel prepared
-
-Always respond with ONLY the requested text. No quotes, no preamble, no explanation.`
 
 export async function POST(request: NextRequest) {
   try {
@@ -127,10 +95,14 @@ export async function POST(request: NextRequest) {
     const maxTokens = field === 'title' ? 100 : 300
     let suggestion = ''
 
+    // Load DB-backed event suggest prompt (falls back to hardcoded default)
+    const suggestPromptSection = await getPromptSection('event_suggest')
+    const systemPrompt = suggestPromptSection.content
+
     if (aiSettings.provider === 'gemini') {
       suggestion = (await geminiComplete({
         model: aiSettings.suggestModel,
-        systemPrompt: SYSTEM_PROMPT,
+        systemPrompt,
         userMessage: parts.join('\n'),
         maxTokens,
       })).trim()
@@ -139,7 +111,7 @@ export async function POST(request: NextRequest) {
       const response = await client.messages.create({
         model: aiSettings.suggestModel,
         max_tokens: maxTokens,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: 'user', content: parts.join('\n') }],
       })
       const textBlock = response.content.find(b => b.type === 'text')
