@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import EventManageTable from '@/components/events/EventManageTable'
 import type { Event } from '@/types/events'
 import { FREE_EVENT_LIMIT } from '@/types/events'
-import { Plus, Lock, Sparkles, ArrowRight, Image, Upload } from 'lucide-react'
+import { Plus, Lock, Sparkles, ArrowRight, Image, Upload, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 function EventManageContent() {
@@ -194,6 +194,15 @@ function EventManageContent() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      {/* Back to dashboard */}
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors mb-4"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Dashboard
+      </Link>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>

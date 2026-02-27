@@ -32,7 +32,7 @@ const stateRegistrationUrls: Record<string, string> = {
   AZ: 'https://azsos.gov/elections/voting-election/register-vote',
 }
 
-function getRegistrationUrl(stateAbbr: string): string {
+export function getRegistrationUrl(stateAbbr: string): string {
   if (stateRegistrationUrls[stateAbbr]) {
     return stateRegistrationUrls[stateAbbr]
   }

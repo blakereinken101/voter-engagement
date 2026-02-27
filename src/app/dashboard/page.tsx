@@ -15,7 +15,7 @@ import defaultCampaignConfig from '@/lib/campaign-config'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { DashboardView } from '@/types'
-import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Bot, Table, Calendar } from 'lucide-react'
+import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Sparkles, Table, Calendar } from 'lucide-react'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
@@ -41,14 +41,14 @@ export default function DashboardPage() {
     : '?'
 
   return (
-    <div className="min-h-screen cosmic-bg constellation flex flex-col">
+    <div className="min-h-screen cosmic-bg constellation flex flex-col safe-top">
       {/* Header — glass bar */}
-      <header className="glass-dark border-b border-white/10">
+      <header className="glass-dark border-b border-white/10 sticky top-0 z-50">
         {/* Top bar */}
-        <div className="max-w-6xl mx-auto px-6 pt-5 pb-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 pb-2 md:pb-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="hover:opacity-80 transition-opacity">
-              <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-20 md:h-28 w-auto" priority />
+              <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-14 md:h-28 w-auto" priority />
             </Link>
             <span className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider bg-vc-purple/20 text-vc-purple-light border border-vc-purple/30 rounded-full">
               Relational
@@ -98,7 +98,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Nav bar */}
-        <div className="max-w-6xl mx-auto px-6 pb-4 flex flex-wrap items-center gap-2 md:gap-3">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pb-3 md:pb-4 flex flex-wrap items-center gap-1.5 md:gap-3">
           <button
             onClick={() => setView('chat')}
             className={`text-sm px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
@@ -107,7 +107,7 @@ export default function DashboardPage() {
                 : 'text-white/60 hover:text-white glass hover:border-white/20'
             }`}
           >
-            <Bot className="w-4 h-4" />
+            <Sparkles className="w-4 h-4" />
             Chat
           </button>
           <button
@@ -219,7 +219,7 @@ export default function DashboardPage() {
       </main>
 
       {/* Footer */}
-      <footer className="text-center py-4 border-t border-white/5">
+      <footer className="text-center py-4 border-t border-white/5 safe-bottom">
         <p className="text-white/30 text-xs">
           &copy; {new Date().getFullYear()} Vote Threshold LLC. All Rights Reserved.
         </p>

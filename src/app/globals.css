@@ -208,3 +208,13 @@ body {
   -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
 }
+
+/* ─── Safe area insets for notched iPhones ────────── */
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}

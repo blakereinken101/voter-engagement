@@ -3,10 +3,10 @@ import { useState } from 'react'
 import { SpreadsheetRow, OutreachMethod, ContactOutcome, SafeVoterRecord } from '@/types'
 import { CATEGORIES } from '@/lib/wizard-config'
 import { generateSmsLinkForContact } from '@/lib/sms-templates'
+import { getRegistrationUrl } from './VoterRegistrationLinks'
 import { useAuth } from '@/context/AuthContext'
 import defaultCampaignConfig from '@/lib/campaign-config'
-import { calculatePriority, getPriorityLabel } from '@/lib/contact-priority'
-import { MessageCircle, Phone, Coffee, ThumbsUp, HelpCircle, ThumbsDown, Mail, PhoneOff, Smartphone, X, UserPlus, Star, ClipboardList, Zap } from 'lucide-react'
+import { MessageCircle, Phone, Coffee, ThumbsUp, HelpCircle, ThumbsDown, Mail, PhoneOff, Smartphone, X, UserPlus, Star, ClipboardList, Share2, Check } from 'lucide-react'
 import clsx from 'clsx'
 
 const OUTREACH_LABELS: Record<OutreachMethod, { label: string; Icon: typeof MessageCircle; tip: string }> = {
@@ -45,6 +45,7 @@ export default function ContactCard({
   const campaignConfig = authConfig || defaultCampaignConfig
   const [localNotes, setLocalNotes] = useState(actionItem?.notes ?? '')
   const [showCandidates, setShowCandidates] = useState(false)
+  const [regLinkSent, setRegLinkSent] = useState(false)
 
   const bestMatch = matchResult?.bestMatch
   const segment = matchResult?.segment
@@ -98,16 +99,6 @@ export default function ContactCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {actionItem && (() => {
-            const priority = calculatePriority(actionItem)
-            const { label, color } = getPriorityLabel(priority)
-            return (
-              <span className={clsx('text-[10px] font-bold flex items-center gap-0.5', color)}>
-                <Zap className="w-3 h-3" />
-                {label}
-              </span>
-            )
-          })()}
           {voteScore !== undefined && (
             <span className={clsx('font-display font-bold text-lg', segmentColor)}>
               {Math.round(voteScore * 100)}%
@@ -132,6 +123,33 @@ export default function ContactCard({
         )}
         {status === 'unmatched' && (
           <span className="text-[10px] font-bold text-white/60 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
+        )}
+        {status === 'unmatched' && !regLinkSent && (
+          <button
+            onClick={async () => {
+              const regUrl = getRegistrationUrl(campaignConfig.state)
+              const text = `Hey ${person.firstName}, make sure you're registered to vote! Check here: ${regUrl}`
+              if (navigator.share) {
+                try {
+                  await navigator.share({ text })
+                  setRegLinkSent(true)
+                } catch { /* user cancelled share */ }
+              } else {
+                await navigator.clipboard.writeText(text)
+                setRegLinkSent(true)
+              }
+            }}
+            className="text-[10px] font-bold text-vc-teal bg-vc-teal/10 px-2 py-0.5 rounded-full hover:bg-vc-teal/20 transition-colors inline-flex items-center gap-1"
+          >
+            <Share2 className="w-3 h-3" />
+            Send Registration Link
+          </button>
+        )}
+        {status === 'unmatched' && regLinkSent && (
+          <span className="text-[10px] font-bold text-vc-teal bg-vc-teal/10 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+            <Check className="w-3 h-3" />
+            Reg link sent
+          </span>
         )}
         {status === 'ambiguous' && (
           <div className="relative" style={{ zIndex: showCandidates ? 50 : 'auto' }}>

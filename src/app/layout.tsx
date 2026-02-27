@@ -1,8 +1,14 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import './globals.css'
 import { AppProvider } from '@/context/AppContext'
 import { AuthProvider } from '@/context/AuthContext'
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+}
 
 export const metadata: Metadata = {
   title: 'Threshold — Your Network Is Your Most Powerful Vote',

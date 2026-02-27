@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppContext } from '@/context/AppContext'
-import { Bot, Send, Trash2, Sparkles } from 'lucide-react'
+import { Send, Trash2, Sparkles } from 'lucide-react'
 import ChatMessageBubble from './ChatMessageBubble'
 import ChatQuickActions from './ChatQuickActions'
 import type { ChatMessage, PersonEntry, MatchResult, ContactOutcome, OutreachMethod } from '@/types'
@@ -219,7 +219,7 @@ export default function ChatInterface() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="flex items-center gap-2 text-white/40">
-          <Bot className="w-5 h-5 animate-pulse" />
+          <Sparkles className="w-5 h-5 animate-pulse" />
           <span className="text-sm">Loading...</span>
         </div>
       </div>

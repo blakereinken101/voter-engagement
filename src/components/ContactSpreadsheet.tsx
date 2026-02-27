@@ -9,8 +9,19 @@ import MatchAllBar from './MatchAllBar'
 import NearbyPanel from './NearbyPanel'
 import ContactsPanel from './ContactsPanel'
 import { calculatePriority } from '@/lib/contact-priority'
-import { Pencil, MapPin, ClipboardList, HelpCircle, MessageCircle, Phone, Coffee, Smartphone, ThumbsUp, ThumbsDown, Mail, Zap } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
+import defaultCampaignConfig from '@/lib/campaign-config'
+import { Pencil, MapPin, ClipboardList, HelpCircle, MessageCircle, Phone, Coffee, Smartphone, ThumbsUp, ThumbsDown, Mail } from 'lucide-react'
 import clsx from 'clsx'
+
+function formatElectionDate(dateStr?: string): string {
+  if (!dateStr) return 'Election Day'
+  const d = new Date(dateStr + 'T12:00:00')
+  const month = d.toLocaleString('en-US', { month: 'long' })
+  const day = d.getDate()
+  const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th'
+  return `${month} ${day}${suffix}`
+}
 
 const INTAKE_TABS: { id: IntakeMode; label: string; Icon: typeof Pencil }[] = [
   { id: 'manual', label: 'Manual', Icon: Pencil },
@@ -20,6 +31,9 @@ const INTAKE_TABS: { id: IntakeMode; label: string; Icon: typeof Pencil }[] = [
 
 function ConversationGuide() {
   const [open, setOpen] = useState(false)
+  const { campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
+  const electionDateLabel = formatElectionDate(campaignConfig.electionDate)
   return (
     <div className="mx-4 md:mx-6 mt-1 mb-0">
       <button
@@ -38,7 +52,7 @@ function ConversationGuide() {
             <p><span className="font-bold text-white">Start casual:</span> {'"Hey, I\'ve been thinking about the election and wanted to see where you\'re at."'}</p>
             <p><span className="font-bold text-white">Listen first:</span> Ask what issues matter to them before sharing your perspective.</p>
             <p><span className="font-bold text-white">Share why it matters to you:</span> Personal stories are more persuasive than facts and figures.</p>
-            <p><span className="font-bold text-white">Make a specific ask:</span> {'"Would you be willing to vote on November 5th?"'} is better than {'"You should vote."'}</p>
+            <p><span className="font-bold text-white">Make a specific ask:</span> {`"Would you be willing to vote on ${electionDateLabel}?"`} is better than {'"You should vote."'}</p>
           </div>
           <div className="mt-3 pt-3 border-t border-white/10">
             <p className="font-bold text-white mb-1">Icon Guide:</p>
@@ -238,18 +252,6 @@ export default function ContactSpreadsheet() {
             <option value="no-answer">No answer</option>
             <option value="opposed">Not interested</option>
           </select>
-          <button
-            onClick={() => { setSortField('priority'); setSortDir('desc') }}
-            className={clsx(
-              'flex items-center gap-1 px-3 py-2 rounded-btn text-xs font-bold transition-all',
-              sortField === 'priority'
-                ? 'bg-vc-purple text-white shadow-glow'
-                : 'glass-input text-white/60 hover:text-white'
-            )}
-          >
-            <Zap className="w-3 h-3" />
-            Priority
-          </button>
           <span className="text-xs text-white/60 font-display tabular-nums ml-auto">
             {sorted.length} of {rows.length}
           </span>
