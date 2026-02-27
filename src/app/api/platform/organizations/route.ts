@@ -29,6 +29,33 @@ export async function GET() {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    await requirePlatformAdmin()
+    const body = await request.json()
+    const { id, name } = body
+
+    if (!id || !name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'id and name are required' }, { status: 400 })
+    }
+
+    const db = await getDb()
+    const { rows } = await db.query(
+      'UPDATE organizations SET name = $1 WHERE id = $2 RETURNING id, name, slug',
+      [name.trim(), id]
+    )
+
+    if (!rows[0]) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ organization: rows[0] })
+  } catch (error) {
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await requirePlatformAdmin()

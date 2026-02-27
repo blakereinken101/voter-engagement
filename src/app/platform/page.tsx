@@ -91,6 +91,9 @@ function OrganizationsTab() {
   const [formName, setFormName] = useState('')
   const [formSlug, setFormSlug] = useState('')
   const [creating, setCreating] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [saving, setSaving] = useState(false)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -116,6 +119,21 @@ function OrganizationsTab() {
     setShowForm(false)
     setCreating(false)
     load()
+  }
+
+  async function handleRename(orgId: string) {
+    if (!editName.trim()) return
+    setSaving(true)
+    const res = await fetch('/api/platform/organizations', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: orgId, name: editName.trim() }),
+    })
+    if (res.ok) {
+      setOrgs(prev => prev.map(o => o.id === orgId ? { ...o, name: editName.trim() } : o))
+    }
+    setEditingId(null)
+    setSaving(false)
   }
 
   if (loading) return <LoadingState />
@@ -191,7 +209,35 @@ function OrganizationsTab() {
             <tbody>
               {orgs.map(org => (
                 <tr key={org.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="px-4 py-3 text-white font-medium">{org.name}</td>
+                  <td className="px-4 py-3 text-white font-medium">
+                    {editingId === org.id ? (
+                      <form
+                        className="inline-flex items-center gap-1.5"
+                        onSubmit={e => { e.preventDefault(); handleRename(org.id) }}
+                      >
+                        <input
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          className="glass-input px-2 py-1 rounded text-sm text-white w-48"
+                          autoFocus
+                        />
+                        <button type="submit" disabled={saving} className="text-vc-teal hover:text-vc-teal/80">
+                          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        </button>
+                        <button type="button" onClick={() => setEditingId(null)} className="text-white/30 hover:text-white/60">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </form>
+                    ) : (
+                      <span
+                        className="cursor-pointer hover:text-vc-purple-light transition-colors"
+                        onClick={() => { setEditingId(org.id); setEditName(org.name) }}
+                        title="Click to rename"
+                      >
+                        {org.name}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-white/50 font-mono text-xs">{org.slug}</td>
                   <td className="px-4 py-3 text-center text-white/70">{org.user_count}</td>
                   <td className="px-4 py-3 text-center text-white/70">{org.campaign_count}</td>
