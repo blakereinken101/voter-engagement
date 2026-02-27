@@ -15,7 +15,8 @@ import defaultCampaignConfig from '@/lib/campaign-config'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { DashboardView } from '@/types'
-import { Download, Shield, LogOut, BookOpen, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Sparkles, Table, Calendar } from 'lucide-react'
+import ScanSheetPanel from '@/components/ScanSheetPanel'
+import { Download, Shield, LogOut, Camera, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Sparkles, Table, Calendar } from 'lucide-react'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   // Product access is enforced by middleware — no client-side redirect guard needed
   const campaignConfig = authConfig || defaultCampaignConfig
   const [view, setView] = useState<DashboardView | 'admin'>('chat')
+  const [showScanSheet, setShowScanSheet] = useState(false)
 
   // Stats
   const totalPeople = state.personEntries.length
@@ -134,13 +136,13 @@ export default function DashboardPage() {
               Admin
             </button>
           )}
-          <Link
-            href="/rolodex"
+          <button
+            onClick={() => setShowScanSheet(true)}
             className="text-sm text-white/60 hover:text-white transition-colors px-5 py-2.5 rounded-btn glass hover:border-white/20 flex items-center gap-2 font-bold"
           >
-            <BookOpen className="w-4 h-4" />
-            Action Plan
-          </Link>
+            <Camera className="w-4 h-4" />
+            Scan Sheet
+          </button>
           {state.actionPlanState.length > 0 && (
             <button
               onClick={() => {
@@ -217,6 +219,11 @@ export default function DashboardPage() {
           <ChatInterface />
         )}
       </main>
+
+      {/* Scan Sheet modal */}
+      {showScanSheet && (
+        <ScanSheetPanel onClose={() => setShowScanSheet(false)} />
+      )}
 
       {/* Footer */}
       <footer className="text-center py-4 border-t border-white/5 safe-bottom">

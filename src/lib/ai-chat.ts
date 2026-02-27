@@ -903,15 +903,20 @@ export async function* streamChat(
 
   // Delegate to Gemini provider if configured
   if (aiSettings.provider === 'gemini') {
-    yield* streamGeminiChat({
-      model: aiSettings.chatModel,
-      maxTokens: aiSettings.maxTokens,
-      systemPrompt,
-      history: options.history,
-      message: options.message,
-      userId: options.userId,
-      campaignId: options.campaignId,
-    })
+    try {
+      yield* streamGeminiChat({
+        model: aiSettings.chatModel,
+        maxTokens: aiSettings.maxTokens,
+        systemPrompt,
+        history: options.history,
+        message: options.message,
+        userId: options.userId,
+        campaignId: options.campaignId,
+      })
+    } catch (err) {
+      console.error('[ai-chat] Gemini delegation error:', err)
+      yield { type: 'error', message: 'Gemini encountered an error. Please try again or switch to a different AI provider in settings.' }
+    }
     return
   }
 
