@@ -4,11 +4,12 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
+import NextLink from 'next/link'
 import {
   BarChart3, Building2, Users, CreditCard, Loader2, Search,
   Plus, Check, X, Shield, ShieldOff, Database, Upload, Trash2,
-  ChevronDown, ChevronRight, Link, MessageSquare, Calendar, UserPlus,
-  Settings, RotateCcw, FileText,
+  ChevronDown, ChevronRight, Link as LinkIcon, MessageSquare, Calendar, UserPlus,
+  Settings, RotateCcw, FileText, ExternalLink,
 } from 'lucide-react'
 
 type PlatformTab = 'overview' | 'organizations' | 'users' | 'subscriptions' | 'voter-data' | 'settings'
@@ -1503,7 +1504,7 @@ function DatasetExpandedRow({
           <div className="flex flex-wrap gap-2">
             {detail.assignedCampaigns.map(c => (
               <span key={c.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-vc-purple/20 text-vc-purple-light border border-vc-purple/30">
-                <Link className="w-3 h-3" />
+                <LinkIcon className="w-3 h-3" />
                 {c.name}
                 <span className="text-white/30">({c.org_name})</span>
                 <button
@@ -1545,7 +1546,7 @@ function DatasetExpandedRow({
             disabled={assigning}
             className="flex items-center gap-1 px-3 py-1.5 rounded-btn text-xs font-medium bg-vc-teal/80 text-white hover:bg-vc-teal transition-colors disabled:opacity-50"
           >
-            {assigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link className="w-3 h-3" />}
+            {assigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <LinkIcon className="w-3 h-3" />}
             Assign
           </button>
         </div>
@@ -2104,6 +2105,16 @@ export default function PlatformPage() {
             <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
+
+        {/* Quick link to Texting admin */}
+        <NextLink
+          href="/texting/admin"
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-btn text-sm font-medium text-amber-400 hover:bg-amber-500/10 transition-all ml-auto"
+        >
+          <MessageSquare className="w-4 h-4" />
+          <span className="hidden sm:inline">Texting</span>
+          <ExternalLink className="w-3 h-3 opacity-50" />
+        </NextLink>
       </div>
 
       {/* Tab content */}
