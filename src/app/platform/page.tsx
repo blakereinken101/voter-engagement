@@ -1674,7 +1674,7 @@ function SettingsTab() {
               onClick={() => {
                 const defaults = provider === 'anthropic'
                   ? { chatModel: 'claude-sonnet-4-6', suggestModel: 'claude-haiku-4-5-20251001' }
-                  : { chatModel: 'gemini-2.5-flash', suggestModel: 'gemini-2.5-flash-lite' }
+                  : { chatModel: 'gemini-3-flash-preview', suggestModel: 'gemini-3-flash-preview' }
                 setForm({ ...form, provider, ...defaults })
               }}
               className={clsx(

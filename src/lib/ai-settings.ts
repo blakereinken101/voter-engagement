@@ -113,11 +113,13 @@ export const MODEL_OPTIONS = {
   },
   gemini: {
     chat: [
+      { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', cost: 'Preview — free tier / pricing TBD' },
       { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite', cost: '~$0.10/$0.40 per 1M tokens' },
       { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', cost: '~$0.15/$0.60 per 1M tokens' },
       { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', cost: '~$1.25/$10 per 1M tokens' },
     ],
     suggest: [
+      { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash', cost: 'Preview — free tier / pricing TBD' },
       { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash-Lite', cost: '~$0.10/$0.40 per 1M tokens' },
       { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', cost: '~$0.15/$0.60 per 1M tokens' },
     ],
