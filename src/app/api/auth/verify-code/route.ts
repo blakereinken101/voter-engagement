@@ -113,10 +113,14 @@ export async function POST(request: NextRequest) {
     if (returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
       // Use the stored return URL (set by middleware when user was redirected to sign-in)
       redirect = returnUrl
+    } else if (pending.product === 'texting') {
+      redirect = '/texting'
     } else if (pending.product === 'events') {
       redirect = pending.plan
         ? `/events/manage?checkout=${pending.plan}`
         : '/events/manage'
+    } else if (products.includes('texting')) {
+      redirect = '/texting'
     } else if (products.includes('relational')) {
       redirect = '/dashboard'
     } else if (products.includes('events')) {

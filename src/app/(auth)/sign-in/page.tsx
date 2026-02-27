@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogIn, AlertCircle, CheckCircle, Calendar, Users, Loader2 } from 'lucide-react'
+import { LogIn, AlertCircle, CheckCircle, Calendar, Users, MessageSquare, Loader2 } from 'lucide-react'
 
 function SignInForm() {
   const router = useRouter()
@@ -21,7 +21,7 @@ function SignInForm() {
     return match ? decodeURIComponent(match[1]) : null
   }, [])
 
-  const { signIn, user, isLoading: authLoading, hasRelationalAccess, hasEventsAccess } = useAuth()
+  const { signIn, user, isLoading: authLoading, hasRelationalAccess, hasEventsAccess, hasTextingAccess } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -32,8 +32,12 @@ function SignInForm() {
     if (!authLoading && user) {
       let dest = redirectTo || returnUrl
       if (!dest) {
-        if (productFromUrl === 'events') {
+        if (productFromUrl === 'texting') {
+          dest = '/texting'
+        } else if (productFromUrl === 'events') {
           dest = '/events/manage'
+        } else if (hasTextingAccess && productFromUrl !== 'relational') {
+          dest = '/texting'
         } else if (hasRelationalAccess) {
           dest = '/dashboard'
         } else if (hasEventsAccess) {
@@ -47,7 +51,7 @@ function SignInForm() {
       // Hard navigate to avoid stale AuthContext state after login
       window.location.href = dest
     }
-  }, [authLoading, user, redirectTo, returnUrl, productFromUrl, hasRelationalAccess, hasEventsAccess])
+  }, [authLoading, user, redirectTo, returnUrl, productFromUrl, hasRelationalAccess, hasEventsAccess, hasTextingAccess])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -72,7 +76,7 @@ function SignInForm() {
         router.push(productFromUrl ? `/verify-code?product=${productFromUrl}` : '/verify-code')
         return
       }
-      const dest = redirectTo || returnUrl || (productFromUrl === 'events' ? '/events/manage' : '/dashboard')
+      const dest = redirectTo || returnUrl || (productFromUrl === 'texting' ? '/texting' : productFromUrl === 'events' ? '/events/manage' : '/dashboard')
       document.cookie = 'vc-return-url=; Path=/; SameSite=Lax; Max-Age=0'
       router.push(dest)
     } catch (err) {
@@ -99,7 +103,12 @@ function SignInForm() {
           <Link href="/" className="inline-block hover:opacity-80 transition-opacity">
             <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-48 md:h-64 w-auto mx-auto" priority />
           </Link>
-          {productFromUrl === 'relational' ? (
+          {productFromUrl === 'texting' ? (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <MessageSquare className="w-4 h-4 text-amber-400" />
+              <p className="text-white/60 text-sm">Sign in to <span className="text-amber-400 font-semibold">Texting</span></p>
+            </div>
+          ) : productFromUrl === 'relational' ? (
             <div className="flex items-center justify-center gap-2 mt-3">
               <Users className="w-4 h-4 text-vc-purple-light" />
               <p className="text-white/60 text-sm">Sign in to <span className="text-vc-purple-light font-semibold">Relational</span></p>
@@ -176,7 +185,9 @@ function SignInForm() {
           </Link>
         </p>
         <p className="text-center mt-3 text-sm text-white/50">
-          {productFromUrl === 'relational' ? (
+          {productFromUrl === 'texting' ? (
+            <>Need access? Ask your texting campaign admin for an invite link.</>
+          ) : productFromUrl === 'relational' ? (
             <>Need an account? Ask your campaign admin for an invite link.</>
           ) : (
             <>Need an events account?{' '}

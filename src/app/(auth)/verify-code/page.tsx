@@ -24,7 +24,7 @@ function VerifyCodeForm() {
   useEffect(() => {
     if (user && !didRedirectRef.current) {
       didRedirectRef.current = true
-      router.push(product === 'events' ? '/events/manage' : '/dashboard')
+      router.push(product === 'texting' ? '/texting' : product === 'events' ? '/events/manage' : '/dashboard')
     }
   }, [user, router, product])
 
@@ -56,7 +56,7 @@ function VerifyCodeForm() {
       // Hard navigate (not router.push) to guarantee a fresh page load with
       // clean AuthContext state — same pattern as signOut. This prevents stale
       // userProducts from causing redirect loops.
-      window.location.href = redirect || (product === 'events' ? '/events/manage' : '/dashboard')
+      window.location.href = redirect || (product === 'texting' ? '/texting' : product === 'events' ? '/events/manage' : '/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Verification failed')
       // Clear inputs on error
@@ -202,7 +202,7 @@ function VerifyCodeForm() {
         </div>
 
         <Link
-          href={product === 'events' ? '/sign-in?product=events' : '/sign-in'}
+          href={product === 'texting' ? '/sign-in?product=texting' : product === 'events' ? '/sign-in?product=events' : '/sign-in'}
           className="flex items-center justify-center gap-2 mt-6 text-sm text-white/40 hover:text-white/60 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

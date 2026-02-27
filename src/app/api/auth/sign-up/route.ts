@@ -17,6 +17,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Self-signup for texting is not supported — texting access is granted by campaign admins
+    if (product === 'texting') {
+      return NextResponse.json(
+        { error: 'Texting access requires an invitation from a campaign admin.' },
+        { status: 400 }
+      )
+    }
+
     // ── Validate inputs ──────────────────────────────────────────────
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 })

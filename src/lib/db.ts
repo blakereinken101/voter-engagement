@@ -441,6 +441,21 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_voters_dataset_voter ON voters(dataset_id, voter_id);
       CREATE INDEX IF NOT EXISTS idx_campaign_voter_datasets_campaign ON campaign_voter_datasets(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_campaign_voter_datasets_dataset ON campaign_voter_datasets(dataset_id);
+
+      CREATE INDEX IF NOT EXISTS idx_text_campaigns_org ON text_campaigns(organization_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaigns_status ON text_campaigns(status);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_campaign ON text_campaign_contacts(text_campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_status ON text_campaign_contacts(text_campaign_id, status);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_assigned ON text_campaign_contacts(text_campaign_id, assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_contacts_cell ON text_campaign_contacts(text_campaign_id, cell);
+      CREATE INDEX IF NOT EXISTS idx_text_messages_campaign ON text_messages(text_campaign_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_text_messages_contact ON text_messages(contact_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_text_messages_twilio_sid ON text_messages(twilio_sid) WHERE twilio_sid IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_text_opt_outs_org_phone ON text_opt_outs(organization_id, phone);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_members_campaign ON text_campaign_members(text_campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_members_user ON text_campaign_members(user_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_scripts_campaign ON text_campaign_scripts(text_campaign_id);
+      CREATE INDEX IF NOT EXISTS idx_text_campaign_settings_campaign ON text_campaign_settings(text_campaign_id);
     `)
 
     // Trigram GIN indexes for fuzzy name matching (requires pg_trgm)
@@ -478,11 +493,140 @@ async function initSchema() {
       CREATE TABLE IF NOT EXISTS user_products (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        product TEXT NOT NULL CHECK (product IN ('events', 'relational')),
+        product TEXT NOT NULL,
         granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         granted_by TEXT,
         is_active BOOLEAN NOT NULL DEFAULT true,
         UNIQUE(user_id, product)
+      );
+    `)
+
+    // Ensure CHECK constraint includes 'texting'
+    await client.query(`
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'user_products_product_check'
+        ) THEN
+          ALTER TABLE user_products DROP CONSTRAINT user_products_product_check;
+        END IF;
+      END $$;
+    `)
+    await client.query(`
+      ALTER TABLE user_products ADD CONSTRAINT user_products_product_check
+        CHECK (product IN ('events', 'relational', 'texting'));
+    `)
+
+    // ── P2P Texting Platform ─────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS text_campaigns (
+        id TEXT PRIMARY KEY,
+        organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        description TEXT,
+        status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','active','paused','archived')),
+        sending_mode TEXT NOT NULL DEFAULT 'p2p' CHECK (sending_mode IN ('p2p','blast')),
+        texting_hours_start INTEGER NOT NULL DEFAULT 9,
+        texting_hours_end INTEGER NOT NULL DEFAULT 21,
+        created_by TEXT NOT NULL REFERENCES users(id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS text_campaign_settings (
+        id TEXT PRIMARY KEY,
+        text_campaign_id TEXT NOT NULL UNIQUE REFERENCES text_campaigns(id) ON DELETE CASCADE,
+        dynamic_assignment_initials BOOLEAN DEFAULT false,
+        dynamic_assignment_replies BOOLEAN DEFAULT false,
+        initial_batch_size INTEGER DEFAULT 200,
+        reply_batch_size INTEGER DEFAULT 50,
+        enable_contact_notes BOOLEAN DEFAULT true,
+        enable_manual_tags BOOLEAN DEFAULT true,
+        initial_join_token TEXT UNIQUE,
+        reply_join_token TEXT UNIQUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS text_campaign_contacts (
+        id TEXT PRIMARY KEY,
+        text_campaign_id TEXT NOT NULL REFERENCES text_campaigns(id) ON DELETE CASCADE,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        cell TEXT NOT NULL,
+        custom_fields JSONB DEFAULT '{}',
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','queued','sent','replied','opted_out','error')),
+        assigned_to TEXT REFERENCES users(id),
+        sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS text_campaign_scripts (
+        id TEXT PRIMARY KEY,
+        text_campaign_id TEXT NOT NULL REFERENCES text_campaigns(id) ON DELETE CASCADE,
+        script_type TEXT NOT NULL CHECK (script_type IN ('initial','canned_response')),
+        title TEXT,
+        body TEXT NOT NULL,
+        sort_order INTEGER DEFAULT 0,
+        tags TEXT[] DEFAULT '{}',
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS text_messages (
+        id TEXT PRIMARY KEY,
+        text_campaign_id TEXT NOT NULL REFERENCES text_campaigns(id) ON DELETE CASCADE,
+        contact_id TEXT NOT NULL REFERENCES text_campaign_contacts(id) ON DELETE CASCADE,
+        sender_id TEXT REFERENCES users(id),
+        direction TEXT NOT NULL CHECK (direction IN ('outbound','inbound')),
+        body TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued','sent','delivered','failed','received')),
+        twilio_sid TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS text_campaign_tags (
+        id TEXT PRIMARY KEY,
+        text_campaign_id TEXT NOT NULL REFERENCES text_campaigns(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#6C3CE1',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(text_campaign_id, name)
+      );
+
+      CREATE TABLE IF NOT EXISTS text_contact_tags (
+        id TEXT PRIMARY KEY,
+        contact_id TEXT NOT NULL REFERENCES text_campaign_contacts(id) ON DELETE CASCADE,
+        tag_id TEXT NOT NULL REFERENCES text_campaign_tags(id) ON DELETE CASCADE,
+        applied_by TEXT REFERENCES users(id),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(contact_id, tag_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS text_contact_notes (
+        id TEXT PRIMARY KEY,
+        contact_id TEXT NOT NULL REFERENCES text_campaign_contacts(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id),
+        note TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS text_opt_outs (
+        id TEXT PRIMARY KEY,
+        organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        phone TEXT NOT NULL,
+        reason TEXT,
+        source TEXT DEFAULT 'auto',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE(organization_id, phone)
+      );
+
+      CREATE TABLE IF NOT EXISTS text_campaign_members (
+        id TEXT PRIMARY KEY,
+        text_campaign_id TEXT NOT NULL REFERENCES text_campaigns(id) ON DELETE CASCADE,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role TEXT NOT NULL DEFAULT 'texter' CHECK (role IN ('admin','texter')),
+        joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        is_active BOOLEAN DEFAULT true,
+        UNIQUE(text_campaign_id, user_id)
       );
     `)
 
@@ -578,8 +722,8 @@ async function seedDefaults(client: import('pg').PoolClient) {
       console.log(`[db] Seeded admin membership in campaign: ${campaignId}`)
     }
 
-    // Ensure admin has both product access grants
-    for (const product of ['events', 'relational']) {
+    // Ensure admin has all product access grants
+    for (const product of ['events', 'relational', 'texting']) {
       await client.query(
         `INSERT INTO user_products (id, user_id, product)
          VALUES ($1, $2, $3)
