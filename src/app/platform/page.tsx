@@ -7,7 +7,7 @@ import clsx from 'clsx'
 import {
   BarChart3, Building2, Users, CreditCard, Loader2, Search,
   Plus, Check, X, Shield, ShieldOff, Database, Upload, Trash2,
-  ChevronDown, ChevronRight, Link,
+  ChevronDown, ChevronRight, Link, MessageSquare, Calendar, UserPlus,
 } from 'lucide-react'
 
 type PlatformTab = 'overview' | 'organizations' | 'users' | 'subscriptions' | 'voter-data'
@@ -225,6 +225,20 @@ interface PlatformUser {
   is_platform_admin: boolean
   created_at: string
   membership_count: number
+  products: string[]
+}
+
+interface UserDetail {
+  user: { id: string; email: string; name: string; phone: string | null; is_platform_admin: boolean; created_at: string }
+  products: { product: string; granted_at: string; is_active: boolean }[]
+  memberships: { id: string; role: string; is_active: boolean; campaign_name: string; campaign_id: string; org_name: string }[]
+  textCampaignMemberships: { id: string; role: string; is_active: boolean; campaign_title: string; campaign_id: string; campaign_status: string }[]
+}
+
+const PRODUCT_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; Icon: typeof Users }> = {
+  relational: { label: 'Relational', color: 'text-vc-purple-light', bg: 'bg-vc-purple/20', border: 'border-vc-purple/30', Icon: Users },
+  events: { label: 'Events', color: 'text-vc-teal', bg: 'bg-vc-teal/20', border: 'border-vc-teal/30', Icon: Calendar },
+  texting: { label: 'Texting', color: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/30', Icon: MessageSquare },
 }
 
 function UsersTab() {
@@ -233,13 +247,28 @@ function UsersTab() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [toggling, setToggling] = useState<string | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [detailCache, setDetailCache] = useState<Record<string, UserDetail>>({})
 
-  useEffect(() => {
+  // Create form state
+  const [formName, setFormName] = useState('')
+  const [formEmail, setFormEmail] = useState('')
+  const [formPassword, setFormPassword] = useState('')
+  const [formPhone, setFormPhone] = useState('')
+  const [formProducts, setFormProducts] = useState<string[]>([])
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
+
+  const loadUsers = useCallback(() => {
+    setLoading(true)
     fetch('/api/platform/users')
       .then(r => r.json())
       .then(d => setUsers(d.users || []))
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => { loadUsers() }, [loadUsers])
 
   async function toggleAdmin(userId: string, current: boolean) {
     if (userId === currentUser?.id) return
@@ -255,6 +284,94 @@ function UsersTab() {
     setToggling(null)
   }
 
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setCreateError('')
+    setCreating(true)
+    try {
+      const res = await fetch('/api/platform/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formName.trim(),
+          email: formEmail.trim(),
+          password: formPassword,
+          phone: formPhone.trim() || undefined,
+          products: formProducts,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setCreateError(data.error || 'Failed to create user')
+        return
+      }
+      setFormName('')
+      setFormEmail('')
+      setFormPassword('')
+      setFormPhone('')
+      setFormProducts([])
+      setShowCreate(false)
+      loadUsers()
+    } catch {
+      setCreateError('Network error')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  function toggleFormProduct(product: string) {
+    setFormProducts(prev =>
+      prev.includes(product) ? prev.filter(p => p !== product) : [...prev, product]
+    )
+  }
+
+  async function loadDetail(userId: string) {
+    if (detailCache[userId]) return
+    const res = await fetch(`/api/platform/users/${userId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetailCache(prev => ({ ...prev, [userId]: data }))
+    }
+  }
+
+  function toggleExpand(userId: string) {
+    if (expandedId === userId) {
+      setExpandedId(null)
+    } else {
+      setExpandedId(userId)
+      loadDetail(userId)
+    }
+  }
+
+  async function grantProduct(userId: string, product: string) {
+    await fetch(`/api/platform/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grantProduct: product }),
+    })
+    // Refresh detail + user list
+    const res = await fetch(`/api/platform/users/${userId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetailCache(prev => ({ ...prev, [userId]: data }))
+    }
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, products: [...new Set([...u.products, product])] } : u))
+  }
+
+  async function revokeProduct(userId: string, product: string) {
+    await fetch(`/api/platform/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ revokeProduct: product }),
+    })
+    const res = await fetch(`/api/platform/users/${userId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetailCache(prev => ({ ...prev, [userId]: data }))
+    }
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, products: u.products.filter(p => p !== product) } : u))
+  }
+
   if (loading) return <LoadingState />
 
   const filtered = search
@@ -263,69 +380,314 @@ function UsersTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="glass-input w-full pl-9 pr-3 py-2 rounded-btn text-white text-sm"
-            placeholder="Search users..."
-          />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="glass-input w-full pl-9 pr-3 py-2 rounded-btn text-white text-sm"
+              placeholder="Search users..."
+            />
+          </div>
+          <p className="text-white/50 text-sm">{filtered.length} user{filtered.length !== 1 ? 's' : ''}</p>
         </div>
-        <p className="text-white/50 text-sm">{filtered.length} user{filtered.length !== 1 ? 's' : ''}</p>
+        <button
+          onClick={() => setShowCreate(!showCreate)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium bg-vc-purple text-white hover:bg-vc-purple-light transition-colors"
+        >
+          <UserPlus className="w-4 h-4" />
+          Create User
+        </button>
       </div>
+
+      {showCreate && (
+        <form onSubmit={handleCreate} className="glass-card p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Name *</label>
+              <input
+                value={formName}
+                onChange={e => setFormName(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
+                placeholder="Jane Smith"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Email *</label>
+              <input
+                type="email"
+                value={formEmail}
+                onChange={e => setFormEmail(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
+                placeholder="jane@example.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Password *</label>
+              <input
+                type="password"
+                value={formPassword}
+                onChange={e => setFormPassword(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
+                placeholder="8+ characters"
+                required
+                minLength={8}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Phone</label>
+              <input
+                type="tel"
+                value={formPhone}
+                onChange={e => setFormPhone(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
+                placeholder="(555) 555-1234"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-white/50 mb-2">Product Access</label>
+            <div className="flex gap-2">
+              {Object.entries(PRODUCT_CONFIG).map(([key, cfg]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => toggleFormProduct(key)}
+                  className={clsx(
+                    'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-xs font-medium border transition-colors',
+                    formProducts.includes(key)
+                      ? `${cfg.bg} ${cfg.color} ${cfg.border}`
+                      : 'bg-white/5 text-white/30 border-white/10 hover:bg-white/10'
+                  )}
+                >
+                  <cfg.Icon className="w-3.5 h-3.5" />
+                  {cfg.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {createError && (
+            <p className="text-red-400 text-xs">{createError}</p>
+          )}
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={creating}
+              className="px-4 py-2 rounded-btn text-sm font-medium bg-vc-teal text-white hover:bg-vc-teal/80 transition-colors disabled:opacity-50"
+            >
+              {creating ? 'Creating...' : 'Create User'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreate(false)}
+              className="px-4 py-2 rounded-btn text-sm text-white/50 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
       <div className="glass-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
+                <th className="w-8 px-2 py-3" />
                 <th className="text-left px-4 py-3 text-white/50 font-medium">Name</th>
                 <th className="text-left px-4 py-3 text-white/50 font-medium">Email</th>
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Products</th>
                 <th className="text-center px-4 py-3 text-white/50 font-medium">Admin</th>
-                <th className="text-center px-4 py-3 text-white/50 font-medium">Memberships</th>
                 <th className="text-left px-4 py-3 text-white/50 font-medium">Created</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(u => (
-                <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td className="px-4 py-3 text-white font-medium">{u.name}</td>
-                  <td className="px-4 py-3 text-white/60 text-xs">{u.email}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => toggleAdmin(u.id, u.is_platform_admin)}
-                      disabled={toggling === u.id || u.id === currentUser?.id}
-                      className={clsx(
-                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors',
-                        u.is_platform_admin
-                          ? 'bg-vc-coral/20 text-vc-coral border border-vc-coral/30 hover:bg-vc-coral/30'
-                          : 'bg-white/5 text-white/30 border border-white/10 hover:bg-white/10',
-                        (toggling === u.id || u.id === currentUser?.id) && 'opacity-50 cursor-not-allowed'
-                      )}
-                      title={u.id === currentUser?.id ? 'Cannot modify your own status' : u.is_platform_admin ? 'Remove admin' : 'Make admin'}
-                    >
-                      {toggling === u.id ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : u.is_platform_admin ? (
-                        <Shield className="w-3 h-3" />
-                      ) : (
-                        <ShieldOff className="w-3 h-3" />
-                      )}
-                      {u.is_platform_admin ? 'Admin' : 'User'}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-center text-white/70">{u.membership_count}</td>
-                  <td className="px-4 py-3 text-white/50 text-xs">{formatDate(u.created_at)}</td>
-                </tr>
+                <React.Fragment key={u.id}>
+                  <tr
+                    className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={() => toggleExpand(u.id)}
+                  >
+                    <td className="px-2 py-3 text-white/30">
+                      {expandedId === u.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </td>
+                    <td className="px-4 py-3 text-white font-medium">{u.name}</td>
+                    <td className="px-4 py-3 text-white/60 text-xs">{u.email}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1.5 flex-wrap">
+                        {u.products.length > 0 ? u.products.map(p => {
+                          const cfg = PRODUCT_CONFIG[p]
+                          return cfg ? (
+                            <span key={p} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${cfg.bg} ${cfg.color} border ${cfg.border}`}>
+                              <cfg.Icon className="w-2.5 h-2.5" />
+                              {cfg.label}
+                            </span>
+                          ) : null
+                        }) : (
+                          <span className="text-white/20 text-xs">None</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleAdmin(u.id, u.is_platform_admin) }}
+                        disabled={toggling === u.id || u.id === currentUser?.id}
+                        className={clsx(
+                          'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors',
+                          u.is_platform_admin
+                            ? 'bg-vc-coral/20 text-vc-coral border border-vc-coral/30 hover:bg-vc-coral/30'
+                            : 'bg-white/5 text-white/30 border border-white/10 hover:bg-white/10',
+                          (toggling === u.id || u.id === currentUser?.id) && 'opacity-50 cursor-not-allowed'
+                        )}
+                        title={u.id === currentUser?.id ? 'Cannot modify your own status' : u.is_platform_admin ? 'Remove admin' : 'Make admin'}
+                      >
+                        {toggling === u.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : u.is_platform_admin ? (
+                          <Shield className="w-3 h-3" />
+                        ) : (
+                          <ShieldOff className="w-3 h-3" />
+                        )}
+                        {u.is_platform_admin ? 'Admin' : 'User'}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-white/50 text-xs">{formatDate(u.created_at)}</td>
+                  </tr>
+                  {expandedId === u.id && (
+                    <tr key={`${u.id}-detail`} className="border-b border-white/5 bg-white/[0.02]">
+                      <td colSpan={6} className="px-6 py-4">
+                        <UserExpandedRow
+                          userId={u.id}
+                          detail={detailCache[u.id]}
+                          onGrant={grantProduct}
+                          onRevoke={revokeProduct}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-white/30">No users found</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-white/30">No users found</td></tr>
               )}
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function UserExpandedRow({
+  userId,
+  detail,
+  onGrant,
+  onRevoke,
+}: {
+  userId: string
+  detail?: UserDetail
+  onGrant: (userId: string, product: string) => void
+  onRevoke: (userId: string, product: string) => void
+}) {
+  const [granting, setGranting] = useState<string | null>(null)
+
+  if (!detail) return <LoadingState />
+
+  const activeProducts = new Set(detail.products.filter(p => p.is_active).map(p => p.product))
+
+  return (
+    <div className="space-y-4">
+      {/* Product access toggles */}
+      <div>
+        <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">Product Access</p>
+        <div className="flex gap-2">
+          {Object.entries(PRODUCT_CONFIG).map(([key, cfg]) => {
+            const hasAccess = activeProducts.has(key)
+            return (
+              <button
+                key={key}
+                onClick={async () => {
+                  setGranting(key)
+                  if (hasAccess) {
+                    await onRevoke(userId, key)
+                  } else {
+                    await onGrant(userId, key)
+                  }
+                  setGranting(null)
+                }}
+                disabled={granting === key}
+                className={clsx(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-xs font-medium border transition-colors',
+                  hasAccess
+                    ? `${cfg.bg} ${cfg.color} ${cfg.border}`
+                    : 'bg-white/5 text-white/30 border-white/10 hover:bg-white/10',
+                  granting === key && 'opacity-50'
+                )}
+              >
+                {granting === key ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <cfg.Icon className="w-3.5 h-3.5" />
+                )}
+                {cfg.label}
+                {hasAccess && <Check className="w-3 h-3 ml-0.5" />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Relational memberships */}
+      {detail.memberships.length > 0 && (
+        <div>
+          <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">Relational Campaigns</p>
+          <div className="flex flex-wrap gap-2">
+            {detail.memberships.map(m => (
+              <span key={m.id} className={clsx(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border',
+                m.is_active
+                  ? 'bg-vc-purple/20 text-vc-purple-light border-vc-purple/30'
+                  : 'bg-white/5 text-white/30 border-white/10 line-through'
+              )}>
+                <Users className="w-3 h-3" />
+                {m.campaign_name}
+                <span className="text-white/30">({m.role})</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Texting campaign memberships */}
+      {detail.textCampaignMemberships.length > 0 && (
+        <div>
+          <p className="text-xs text-white/40 mb-2 font-medium uppercase tracking-wider">Texting Campaigns</p>
+          <div className="flex flex-wrap gap-2">
+            {detail.textCampaignMemberships.map(m => (
+              <span key={m.id} className={clsx(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border',
+                m.is_active
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                  : 'bg-white/5 text-white/30 border-white/10 line-through'
+              )}>
+                <MessageSquare className="w-3 h-3" />
+                {m.campaign_title}
+                <span className="text-white/30">({m.role})</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* User details */}
+      <div className="flex gap-6 text-xs text-white/40">
+        {detail.user.phone && <span>Phone: {detail.user.phone}</span>}
+        <span>Created: {formatDate(detail.user.created_at)}</span>
+        <span>ID: <span className="font-mono text-white/20">{detail.user.id.slice(0, 8)}...</span></span>
       </div>
     </div>
   )
