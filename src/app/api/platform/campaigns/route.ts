@@ -65,3 +65,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: msg }, { status })
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    await requirePlatformAdmin()
+    const body = await request.json()
+    const { id, name, type } = body
+
+    if (!id || !name || typeof name !== 'string' || !name.trim()) {
+      return NextResponse.json({ error: 'id and name are required' }, { status: 400 })
+    }
+
+    const db = await getDb()
+
+    if (type === 'texting') {
+      const { rows } = await db.query(
+        'UPDATE text_campaigns SET title = $1 WHERE id = $2 RETURNING id, title',
+        [name.trim(), id]
+      )
+      if (!rows[0]) return NextResponse.json({ error: 'Texting campaign not found' }, { status: 404 })
+      return NextResponse.json({ campaign: rows[0] })
+    }
+
+    // Default: relational campaign
+    const { rows } = await db.query(
+      'UPDATE campaigns SET name = $1 WHERE id = $2 RETURNING id, name, slug',
+      [name.trim(), id]
+    )
+    if (!rows[0]) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    return NextResponse.json({ campaign: rows[0] })
+  } catch (error) {
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
+  }
+}

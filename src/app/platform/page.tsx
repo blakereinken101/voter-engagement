@@ -484,6 +484,17 @@ function UsersTab() {
     await refreshDetail(userId)
   }
 
+  async function renameCampaign(campaignId: string, name: string, type: 'relational' | 'texting') {
+    await fetch('/api/platform/campaigns', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: campaignId, name, type: type === 'texting' ? 'texting' : undefined }),
+    })
+    // Refresh the campaigns list + user detail
+    const campRes = await fetch('/api/platform/campaigns')
+    if (campRes.ok) setAllCampaigns(await campRes.json())
+  }
+
   if (loading) return <LoadingState />
 
   const filtered = search
@@ -683,6 +694,7 @@ function UsersTab() {
                           onAssignTextingCampaign={assignTextingCampaign}
                           onRemoveTextingCampaign={removeTextingCampaign}
                           onRenameOrganization={renameOrganization}
+                          onRenameCampaign={async (cId, name, type) => { await renameCampaign(cId, name, type); await refreshDetail(u.id) }}
                         />
                       </td>
                     </tr>
@@ -711,6 +723,7 @@ function UserExpandedRow({
   onAssignTextingCampaign,
   onRemoveTextingCampaign,
   onRenameOrganization,
+  onRenameCampaign,
 }: {
   userId: string
   detail?: UserDetail
@@ -722,6 +735,7 @@ function UserExpandedRow({
   onAssignTextingCampaign: (userId: string, campaignId: string, role: string) => Promise<void>
   onRemoveTextingCampaign: (userId: string, campaignId: string) => Promise<void>
   onRenameOrganization: (userId: string, orgId: string, name: string) => Promise<void>
+  onRenameCampaign: (campaignId: string, name: string, type: 'relational' | 'texting') => Promise<void>
 }) {
   const [granting, setGranting] = useState<string | null>(null)
   const [assigningRelational, setAssigningRelational] = useState(false)
@@ -734,6 +748,9 @@ function UserExpandedRow({
   const [editingOrgId, setEditingOrgId] = useState<string | null>(null)
   const [orgNameInput, setOrgNameInput] = useState('')
   const [savingOrg, setSavingOrg] = useState(false)
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null)
+  const [campaignNameInput, setCampaignNameInput] = useState('')
+  const [savingCampaign, setSavingCampaign] = useState(false)
 
   if (!detail) return <LoadingState />
 
@@ -790,7 +807,41 @@ function UserExpandedRow({
           {detail.memberships.filter(m => m.is_active).map(m => (
             <span key={m.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border bg-vc-purple/20 text-vc-purple-light border-vc-purple/30">
               <Users className="w-3 h-3" />
-              {m.campaign_name}
+              {editingCampaignId === m.campaign_id ? (
+                <form
+                  className="inline-flex items-center gap-1"
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (!campaignNameInput.trim()) return
+                    setSavingCampaign(true)
+                    await onRenameCampaign(m.campaign_id, campaignNameInput, 'relational')
+                    setEditingCampaignId(null)
+                    setSavingCampaign(false)
+                  }}
+                >
+                  <input
+                    value={campaignNameInput}
+                    onChange={e => setCampaignNameInput(e.target.value)}
+                    className="glass-input px-1.5 py-0.5 rounded text-xs text-white w-32"
+                    autoFocus
+                    onClick={e => e.stopPropagation()}
+                  />
+                  <button type="submit" disabled={savingCampaign} className="text-vc-teal hover:text-vc-teal/80">
+                    {savingCampaign ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  </button>
+                  <button type="button" onClick={() => setEditingCampaignId(null)} className="text-white/30 hover:text-white/60">
+                    <X className="w-3 h-3" />
+                  </button>
+                </form>
+              ) : (
+                <span
+                  className="cursor-pointer hover:text-white transition-colors"
+                  onClick={() => { setEditingCampaignId(m.campaign_id); setCampaignNameInput(m.campaign_name) }}
+                  title="Click to rename campaign"
+                >
+                  {m.campaign_name}
+                </span>
+              )}
               <span className="text-white/30">({m.role})</span>
               <button
                 onClick={async () => {
@@ -858,7 +909,41 @@ function UserExpandedRow({
           {detail.textCampaignMemberships.filter(m => m.is_active).map(m => (
             <span key={m.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border bg-amber-500/20 text-amber-400 border-amber-500/30">
               <MessageSquare className="w-3 h-3" />
-              {m.campaign_title}
+              {editingCampaignId === `text-${m.campaign_id}` ? (
+                <form
+                  className="inline-flex items-center gap-1"
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (!campaignNameInput.trim()) return
+                    setSavingCampaign(true)
+                    await onRenameCampaign(m.campaign_id, campaignNameInput, 'texting')
+                    setEditingCampaignId(null)
+                    setSavingCampaign(false)
+                  }}
+                >
+                  <input
+                    value={campaignNameInput}
+                    onChange={e => setCampaignNameInput(e.target.value)}
+                    className="glass-input px-1.5 py-0.5 rounded text-xs text-white w-32"
+                    autoFocus
+                    onClick={e => e.stopPropagation()}
+                  />
+                  <button type="submit" disabled={savingCampaign} className="text-vc-teal hover:text-vc-teal/80">
+                    {savingCampaign ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                  </button>
+                  <button type="button" onClick={() => setEditingCampaignId(null)} className="text-white/30 hover:text-white/60">
+                    <X className="w-3 h-3" />
+                  </button>
+                </form>
+              ) : (
+                <span
+                  className="cursor-pointer hover:text-white transition-colors"
+                  onClick={() => { setEditingCampaignId(`text-${m.campaign_id}`); setCampaignNameInput(m.campaign_title) }}
+                  title="Click to rename campaign"
+                >
+                  {m.campaign_title}
+                </span>
+              )}
               <span className="text-white/30">({m.role})</span>
               <button
                 onClick={async () => {
