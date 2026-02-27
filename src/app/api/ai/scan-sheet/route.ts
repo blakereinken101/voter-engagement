@@ -19,17 +19,23 @@ Return a JSON array of objects. Each object represents one person and may have t
 - phone (string, optional)
 - city (string, optional)
 - address (string, optional)
-- notes (string, optional — any other info like relationship, age, etc.)
+- category (string, optional — relationship type. Must be one of: household, close-family, extended-family, best-friends, close-friends, neighbors, coworkers, faith-community, school-pta, sports-recreation, hobby-groups, community-regulars, recent-meals. Infer from clues like "neighbor", "coworker", "wife", "church friend", etc.)
+- supportStatus (string, optional — only if notes suggest a conversation occurred. Must be one of: supporter, undecided, opposed, left-message, no-answer. Look for clues like "supports", "on the fence", "not interested", "left VM", etc.)
+- volunteerInterest (string, optional — only if mentioned. Must be one of: yes, no, maybe. Look for clues like "wants to volunteer", "might help", "will canvass", etc.)
+- notes (string, optional — any other info like age, context, etc. that doesn't fit the above fields)
 
 Rules:
 - If a field is illegible or missing, omit it from that object
 - If you can read a full name but can't tell first from last, put the first word as firstName and the rest as lastName
 - Phone numbers should include area codes if visible
+- Only set category if you have clear contextual evidence; otherwise omit it
+- Only set supportStatus if notes clearly indicate a conversation outcome; otherwise omit it
+- Only set volunteerInterest if explicitly mentioned; otherwise omit it
 - Return ONLY valid JSON — no markdown, no explanation, just the array
 - If you cannot read any contacts, return an empty array []
 
 Example output:
-[{"firstName":"John","lastName":"Smith","phone":"919-555-1234","city":"Raleigh"},{"firstName":"Mary","lastName":"Jones","notes":"neighbor"}]`
+[{"firstName":"John","lastName":"Smith","phone":"919-555-1234","city":"Raleigh","category":"neighbors"},{"firstName":"Mary","lastName":"Jones","category":"coworkers","supportStatus":"supporter","volunteerInterest":"maybe","notes":"age 45"}]`
 
 interface ExtractedContact {
   firstName: string
@@ -37,6 +43,9 @@ interface ExtractedContact {
   phone?: string
   city?: string
   address?: string
+  category?: string
+  supportStatus?: string
+  volunteerInterest?: string
   notes?: string
 }
 
@@ -111,6 +120,10 @@ async function extractWithGemini(
   return parseContacts(text)
 }
 
+const VALID_CATEGORIES = ['household', 'close-family', 'extended-family', 'best-friends', 'close-friends', 'neighbors', 'coworkers', 'faith-community', 'school-pta', 'sports-recreation', 'hobby-groups', 'community-regulars', 'recent-meals', 'who-did-we-miss']
+const VALID_SUPPORT = ['supporter', 'undecided', 'opposed', 'left-message', 'no-answer']
+const VALID_VOLUNTEER = ['yes', 'no', 'maybe']
+
 function parseContacts(rawText: string): ExtractedContact[] {
   // Strip markdown code fences if present
   let text = rawText.trim()
@@ -145,6 +158,15 @@ function parseContacts(rawText: string): ExtractedContact[] {
       }
       if (typeof c.address === 'string' && c.address.trim()) {
         contact.address = c.address.trim().slice(0, 200)
+      }
+      if (typeof c.category === 'string' && VALID_CATEGORIES.includes(c.category.trim())) {
+        contact.category = c.category.trim()
+      }
+      if (typeof c.supportStatus === 'string' && VALID_SUPPORT.includes(c.supportStatus.trim())) {
+        contact.supportStatus = c.supportStatus.trim()
+      }
+      if (typeof c.volunteerInterest === 'string' && VALID_VOLUNTEER.includes(c.volunteerInterest.trim())) {
+        contact.volunteerInterest = c.volunteerInterest.trim()
       }
       if (typeof c.notes === 'string' && c.notes.trim()) {
         contact.notes = c.notes.trim().slice(0, 200)

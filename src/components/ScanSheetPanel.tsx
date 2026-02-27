@@ -5,7 +5,7 @@ import { useAppContext } from '@/context/AppContext'
 import { compressImage } from '@/lib/image-compress'
 import { Camera, Upload, X, Loader2, Check, RotateCcw, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
-import type { RelationshipCategory } from '@/types'
+import type { RelationshipCategory, ContactOutcome } from '@/types'
 
 const CATEGORY_OPTIONS: { value: RelationshipCategory; label: string }[] = [
   { value: 'household', label: 'Household' },
@@ -24,6 +24,22 @@ const CATEGORY_OPTIONS: { value: RelationshipCategory; label: string }[] = [
   { value: 'who-did-we-miss', label: 'Other' },
 ]
 
+const SUPPORT_STATUS_OPTIONS: { value: ContactOutcome | ''; label: string }[] = [
+  { value: '', label: 'No status' },
+  { value: 'supporter', label: 'Supporter' },
+  { value: 'undecided', label: 'Undecided' },
+  { value: 'opposed', label: 'Opposed' },
+  { value: 'left-message', label: 'Left Message' },
+  { value: 'no-answer', label: 'No Answer' },
+]
+
+const VOLUNTEER_OPTIONS: { value: '' | 'yes' | 'no' | 'maybe'; label: string }[] = [
+  { value: '', label: 'Vol?' },
+  { value: 'yes', label: 'Vol: Yes' },
+  { value: 'maybe', label: 'Vol: Maybe' },
+  { value: 'no', label: 'Vol: No' },
+]
+
 interface ExtractedContact {
   firstName: string
   lastName: string
@@ -33,6 +49,8 @@ interface ExtractedContact {
   notes?: string
   included: boolean
   category: RelationshipCategory
+  contactOutcome?: ContactOutcome
+  volunteerInterest?: 'yes' | 'no' | 'maybe'
 }
 
 type PanelState = 'idle' | 'processing' | 'review' | 'done'
@@ -77,10 +95,17 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
 
       const data = await response.json()
       const extracted: ExtractedContact[] = (data.contacts || []).map(
-        (c: { firstName: string; lastName: string; phone?: string; city?: string; address?: string; notes?: string }) => ({
-          ...c,
+        (c: { firstName: string; lastName: string; phone?: string; city?: string; address?: string; notes?: string; category?: string; supportStatus?: string; volunteerInterest?: string }) => ({
+          firstName: c.firstName,
+          lastName: c.lastName,
+          phone: c.phone,
+          city: c.city,
+          address: c.address,
+          notes: c.notes,
           included: true,
-          category: 'who-did-we-miss' as RelationshipCategory,
+          category: (CATEGORY_OPTIONS.some(opt => opt.value === c.category) ? c.category : 'who-did-we-miss') as RelationshipCategory,
+          contactOutcome: SUPPORT_STATUS_OPTIONS.some(opt => opt.value === c.supportStatus) ? c.supportStatus as ContactOutcome : undefined,
+          volunteerInterest: (['yes', 'no', 'maybe'].includes(c.volunteerInterest || '') ? c.volunteerInterest as 'yes' | 'no' | 'maybe' : undefined),
         }),
       )
 
@@ -124,14 +149,22 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
     let count = 0
 
     for (const c of toImport) {
-      addPerson({
-        firstName: c.firstName.trim(),
-        lastName: c.lastName.trim(),
-        phone: c.phone?.trim() || undefined,
-        city: c.city?.trim() || undefined,
-        address: c.address?.trim() || undefined,
-        category: c.category,
-      })
+      const initialActionData: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe' } = {}
+      if (c.contactOutcome) initialActionData.contactOutcome = c.contactOutcome
+      if (c.volunteerInterest) initialActionData.volunteerInterest = c.volunteerInterest
+
+      addPerson(
+        {
+          firstName: c.firstName.trim(),
+          lastName: c.lastName.trim(),
+          phone: c.phone?.trim() || undefined,
+          city: c.city?.trim() || undefined,
+          address: c.address?.trim() || undefined,
+          category: c.category,
+        },
+        undefined,
+        Object.keys(initialActionData).length > 0 ? initialActionData : undefined,
+      )
       count++
     }
 
@@ -335,6 +368,28 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
                           className="glass-input px-2 py-1 text-xs rounded col-span-2"
                         >
                           {CATEGORY_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={contact.contactOutcome || ''}
+                          onChange={e => updateContact(idx, 'contactOutcome', e.target.value || undefined as unknown as string)}
+                          className="glass-input px-2 py-1 text-xs rounded"
+                        >
+                          {SUPPORT_STATUS_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={contact.volunteerInterest || ''}
+                          onChange={e => updateContact(idx, 'volunteerInterest', e.target.value || undefined as unknown as string)}
+                          className="glass-input px-2 py-1 text-xs rounded"
+                        >
+                          {VOLUNTEER_OPTIONS.map(opt => (
                             <option key={opt.value} value={opt.value}>
                               {opt.label}
                             </option>

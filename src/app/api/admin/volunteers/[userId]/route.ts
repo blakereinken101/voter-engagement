@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, { params }: { params: { userId:
       SELECT c.*,
              mr.status as match_status, mr.best_match_data, mr.vote_score, mr.segment, mr.user_confirmed,
              ai.contacted, ai.contacted_date, ai.outreach_method, ai.contact_outcome, ai.notes,
-             ai.is_volunteer_prospect
+             ai.is_volunteer_prospect, ai.volunteer_interest
       FROM contacts c
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id

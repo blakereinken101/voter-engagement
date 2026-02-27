@@ -64,9 +64,26 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
       updates.push(`notes = $${paramIdx++}`)
       values.push(notes)
     }
-    if ('isVolunteerProspect' in body) {
+    if ('volunteerInterest' in body) {
+      const VALID_VOLUNTEER = ['yes', 'no', 'maybe', null]
+      if (!VALID_VOLUNTEER.includes(body.volunteerInterest as string | null)) {
+        return NextResponse.json({ error: 'Invalid volunteer interest value' }, { status: 400 })
+      }
+      updates.push(`volunteer_interest = $${paramIdx++}`)
+      values.push(body.volunteerInterest)
+      // Keep legacy column in sync
+      updates.push(`is_volunteer_prospect = $${paramIdx++}`)
+      values.push(body.volunteerInterest === 'yes' ? 1 : 0)
+      if (body.volunteerInterest === 'yes') {
+        updates.push(`recruited_date = $${paramIdx++}`)
+        values.push(new Date().toISOString())
+      }
+    } else if ('isVolunteerProspect' in body) {
+      // Legacy support
       updates.push(`is_volunteer_prospect = $${paramIdx++}`)
       values.push(body.isVolunteerProspect ? 1 : 0)
+      updates.push(`volunteer_interest = $${paramIdx++}`)
+      values.push(body.isVolunteerProspect ? 'yes' : null)
       if (body.isVolunteerProspect) {
         updates.push(`recruited_date = $${paramIdx++}`)
         values.push(new Date().toISOString())

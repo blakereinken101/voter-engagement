@@ -74,7 +74,7 @@ function ConversationGuide() {
 }
 
 export default function ContactSpreadsheet() {
-  const { state, toggleContacted, setContactOutcome, clearContact, updateNote, confirmMatch, rejectMatch, runMatchingForUnmatched, setVolunteerProspect, setSurveyResponses, removePerson } = useAppContext()
+  const { state, toggleContacted, setContactOutcome, clearContact, updateNote, confirmMatch, rejectMatch, runMatchingForUnmatched, setVolunteerInterest, setSurveyResponses, removePerson } = useAppContext()
 
   const [intakeMode, setIntakeMode] = useState<IntakeMode>('manual')
   const [sortField, setSortField] = useState<SortField>('name')
@@ -178,8 +178,8 @@ export default function ContactSpreadsheet() {
     removePerson(personId)
   }
 
-  function handleVolunteerRecruit(personId: string) {
-    setVolunteerProspect(personId, true)
+  function handleVolunteerInterest(personId: string, interest: 'yes' | 'no' | 'maybe') {
+    setVolunteerInterest(personId, interest)
   }
 
   const sortIndicator = (field: SortField) =>
@@ -297,7 +297,7 @@ export default function ContactSpreadsheet() {
                   onRemove={handleRemove}
                   onConfirmMatch={confirmMatch}
                   onRejectMatch={rejectMatch}
-                  onVolunteerRecruit={handleVolunteerRecruit}
+                  onVolunteerInterest={handleVolunteerInterest}
                   onSurveyChange={setSurveyResponses}
                 />
               ))}
@@ -320,7 +320,7 @@ export default function ContactSpreadsheet() {
               onRemove={handleRemove}
               onConfirmMatch={confirmMatch}
               onRejectMatch={rejectMatch}
-              onVolunteerRecruit={handleVolunteerRecruit}
+              onVolunteerInterest={handleVolunteerInterest}
               onSurveyChange={setSurveyResponses}
             />
           ))}

@@ -176,6 +176,8 @@ async function initSchema() {
       );
 
       ALTER TABLE action_items ADD COLUMN IF NOT EXISTS survey_responses TEXT;
+      ALTER TABLE action_items ADD COLUMN IF NOT EXISTS volunteer_interest TEXT;
+      UPDATE action_items SET volunteer_interest = 'yes' WHERE is_volunteer_prospect = 1 AND volunteer_interest IS NULL;
       ALTER TABLE contacts ADD COLUMN IF NOT EXISTS campaign_id TEXT REFERENCES campaigns(id);
       ALTER TABLE activity_log ADD COLUMN IF NOT EXISTS campaign_id TEXT;
 

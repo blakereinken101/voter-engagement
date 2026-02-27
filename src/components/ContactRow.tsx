@@ -67,13 +67,13 @@ interface Props {
   onRemove: (personId: string) => void
   onConfirmMatch: (personId: string, voterRecord: SafeVoterRecord) => void
   onRejectMatch: (personId: string) => void
-  onVolunteerRecruit: (personId: string) => void
+  onVolunteerInterest: (personId: string, interest: 'yes' | 'no' | 'maybe') => void
   onSurveyChange: (personId: string, responses: Record<string, string>) => void
 }
 
 export default function ContactRow({
   row, index, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
-  onRemove, onConfirmMatch, onRejectMatch, onVolunteerRecruit, onSurveyChange,
+  onRemove, onConfirmMatch, onRejectMatch, onVolunteerInterest, onSurveyChange,
 }: Props) {
   const { person, matchResult, actionItem } = row
   const { user, campaignConfig: authConfig } = useAuth()
@@ -292,18 +292,23 @@ export default function ContactRow({
                   <RotateCcw className="w-3 h-3" />
                 </button>
               )}
-              {contactOutcome === 'supporter' && !actionItem?.isVolunteerProspect && (
+              {contactOutcome === 'supporter' && !actionItem?.volunteerInterest && (
                 <button
-                  onClick={() => onVolunteerRecruit(person.id)}
+                  onClick={() => onVolunteerInterest(person.id, 'yes')}
                   className="text-[10px] text-vc-purple-light hover:underline font-bold ml-1"
                   title="Recruit as volunteer"
                 >
                   Recruit
                 </button>
               )}
-              {actionItem?.isVolunteerProspect && (
-                <span className="text-[10px] bg-vc-purple text-white px-1.5 py-0.5 rounded-full font-bold ml-1" title="Volunteer prospect">
+              {actionItem?.volunteerInterest === 'yes' && (
+                <span className="text-[10px] bg-vc-purple text-white px-1.5 py-0.5 rounded-full font-bold ml-1" title="Volunteer">
                   Vol
+                </span>
+              )}
+              {actionItem?.volunteerInterest === 'maybe' && (
+                <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-1.5 py-0.5 rounded-full font-bold ml-1" title="Maybe volunteer">
+                  Maybe
                 </span>
               )}
             </div>

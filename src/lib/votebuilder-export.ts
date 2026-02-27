@@ -73,7 +73,7 @@ export function generateVoteBuilderCSV(
   ]
 
   const rows = items.map(item => {
-    const { matchResult, contacted, contactedDate, outreachMethod, contactOutcome, notes, isVolunteerProspect } = item
+    const { matchResult, contacted, contactedDate, outreachMethod, contactOutcome, notes, volunteerInterest } = item
     const voter = matchResult.bestMatch
     const person = matchResult.personEntry
 
@@ -111,7 +111,7 @@ export function generateVoteBuilderCSV(
       segment,
       voteScoreStr,
       person.category,
-      isVolunteerProspect ? 'Yes' : '',
+      volunteerInterest === 'yes' ? 'Yes' : volunteerInterest === 'maybe' ? 'Maybe' : '',
       notes ?? '',
     ].map(v => escapeCSV(String(v)))
   })

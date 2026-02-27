@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       SELECT c.*, u.name as volunteer_name, u.email as volunteer_email,
              mr.status as match_status, mr.best_match_data, mr.vote_score, mr.segment,
              ai.contacted, ai.contacted_date, ai.outreach_method, ai.contact_outcome, ai.notes,
-             ai.is_volunteer_prospect
+             ai.is_volunteer_prospect, ai.volunteer_interest
       FROM contacts c
       JOIN users u ON u.id = c.user_id
       LEFT JOIN match_results mr ON mr.contact_id = c.id

@@ -15,7 +15,7 @@ export async function GET() {
              mr.vote_score, mr.segment, mr.user_confirmed,
              ai.id as ai_id, ai.contacted, ai.contacted_date, ai.outreach_method,
              ai.contact_outcome, ai.follow_up_date, ai.notes,
-             ai.is_volunteer_prospect, ai.recruited_date, ai.survey_responses
+             ai.is_volunteer_prospect, ai.volunteer_interest, ai.recruited_date, ai.survey_responses
       FROM contacts c
       LEFT JOIN match_results mr ON mr.contact_id = c.id
       LEFT JOIN action_items ai ON ai.contact_id = c.id
@@ -69,7 +69,7 @@ export async function GET() {
           contactOutcome: row.contact_outcome || undefined,
           followUpDate: row.follow_up_date || undefined,
           notes: row.notes || undefined,
-          isVolunteerProspect: !!row.is_volunteer_prospect,
+          volunteerInterest: row.volunteer_interest || (row.is_volunteer_prospect ? 'yes' : undefined),
           recruitedDate: row.recruited_date || undefined,
           surveyResponses: row.survey_responses ? JSON.parse(row.survey_responses as string) : undefined,
         }
@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { id, firstName, lastName, phone, address, city, zip, age, ageRange, gender, category } = body
+    const { id, firstName, lastName, phone, address, city, zip, age, ageRange, gender, category,
+            contactOutcome, volunteerInterest } = body
 
     if (!firstName || typeof firstName !== 'string' || !lastName || typeof lastName !== 'string' || !category || typeof category !== 'string') {
       return NextResponse.json({ error: 'firstName, lastName, and category are required' }, { status: 400 })
@@ -128,10 +129,16 @@ export async function POST(request: NextRequest) {
         VALUES ($1, $2, 'pending')
       `, [crypto.randomUUID(), contactId])
 
+      // Validate optional action item fields from scan sheet imports
+      const VALID_OUTCOMES = ['supporter', 'undecided', 'opposed', 'left-message', 'no-answer']
+      const VALID_VOLUNTEER = ['yes', 'no', 'maybe']
+      const safeOutcome = VALID_OUTCOMES.includes(contactOutcome as string) ? contactOutcome : null
+      const safeVolunteer = VALID_VOLUNTEER.includes(volunteerInterest as string) ? volunteerInterest : null
+
       await client.query(`
-        INSERT INTO action_items (id, contact_id)
-        VALUES ($1, $2)
-      `, [crypto.randomUUID(), contactId])
+        INSERT INTO action_items (id, contact_id, contact_outcome, volunteer_interest${safeOutcome ? ', contacted' : ''})
+        VALUES ($1, $2, $3, $4${safeOutcome ? ', 1' : ''})
+      `, [crypto.randomUUID(), contactId, safeOutcome, safeVolunteer])
 
       await client.query('COMMIT')
     } catch (e) {

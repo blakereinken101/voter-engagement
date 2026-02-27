@@ -135,6 +135,7 @@ export interface SegmentedResults {
 
 export type OutreachMethod = 'text' | 'call' | 'one-on-one'
 export type ContactOutcome = 'supporter' | 'undecided' | 'opposed' | 'left-message' | 'no-answer'
+export type VolunteerInterest = 'yes' | 'no' | 'maybe'
 export type ContactMode = 'rolodex' | 'list'
 
 export interface ActionPlanItem {
@@ -145,7 +146,7 @@ export interface ActionPlanItem {
   contactOutcome?: ContactOutcome
   followUpDate?: string
   notes?: string
-  isVolunteerProspect?: boolean
+  volunteerInterest?: VolunteerInterest
   recruitedDate?: string
   surveyResponses?: Record<string, string>
 }

@@ -90,17 +90,20 @@ function getGeminiErrorMessage(err: unknown): string {
   if (lower.includes('api key') || lower.includes('api_key') || lower.includes('unauthorized') || lower.includes('401')) {
     return 'Gemini API key is invalid. Please check your configuration in Admin settings.'
   }
-  if (lower.includes('not found') || lower.includes('404') || lower.includes('model')) {
+  if (lower.includes('not found') || lower.includes('404') || lower.includes('models/')) {
     return 'Gemini model not available. Please check the model name in AI settings.'
   }
   if (lower.includes('rate') || lower.includes('quota') || lower.includes('429') || lower.includes('resource_exhausted')) {
     return 'Gemini rate limit reached. Please wait a moment and try again.'
   }
+  if (lower.includes('thought_signature')) {
+    return 'Gemini thought signature error. Please report this bug.'
+  }
   if (lower.includes('safety') || lower.includes('blocked')) {
     return 'Gemini blocked the response due to safety filters. Please try rephrasing.'
   }
 
-  return 'Gemini encountered an error. Please try again.'
+  return `Gemini encountered an error. Please try again. (${message.slice(0, 200)})`
 }
 
 export interface GeminiStreamOptions {
@@ -149,6 +152,8 @@ export async function* streamGeminiChat(
 
       let fullText = ''
       const functionCalls: Array<{ name: string; args: Record<string, unknown>; id: string }> = []
+      // Preserve original model parts including thoughtSignature for thinking models
+      const originalModelParts: Part[] = []
 
       for await (const chunk of response) {
         if (!chunk.candidates?.[0]?.content?.parts) continue
@@ -165,6 +170,8 @@ export async function* streamGeminiChat(
               args: (part.functionCall.args || {}) as Record<string, unknown>,
               id,
             })
+            // Keep the original part object (includes thoughtSignature)
+            originalModelParts.push(part)
           }
         }
       }
@@ -196,14 +203,10 @@ export async function* streamGeminiChat(
           }
         }
 
-        // Build the model's response content (text + function calls)
+        // Build the model's response using original parts to preserve thoughtSignature
         const modelParts: Part[] = []
         if (fullText) modelParts.push({ text: fullText })
-        for (const fc of functionCalls) {
-          modelParts.push({
-            functionCall: { name: fc.name, args: fc.args },
-          })
-        }
+        modelParts.push(...originalModelParts)
 
         // Add model response + function results to continue the conversation
         contents = [

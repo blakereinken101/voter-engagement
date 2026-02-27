@@ -41,7 +41,7 @@ type AppAction =
   | { type: 'CLEAR_CONTACT'; payload: string }
   | { type: 'UPDATE_ACTION_NOTE'; payload: { personId: string; notes: string } }
   | { type: 'BATCH_MATCH_RESULTS'; payload: MatchResult[] }
-  | { type: 'SET_VOLUNTEER_PROSPECT'; payload: { personId: string; isProspect: boolean } }
+  | { type: 'SET_VOLUNTEER_INTEREST'; payload: { personId: string; interest: 'yes' | 'no' | 'maybe' } }
   | { type: 'SET_SURVEY_RESPONSES'; payload: { personId: string; responses: Record<string, string> } }
   | { type: 'HYDRATE'; payload: Partial<AppState> }
   | { type: 'RESET' }
@@ -232,7 +232,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       })
       return { ...state, matchResults: mergedResults, actionPlanState: mergedItems }
     }
-    case 'SET_VOLUNTEER_PROSPECT': {
+    case 'SET_VOLUNTEER_INTEREST': {
       const existingVP = state.actionPlanState.find(a => a.matchResult.personEntry.id === action.payload.personId)
       if (existingVP) {
         return {
@@ -241,8 +241,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
             item.matchResult.personEntry.id === action.payload.personId
               ? {
                 ...item,
-                isVolunteerProspect: action.payload.isProspect,
-                recruitedDate: action.payload.isProspect ? new Date().toISOString() : undefined,
+                volunteerInterest: action.payload.interest,
+                recruitedDate: action.payload.interest === 'yes' ? new Date().toISOString() : undefined,
               }
               : item
           ),
@@ -254,8 +254,8 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         actionPlanState: [...state.actionPlanState, {
           ...stubVP,
-          isVolunteerProspect: action.payload.isProspect,
-          recruitedDate: action.payload.isProspect ? new Date().toISOString() : undefined,
+          volunteerInterest: action.payload.interest,
+          recruitedDate: action.payload.interest === 'yes' ? new Date().toISOString() : undefined,
         }],
       }
     }
@@ -298,12 +298,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
 }
 
 // Storage key is dynamic per campaign — will be set after auth loads
-const STORAGE_VERSION = 1
+const STORAGE_VERSION = 2
 
 interface AppContextValue {
   state: AppState
   dispatch: React.Dispatch<AppAction>
-  addPerson: (person: Omit<PersonEntry, 'id'>, autoMatchVoter?: SafeVoterRecord) => void
+  addPerson: (person: Omit<PersonEntry, 'id'>, autoMatchVoter?: SafeVoterRecord, initialActionData?: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe' }) => void
   confirmMatch: (personId: string, voterRecord: SafeVoterRecord) => void
   rejectMatch: (personId: string) => void
   toggleContacted: (personId: string, method?: OutreachMethod) => void
@@ -313,7 +313,7 @@ interface AppContextValue {
   updateNote: (personId: string, notes: string) => void
   runMatching: () => Promise<void>
   runMatchingForUnmatched: () => Promise<void>
-  setVolunteerProspect: (personId: string, isProspect: boolean) => void
+  setVolunteerInterest: (personId: string, interest: 'yes' | 'no' | 'maybe') => void
   setSurveyResponses: (personId: string, responses: Record<string, string>) => void
   removePerson: (personId: string) => void
   // Local-only dispatches for AI tool results (already synced server-side)
@@ -417,11 +417,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch { /* quota exceeded or private browsing */ }
   }, [state])
 
-  const addPerson = useCallback((person: Omit<PersonEntry, 'id'>, autoMatchVoter?: SafeVoterRecord) => {
+  const addPerson = useCallback((
+    person: Omit<PersonEntry, 'id'>,
+    autoMatchVoter?: SafeVoterRecord,
+    initialActionData?: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe' },
+  ) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     const entry = { ...person, id, phone: person.phone || undefined, createdAt: Date.now() }
     dispatch({ type: 'ADD_PERSON', payload: entry })
-    if (user) syncToServer('/api/contacts', 'POST', entry)
+    if (user) syncToServer('/api/contacts', 'POST', { ...entry, ...initialActionData })
+
+    // Update local state with initial action data (e.g. from scan sheet)
+    if (initialActionData?.contactOutcome) {
+      dispatch({ type: 'SET_CONTACT_OUTCOME', payload: { personId: id, outcome: initialActionData.contactOutcome } })
+    }
+    if (initialActionData?.volunteerInterest) {
+      dispatch({ type: 'SET_VOLUNTEER_INTEREST', payload: { personId: id, interest: initialActionData.volunteerInterest } })
+    }
 
     // Auto-confirm match when voter record is already known (e.g. added from Nearby)
     if (autoMatchVoter) {
@@ -486,9 +498,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (user) syncToServer(`/api/contacts/${personId}/action`, 'PUT', { notes })
   }, [user])
 
-  const setVolunteerProspect = useCallback((personId: string, isProspect: boolean) => {
-    dispatch({ type: 'SET_VOLUNTEER_PROSPECT', payload: { personId, isProspect } })
-    if (user) syncToServer(`/api/contacts/${personId}/action`, 'PUT', { isVolunteerProspect: isProspect })
+  const setVolunteerInterest = useCallback((personId: string, interest: 'yes' | 'no' | 'maybe') => {
+    dispatch({ type: 'SET_VOLUNTEER_INTEREST', payload: { personId, interest } })
+    if (user) syncToServer(`/api/contacts/${personId}/action`, 'PUT', { volunteerInterest: interest })
   }, [user])
 
   const setSurveyResponses = useCallback((personId: string, responses: Record<string, string>) => {
@@ -601,7 +613,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       state, dispatch, addPerson, confirmMatch, rejectMatch,
-      toggleContacted, setOutreachMethod, setContactOutcome, clearContact, updateNote, runMatching, runMatchingForUnmatched, setVolunteerProspect, setSurveyResponses, removePerson,
+      toggleContacted, setOutreachMethod, setContactOutcome, clearContact, updateNote, runMatching, runMatchingForUnmatched, setVolunteerInterest, setSurveyResponses, removePerson,
       addPersonLocal, batchMatchResultsLocal, toggleContactedLocal, setContactOutcomeLocal, setSurveyResponsesLocal,
     }}>
       {children}

@@ -32,13 +32,13 @@ interface Props {
   onRemove: (personId: string) => void
   onConfirmMatch: (personId: string, voterRecord: SafeVoterRecord) => void
   onRejectMatch: (personId: string) => void
-  onVolunteerRecruit: (personId: string) => void
+  onVolunteerInterest: (personId: string, interest: 'yes' | 'no' | 'maybe') => void
   onSurveyChange: (personId: string, responses: Record<string, string>) => void
 }
 
 export default function ContactCard({
   row, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
-  onRemove, onConfirmMatch, onRejectMatch, onVolunteerRecruit, onSurveyChange,
+  onRemove, onConfirmMatch, onRejectMatch, onVolunteerInterest, onSurveyChange,
 }: Props) {
   const { person, matchResult, actionItem } = row
   const { user, campaignConfig: authConfig } = useAuth()
@@ -208,19 +208,47 @@ export default function ContactCard({
             Try again
           </button>
         )}
-        {contacted && outcomeValid && contactOutcome === 'supporter' && !actionItem?.isVolunteerProspect && (
-          <button
-            onClick={() => onVolunteerRecruit(person.id)}
-            className="text-[10px] text-vc-purple bg-vc-purple/10 hover:bg-vc-purple hover:text-white px-2 py-0.5 rounded-full font-bold transition-colors inline-flex items-center gap-1"
-          >
-            <UserPlus className="w-3 h-3" />
-            Recruit
-          </button>
+        {contacted && outcomeValid && contactOutcome === 'supporter' && !actionItem?.volunteerInterest && (
+          <span className="inline-flex items-center gap-0.5">
+            <button
+              onClick={() => onVolunteerInterest(person.id, 'yes')}
+              className="text-[10px] text-vc-purple bg-vc-purple/10 hover:bg-vc-purple hover:text-white px-1.5 py-0.5 rounded-l-full font-bold transition-colors inline-flex items-center gap-0.5"
+              title="Will volunteer"
+            >
+              <UserPlus className="w-3 h-3" />
+              Yes
+            </button>
+            <button
+              onClick={() => onVolunteerInterest(person.id, 'maybe')}
+              className="text-[10px] text-yellow-400 bg-yellow-500/10 hover:bg-yellow-500 hover:text-white px-1.5 py-0.5 font-bold transition-colors"
+              title="Maybe will volunteer"
+            >
+              Maybe
+            </button>
+            <button
+              onClick={() => onVolunteerInterest(person.id, 'no')}
+              className="text-[10px] text-white/40 bg-white/5 hover:bg-white/20 hover:text-white px-1.5 py-0.5 rounded-r-full font-bold transition-colors"
+              title="Won't volunteer"
+            >
+              No
+            </button>
+          </span>
         )}
-        {actionItem?.isVolunteerProspect && (
+        {actionItem?.volunteerInterest === 'yes' && (
           <span className="text-[10px] bg-vc-purple text-white px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1">
             <Star className="w-3 h-3" />
             Volunteer
+          </span>
+        )}
+        {actionItem?.volunteerInterest === 'maybe' && (
+          <span className="text-[10px] bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full font-bold inline-flex items-center gap-1">
+            <Star className="w-3 h-3" />
+            Maybe Vol
+          </span>
+        )}
+        {actionItem?.volunteerInterest === 'no' && (
+          <span className="text-[10px] bg-white/10 text-white/40 px-2 py-0.5 rounded-full font-bold">
+            No Vol
           </span>
         )}
       </div>
