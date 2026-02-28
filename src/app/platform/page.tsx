@@ -9,7 +9,7 @@ import {
   BarChart3, Building2, Users, CreditCard, Loader2, Search,
   Plus, Check, X, Shield, ShieldOff, Database, Upload, Trash2,
   ChevronDown, ChevronRight, Link as LinkIcon, MessageSquare, Calendar, UserPlus,
-  Settings, RotateCcw, FileText, ExternalLink, Megaphone,
+  Settings, RotateCcw, FileText, ExternalLink, Megaphone, Pencil,
 } from 'lucide-react'
 
 type PlatformTab = 'overview' | 'organizations' | 'campaigns' | 'users' | 'subscriptions' | 'voter-data' | 'settings'
@@ -310,7 +310,7 @@ function CampaignsTab() {
   const [formOrgId, setFormOrgId] = useState('')
   const [formName, setFormName] = useState('')
   const [formSlug, setFormSlug] = useState('')
-  const [formState, setFormState] = useState('NC')
+  const [formState, setFormState] = useState('')
   const [formCandidate, setFormCandidate] = useState('')
   const [formElectionDate, setFormElectionDate] = useState('')
   const [creating, setCreating] = useState(false)
@@ -473,7 +473,9 @@ function CampaignsTab() {
                 value={formState}
                 onChange={e => setFormState(e.target.value)}
                 className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm bg-transparent"
+                required
               >
+                <option value="" disabled className="bg-vc-surface">Select state...</option>
                 {US_STATES_LIST.map(s => <option key={s} value={s} className="bg-vc-surface">{s}</option>)}
               </select>
             </div>
@@ -607,6 +609,40 @@ function CampaignExpandedRow({
   const [filterCongressional, setFilterCongressional] = useState('')
   const [filterCity, setFilterCity] = useState('')
 
+  // Inline edit state
+  const [editing, setEditing] = useState<'state' | 'election_date' | 'candidate' | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const EDIT_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
+
+  function startEdit(field: 'state' | 'election_date' | 'candidate') {
+    setEditing(field)
+    if (field === 'state') setEditValue(campaign.state || '')
+    else if (field === 'election_date') setEditValue(campaign.election_date ? campaign.election_date.split('T')[0] : '')
+    else if (field === 'candidate') setEditValue(campaign.candidate_name || '')
+  }
+
+  async function saveEdit() {
+    if (!editing) return
+    setSaving(true)
+    const body: Record<string, unknown> = { id: campaignId }
+    if (editing === 'state') body.state = editValue
+    else if (editing === 'election_date') body.electionDate = editValue || null
+    else if (editing === 'candidate') body.candidateName = editValue || null
+    try {
+      const res = await fetch('/api/platform/campaigns', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        setEditing(null)
+        onRefresh(campaignId)
+      }
+    } finally { setSaving(false) }
+  }
+
   // Load geo options when a dataset is selected
   useEffect(() => {
     if (!selectedDataset) { setGeoOptions(null); return }
@@ -669,12 +705,81 @@ function CampaignExpandedRow({
     <div className="space-y-4">
       {/* Campaign Info */}
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4 text-xs text-white/40">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-white/40">
           <span className="font-mono">{campaignId}</span>
           <span>Slug: <span className="text-white/60 font-mono">{campaign.slug}</span></span>
-          {campaign.election_date && (
-            <span>Election: <span className="text-white/60">{new Date(campaign.election_date).toLocaleDateString()}</span></span>
-          )}
+
+          {/* Editable: State */}
+          <span className="inline-flex items-center gap-1">
+            State:{' '}
+            {editing === 'state' ? (
+              <span className="inline-flex items-center gap-1">
+                <select
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  autoFocus
+                  className="glass-input px-1.5 py-0.5 rounded text-white text-xs bg-transparent"
+                >
+                  {EDIT_STATES.map(s => <option key={s} value={s} className="bg-vc-surface">{s}</option>)}
+                </select>
+                <button onClick={saveEdit} disabled={saving} className="text-vc-teal hover:text-vc-teal/80"><Check className="w-3 h-3" /></button>
+                <button onClick={() => setEditing(null)} className="text-white/30 hover:text-white/60"><X className="w-3 h-3" /></button>
+              </span>
+            ) : (
+              <button onClick={() => startEdit('state')} className="inline-flex items-center gap-1 text-white/60 hover:text-white transition-colors group">
+                <span className="font-mono">{campaign.state}</span>
+                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+          </span>
+
+          {/* Editable: Election Date */}
+          <span className="inline-flex items-center gap-1">
+            Election:{' '}
+            {editing === 'election_date' ? (
+              <span className="inline-flex items-center gap-1">
+                <input
+                  type="date"
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  autoFocus
+                  className="glass-input px-1.5 py-0.5 rounded text-white text-xs bg-transparent"
+                />
+                <button onClick={saveEdit} disabled={saving} className="text-vc-teal hover:text-vc-teal/80"><Check className="w-3 h-3" /></button>
+                <button onClick={() => setEditing(null)} className="text-white/30 hover:text-white/60"><X className="w-3 h-3" /></button>
+              </span>
+            ) : (
+              <button onClick={() => startEdit('election_date')} className="inline-flex items-center gap-1 text-white/60 hover:text-white transition-colors group">
+                <span>{campaign.election_date ? new Date(campaign.election_date).toLocaleDateString() : '—'}</span>
+                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+          </span>
+
+          {/* Editable: Candidate Name */}
+          <span className="inline-flex items-center gap-1">
+            Candidate:{' '}
+            {editing === 'candidate' ? (
+              <span className="inline-flex items-center gap-1">
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(null) }}
+                  className="glass-input px-1.5 py-0.5 rounded text-white text-xs w-36"
+                  placeholder="Candidate name"
+                />
+                <button onClick={saveEdit} disabled={saving} className="text-vc-teal hover:text-vc-teal/80"><Check className="w-3 h-3" /></button>
+                <button onClick={() => setEditing(null)} className="text-white/30 hover:text-white/60"><X className="w-3 h-3" /></button>
+              </span>
+            ) : (
+              <button onClick={() => startEdit('candidate')} className="inline-flex items-center gap-1 text-white/60 hover:text-white transition-colors group">
+                <span>{campaign.candidate_name || '—'}</span>
+                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+          </span>
         </div>
         <button
           onClick={() => onToggleActive(campaignId, campaign.is_active)}
@@ -1772,7 +1877,7 @@ function VoterDataTab() {
 
   // Form state
   const [formName, setFormName] = useState('')
-  const [formState, setFormState] = useState('NC')
+  const [formState, setFormState] = useState('')
   const [formGeoType, setFormGeoType] = useState('state')
   const [formGeoName, setFormGeoName] = useState('')
   const [formFile, setFormFile] = useState<File | null>(null)
@@ -1805,7 +1910,7 @@ function VoterDataTab() {
 
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault()
-    if (!formName.trim() || !formFile) return
+    if (!formName.trim() || !formState || !formFile) return
     setUploading(true)
     setUploadProgress('Uploading...')
 
@@ -1915,7 +2020,7 @@ function VoterDataTab() {
                 value={formName}
                 onChange={e => setFormName(e.target.value)}
                 className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
-                placeholder="e.g. Mecklenburg County NC 2024"
+                placeholder="e.g. PA House District 91"
                 required
               />
             </div>
@@ -1925,7 +2030,9 @@ function VoterDataTab() {
                 value={formState}
                 onChange={e => setFormState(e.target.value)}
                 className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm bg-transparent"
+                required
               >
+                <option value="" disabled className="bg-vc-surface">Select state...</option>
                 {US_STATES.map(s => <option key={s} value={s} className="bg-vc-surface">{s}</option>)}
               </select>
             </div>
@@ -1948,7 +2055,7 @@ function VoterDataTab() {
                 value={formGeoName}
                 onChange={e => setFormGeoName(e.target.value)}
                 className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
-                placeholder="e.g. Mecklenburg County"
+                placeholder="e.g. HD-91"
               />
             </div>
           </div>
@@ -1965,7 +2072,7 @@ function VoterDataTab() {
           <div className="flex items-center gap-3">
             <button
               type="submit"
-              disabled={uploading || !formFile}
+              disabled={uploading || !formFile || !formState}
               className="px-4 py-2 rounded-btn text-sm font-medium bg-vc-teal text-white hover:bg-vc-teal/80 transition-colors disabled:opacity-50"
             >
               {uploading ? 'Uploading...' : 'Upload & Import'}

@@ -83,7 +83,7 @@ async function initSchema() {
         name TEXT NOT NULL,
         slug TEXT NOT NULL,
         candidate_name TEXT,
-        state TEXT NOT NULL DEFAULT 'NC',
+        state TEXT NOT NULL,
         election_date DATE,
         settings JSONB DEFAULT '{}',
         is_active BOOLEAN DEFAULT true,

@@ -27,7 +27,11 @@ export async function syncContactToVan(campaignId: string, contactId: string): P
 
   // Look up campaign state for address
   const { rows: campRows } = await pool.query('SELECT state FROM campaigns WHERE id = $1', [campaignId])
-  const state = campRows[0]?.state || 'NC'
+  const state = campRows[0]?.state
+  if (!state) {
+    console.warn('[van-sync] Campaign has no state set, skipping sync')
+    return
+  }
 
   const payload: Record<string, unknown> = {
     firstName: contact.first_name,
