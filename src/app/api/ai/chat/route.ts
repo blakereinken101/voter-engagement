@@ -83,19 +83,57 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
       message = '[System: The volunteer just opened the chat for the first time. Greet them by name. In 2-3 sentences: mention the campaign name, tell them you\'re going to help them build a list of people they know who live in the state/district, match them to the voter file, and coach conversations. Say the state or district name explicitly. Then ask your FIRST question: whether the volunteer themselves lives in the state/district. This is critical — you need to know before you start list-building. Do NOT jump straight to "who do you live with?" Vary your opening naturally. Do NOT use markdown formatting (no ** or * or headers). Do NOT describe your own process or tone. Do NOT say "let\'s move fast" or "I\'ll keep this quick." Just do it.]'
     }
 
-    // Load chat history (last 50 messages)
+    // Load chat history (most recent 50 messages, in chronological order)
     const { rows: historyRows } = await db.query(
-      `SELECT role, content FROM chat_messages
-       WHERE user_id = $1 AND campaign_id = $2
-       ORDER BY created_at ASC
-       LIMIT 50`,
+      `SELECT role, content, tool_calls, tool_results FROM (
+        SELECT * FROM chat_messages
+        WHERE user_id = $1 AND campaign_id = $2
+        ORDER BY created_at DESC
+        LIMIT 50
+      ) sub ORDER BY created_at ASC`,
       [ctx.userId, ctx.campaignId],
     )
 
-    const history = historyRows.map(row => ({
-      role: row.role as 'user' | 'assistant',
-      content: row.content as string,
-    }))
+    const history: Array<{ role: 'user' | 'assistant'; content: string | Array<Record<string, unknown>> }> = []
+    for (const row of historyRows) {
+      if (row.role === 'assistant' && row.tool_calls) {
+        // Reconstruct assistant message with tool_use blocks so the AI
+        // remembers what tools it called in previous sessions
+        const toolCalls = typeof row.tool_calls === 'string' ? JSON.parse(row.tool_calls) : row.tool_calls
+        const contentBlocks: Array<Record<string, unknown>> = []
+        if (row.content) {
+          contentBlocks.push({ type: 'text', text: row.content })
+        }
+        for (const tc of toolCalls) {
+          contentBlocks.push({
+            type: 'tool_use',
+            id: tc.id || `tool_${crypto.randomUUID()}`,
+            name: tc.name,
+            input: tc.input || {},
+          })
+        }
+        history.push({ role: 'assistant', content: contentBlocks })
+
+        // Inject the corresponding tool_results as a synthetic user message
+        // (Anthropic requires tool_result to follow tool_use)
+        const toolResults = row.tool_results
+          ? (typeof row.tool_results === 'string' ? JSON.parse(row.tool_results) : row.tool_results)
+          : []
+        if (toolResults.length > 0) {
+          const resultBlocks = toolCalls.map((tc: Record<string, unknown>, i: number) => ({
+            type: 'tool_result',
+            tool_use_id: tc.id || contentBlocks.find(b => b.name === tc.name && b.type === 'tool_use')?.id || `tool_${crypto.randomUUID()}`,
+            content: JSON.stringify(toolResults[i]?.result ?? toolResults[i] ?? {}),
+          }))
+          history.push({ role: 'user', content: resultBlocks })
+        }
+      } else {
+        history.push({
+          role: row.role as 'user' | 'assistant',
+          content: row.content as string,
+        })
+      }
+    }
 
     // Save user message to DB (skip for __INIT__ sentinel)
     if (!isInit) {
@@ -109,8 +147,8 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
     // Stream the AI response
     const encoder = new TextEncoder()
     let fullAssistantText = ''
-    const allToolCalls: Array<{ name: string; input: Record<string, unknown> }> = []
-    const allToolResults: Array<{ name: string; result: Record<string, unknown> }> = []
+    const allToolCalls: Array<{ id: string; name: string; input: Record<string, unknown> }> = []
+    const allToolResults: Array<{ id: string; name: string; result: Record<string, unknown> }> = []
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -126,8 +164,8 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
               fullAssistantText += event.text as string
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
             } else if (event.type === 'tool_result') {
-              allToolCalls.push({ name: event.name as string, input: event.input as Record<string, unknown> })
-              allToolResults.push({ name: event.name as string, result: event.result as Record<string, unknown> })
+              allToolCalls.push({ id: event.id as string, name: event.name as string, input: event.input as Record<string, unknown> })
+              allToolResults.push({ id: event.id as string, name: event.name as string, result: event.result as Record<string, unknown> })
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
             } else if (event.type === 'error') {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))

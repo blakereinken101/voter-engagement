@@ -63,14 +63,30 @@ function convertToolsToGemini(): FunctionDeclaration[] {
  * Convert chat history from Anthropic format to Gemini format.
  */
 function convertHistoryToGemini(
-  history: Array<{ role: 'user' | 'assistant'; content: string }>,
+  history: Array<{ role: 'user' | 'assistant'; content: string | Array<Record<string, unknown>> }>,
   message: string,
 ): Content[] {
   const contents: Content[] = []
   for (const m of history) {
+    // Flatten content blocks (tool_use/tool_result) to text for Gemini
+    let text: string
+    if (typeof m.content === 'string') {
+      text = m.content
+    } else {
+      text = m.content
+        .map(block => {
+          if (block.type === 'text') return block.text as string
+          if (block.type === 'tool_use') return `[Used tool: ${block.name}]`
+          if (block.type === 'tool_result') return `[Tool result: ${block.content}]`
+          return ''
+        })
+        .filter(Boolean)
+        .join('\n')
+    }
+    if (!text) continue
     contents.push({
       role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
+      parts: [{ text }],
     })
   }
   contents.push({
@@ -110,7 +126,7 @@ export interface GeminiStreamOptions {
   model: string
   maxTokens: number
   systemPrompt: string
-  history: Array<{ role: 'user' | 'assistant'; content: string }>
+  history: Array<{ role: 'user' | 'assistant'; content: string | Array<Record<string, unknown>> }>
   message: string
   userId: string
   campaignId: string

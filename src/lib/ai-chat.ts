@@ -873,7 +873,7 @@ export interface ChatStreamOptions {
   userId: string
   campaignId: string
   message: string
-  history: Array<{ role: 'user' | 'assistant'; content: string }>
+  history: Array<{ role: 'user' | 'assistant'; content: string | Array<Record<string, unknown>> }>
   existingContacts?: ExistingContact[]
 }
 
@@ -928,7 +928,7 @@ export async function* streamChat(
   const messages: Anthropic.MessageParam[] = [
     ...options.history.map(m => ({
       role: m.role as 'user' | 'assistant',
-      content: m.content,
+      content: m.content as Anthropic.MessageParam['content'],
     })),
     { role: 'user', content: options.message },
   ]
@@ -993,7 +993,7 @@ export async function* streamChat(
         })
 
         // Emit tool result to client for AppContext sync
-        yield { type: 'tool_result', name: tool.name, input: tool.input, result }
+        yield { type: 'tool_result', id: tool.id, name: tool.name, input: tool.input, result }
       }
 
       // Add assistant message with tool calls + tool results to continue conversation
