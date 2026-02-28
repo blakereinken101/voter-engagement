@@ -8,7 +8,11 @@ export async function GET() {
     const db = await getDb()
 
     const { rows: relationalCampaigns } = await db.query(`
-      SELECT c.id, c.name, c.slug, c.is_active, o.name as org_name, o.id as org_id
+      SELECT c.id, c.name, c.slug, c.is_active, c.state, c.candidate_name,
+             c.election_date, c.created_at,
+             o.name as org_name, o.id as org_id,
+             (SELECT COUNT(*)::int FROM memberships m WHERE m.campaign_id = c.id AND m.is_active = true) as member_count,
+             (SELECT COUNT(*)::int FROM campaign_voter_datasets cvd WHERE cvd.campaign_id = c.id) as dataset_count
       FROM campaigns c
       JOIN organizations o ON o.id = c.org_id
       ORDER BY c.name
@@ -70,15 +74,19 @@ export async function PATCH(request: NextRequest) {
   try {
     await requirePlatformAdmin()
     const body = await request.json()
-    const { id, name, type } = body
+    const { id, type } = body
 
-    if (!id || !name || typeof name !== 'string' || !name.trim()) {
-      return NextResponse.json({ error: 'id and name are required' }, { status: 400 })
+    if (!id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 })
     }
 
     const db = await getDb()
 
     if (type === 'texting') {
+      const { name } = body
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        return NextResponse.json({ error: 'name is required' }, { status: 400 })
+      }
       const { rows } = await db.query(
         'UPDATE text_campaigns SET title = $1 WHERE id = $2 RETURNING id, title',
         [name.trim(), id]
@@ -87,10 +95,40 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ campaign: rows[0] })
     }
 
-    // Default: relational campaign
+    // Build dynamic update for relational campaign
+    const sets: string[] = []
+    const values: unknown[] = []
+    let idx = 1
+
+    if (body.name && typeof body.name === 'string' && body.name.trim()) {
+      sets.push(`name = $${idx++}`)
+      values.push(body.name.trim())
+    }
+    if (typeof body.is_active === 'boolean') {
+      sets.push(`is_active = $${idx++}`)
+      values.push(body.is_active)
+    }
+    if (body.candidateName !== undefined) {
+      sets.push(`candidate_name = $${idx++}`)
+      values.push(body.candidateName?.trim() || null)
+    }
+    if (body.electionDate !== undefined) {
+      sets.push(`election_date = $${idx++}`)
+      values.push(body.electionDate || null)
+    }
+    if (body.state && typeof body.state === 'string') {
+      sets.push(`state = $${idx++}`)
+      values.push(body.state.toUpperCase())
+    }
+
+    if (sets.length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
+    }
+
+    values.push(id)
     const { rows } = await db.query(
-      'UPDATE campaigns SET name = $1 WHERE id = $2 RETURNING id, name, slug',
-      [name.trim(), id]
+      `UPDATE campaigns SET ${sets.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values
     )
     if (!rows[0]) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
     return NextResponse.json({ campaign: rows[0] })

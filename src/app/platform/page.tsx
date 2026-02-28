@@ -9,14 +9,15 @@ import {
   BarChart3, Building2, Users, CreditCard, Loader2, Search,
   Plus, Check, X, Shield, ShieldOff, Database, Upload, Trash2,
   ChevronDown, ChevronRight, Link as LinkIcon, MessageSquare, Calendar, UserPlus,
-  Settings, RotateCcw, FileText, ExternalLink,
+  Settings, RotateCcw, FileText, ExternalLink, Megaphone,
 } from 'lucide-react'
 
-type PlatformTab = 'overview' | 'organizations' | 'users' | 'subscriptions' | 'voter-data' | 'settings'
+type PlatformTab = 'overview' | 'organizations' | 'campaigns' | 'users' | 'subscriptions' | 'voter-data' | 'settings'
 
 const TABS: { id: PlatformTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'overview', label: 'Overview', Icon: BarChart3 },
   { id: 'organizations', label: 'Organizations', Icon: Building2 },
+  { id: 'campaigns', label: 'Campaigns', Icon: Megaphone },
   { id: 'users', label: 'Users', Icon: Users },
   { id: 'subscriptions', label: 'Subscriptions', Icon: CreditCard },
   { id: 'voter-data', label: 'Voter Data', Icon: Database },
@@ -260,6 +261,580 @@ function OrganizationsTab() {
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ========== CAMPAIGNS ==========
+
+interface CampaignListItem {
+  id: string
+  name: string
+  slug: string
+  org_id: string
+  org_name: string
+  state: string
+  candidate_name: string | null
+  election_date: string | null
+  is_active: boolean
+  member_count: number
+  dataset_count: number
+  created_at: string
+}
+
+interface CampaignDetail {
+  campaign: CampaignListItem & { settings: Record<string, unknown> }
+  members: {
+    id: string; user_id: string; user_name: string; user_email: string
+    role: string; is_active: boolean; joined_at: string
+  }[]
+  voterDatasets: {
+    dataset_id: string; dataset_name: string; dataset_state: string
+    record_count: number; status: string
+    filter_congressional: string | null; filter_state_senate: string | null
+    filter_state_house: string | null; filter_city: string | null; filter_zip: string | null
+  }[]
+  availableDatasets: { id: string; name: string; state: string; record_count: number }[]
+}
+
+function CampaignsTab() {
+  const [campaigns, setCampaigns] = useState<CampaignListItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [showForm, setShowForm] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [detailCache, setDetailCache] = useState<Record<string, CampaignDetail>>({})
+
+  // Create form state
+  const [formOrgId, setFormOrgId] = useState('')
+  const [formName, setFormName] = useState('')
+  const [formSlug, setFormSlug] = useState('')
+  const [formState, setFormState] = useState('NC')
+  const [formCandidate, setFormCandidate] = useState('')
+  const [formElectionDate, setFormElectionDate] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([])
+
+  const loadCampaigns = useCallback(() => {
+    setLoading(true)
+    fetch('/api/platform/campaigns')
+      .then(r => r.json())
+      .then(d => setCampaigns(d.relationalCampaigns || []))
+      .finally(() => setLoading(false))
+  }, [])
+
+  useEffect(() => { loadCampaigns() }, [loadCampaigns])
+
+  useEffect(() => {
+    fetch('/api/platform/organizations')
+      .then(r => r.json())
+      .then(d => setOrgs((d.organizations || []).map((o: Org) => ({ id: o.id, name: o.name }))))
+  }, [])
+
+  async function loadDetail(campaignId: string) {
+    if (detailCache[campaignId]) return
+    const res = await fetch(`/api/platform/campaigns/${campaignId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setDetailCache(prev => ({ ...prev, [campaignId]: data }))
+    }
+  }
+
+  function refreshDetail(campaignId: string) {
+    setDetailCache(prev => {
+      const copy = { ...prev }
+      delete copy[campaignId]
+      return copy
+    })
+    loadDetail(campaignId)
+    loadCampaigns()
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setCreateError('')
+    if (!formOrgId || !formName.trim() || !formSlug.trim() || !formState) {
+      setCreateError('Organization, name, slug, and state are required')
+      return
+    }
+    setCreating(true)
+    try {
+      const res = await fetch('/api/platform/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orgId: formOrgId,
+          name: formName.trim(),
+          slug: formSlug.trim(),
+          state: formState,
+          candidateName: formCandidate.trim() || undefined,
+          electionDate: formElectionDate || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setCreateError(data.error || 'Failed to create'); return }
+      setFormName(''); setFormSlug(''); setFormCandidate(''); setFormElectionDate('')
+      setFormOrgId(''); setShowForm(false)
+      loadCampaigns()
+    } catch { setCreateError('Network error') } finally { setCreating(false) }
+  }
+
+  async function toggleActive(id: string, current: boolean) {
+    await fetch('/api/platform/campaigns', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, is_active: !current }),
+    })
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, is_active: !current } : c))
+  }
+
+  if (loading) return <LoadingState />
+
+  const US_STATES_LIST = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
+
+  const filtered = search
+    ? campaigns.filter(c =>
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.org_name.toLowerCase().includes(search.toLowerCase()) ||
+        c.candidate_name?.toLowerCase().includes(search.toLowerCase()) ||
+        c.state.toLowerCase().includes(search.toLowerCase())
+      )
+    : campaigns
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 justify-between">
+        <div className="flex items-center gap-3">
+          <p className="text-white/50 text-sm">{campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''}</p>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="glass-input pl-8 pr-3 py-1.5 rounded-btn text-white text-sm w-56"
+            />
+          </div>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn text-sm font-medium bg-vc-purple text-white hover:bg-vc-purple-light transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Create Campaign
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleCreate} className="glass-card p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Organization</label>
+              <select
+                value={formOrgId}
+                onChange={e => setFormOrgId(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm bg-transparent"
+                required
+              >
+                <option value="" disabled className="bg-vc-surface">Select org...</option>
+                {orgs.map(o => (
+                  <option key={o.id} value={o.id} className="bg-vc-surface">{o.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Campaign Name</label>
+              <input
+                value={formName}
+                onChange={e => {
+                  setFormName(e.target.value)
+                  setFormSlug(e.target.value.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').slice(0, 50))
+                }}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
+                placeholder="My Campaign 2026"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Slug</label>
+              <input
+                value={formSlug}
+                onChange={e => setFormSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm font-mono"
+                placeholder="my-campaign-2026"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">State</label>
+              <select
+                value={formState}
+                onChange={e => setFormState(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm bg-transparent"
+              >
+                {US_STATES_LIST.map(s => <option key={s} value={s} className="bg-vc-surface">{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Candidate Name <span className="text-white/30">(optional)</span></label>
+              <input
+                value={formCandidate}
+                onChange={e => setFormCandidate(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm"
+                placeholder="Jane Doe"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-white/50 mb-1">Election Date <span className="text-white/30">(optional)</span></label>
+              <input
+                type="date"
+                value={formElectionDate}
+                onChange={e => setFormElectionDate(e.target.value)}
+                className="glass-input w-full px-3 py-2 rounded-btn text-white text-sm bg-transparent"
+              />
+            </div>
+          </div>
+          {createError && <p className="text-red-400 text-xs">{createError}</p>}
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={creating}
+              className="px-4 py-2 rounded-btn text-sm font-medium bg-vc-teal text-white hover:bg-vc-teal/80 transition-colors disabled:opacity-50"
+            >
+              {creating ? 'Creating...' : 'Create'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowForm(false); setCreateError('') }}
+              className="px-4 py-2 rounded-btn text-sm text-white/50 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="glass-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="w-8 px-2 py-3" />
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Name</th>
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Organization</th>
+                <th className="text-center px-4 py-3 text-white/50 font-medium">State</th>
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Candidate</th>
+                <th className="text-center px-4 py-3 text-white/50 font-medium">Status</th>
+                <th className="text-center px-4 py-3 text-white/50 font-medium">Members</th>
+                <th className="text-center px-4 py-3 text-white/50 font-medium">Datasets</th>
+                <th className="text-left px-4 py-3 text-white/50 font-medium">Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(c => (
+                <React.Fragment key={c.id}>
+                  <tr
+                    className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                    onClick={() => {
+                      const next = expandedId === c.id ? null : c.id
+                      setExpandedId(next)
+                      if (next) loadDetail(next)
+                    }}
+                  >
+                    <td className="px-2 py-3 text-white/30">
+                      {expandedId === c.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </td>
+                    <td className="px-4 py-3 text-white font-medium">{c.name}</td>
+                    <td className="px-4 py-3 text-white/60">{c.org_name}</td>
+                    <td className="px-4 py-3 text-center text-white/60 font-mono text-xs">{c.state}</td>
+                    <td className="px-4 py-3 text-white/60">{c.candidate_name || <span className="text-white/20">—</span>}</td>
+                    <td className="px-4 py-3 text-center">
+                      <StatusPill status={c.is_active ? 'active' : 'inactive'} label={c.is_active ? 'Active' : 'Inactive'} />
+                    </td>
+                    <td className="px-4 py-3 text-center text-white/70">{c.member_count}</td>
+                    <td className="px-4 py-3 text-center text-white/70">{c.dataset_count}</td>
+                    <td className="px-4 py-3 text-white/50 text-xs">{formatDate(c.created_at)}</td>
+                  </tr>
+                  {expandedId === c.id && (
+                    <tr className="bg-white/[0.02]">
+                      <td colSpan={9} className="px-6 py-4">
+                        <CampaignExpandedRow
+                          campaignId={c.id}
+                          campaign={c}
+                          detail={detailCache[c.id]}
+                          onRefresh={refreshDetail}
+                          onToggleActive={toggleActive}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-white/30">
+                  {search ? 'No campaigns match your search' : 'No campaigns yet'}
+                </td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CampaignExpandedRow({
+  campaignId,
+  campaign,
+  detail,
+  onRefresh,
+  onToggleActive,
+}: {
+  campaignId: string
+  campaign: CampaignListItem
+  detail?: CampaignDetail
+  onRefresh: (campaignId: string) => void
+  onToggleActive: (id: string, current: boolean) => void
+}) {
+  const [assigning, setAssigning] = useState(false)
+  const [selectedDataset, setSelectedDataset] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [geoOptions, setGeoOptions] = useState<GeoOptions | null>(null)
+  const [filterHouse, setFilterHouse] = useState('')
+  const [filterSenate, setFilterSenate] = useState('')
+  const [filterCongressional, setFilterCongressional] = useState('')
+  const [filterCity, setFilterCity] = useState('')
+
+  // Load geo options when a dataset is selected
+  useEffect(() => {
+    if (!selectedDataset) { setGeoOptions(null); return }
+    fetch(`/api/platform/voter-datasets/${selectedDataset}`)
+      .then(r => r.json())
+      .then(d => setGeoOptions(d.geoOptions || null))
+  }, [selectedDataset])
+
+  if (!detail) return <LoadingState />
+
+  function formatFilterBadges(ds: CampaignDetail['voterDatasets'][0]) {
+    const parts: string[] = []
+    if (ds.filter_state_house) parts.push(`HD-${ds.filter_state_house}`)
+    if (ds.filter_state_senate) parts.push(`SD-${ds.filter_state_senate}`)
+    if (ds.filter_congressional) parts.push(`CD-${ds.filter_congressional}`)
+    if (ds.filter_city) parts.push(ds.filter_city)
+    if (ds.filter_zip) parts.push(`ZIP ${ds.filter_zip}`)
+    return parts
+  }
+
+  async function handleAssign() {
+    if (!selectedDataset) return
+    setAssigning(true)
+    const filters: Record<string, string | undefined> = {}
+    if (showFilters) {
+      if (filterHouse) filters.filterStateHouse = filterHouse
+      if (filterSenate) filters.filterStateSenate = filterSenate
+      if (filterCongressional) filters.filterCongressional = filterCongressional
+      if (filterCity) filters.filterCity = filterCity
+    }
+    await fetch(`/api/platform/voter-datasets/${selectedDataset}/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaignId, ...filters }),
+    })
+    setSelectedDataset(''); setShowFilters(false)
+    setFilterHouse(''); setFilterSenate(''); setFilterCongressional(''); setFilterCity('')
+    setAssigning(false)
+    onRefresh(campaignId)
+  }
+
+  async function handleUnassign(datasetId: string) {
+    await fetch(`/api/platform/voter-datasets/${datasetId}/assign`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaignId }),
+    })
+    onRefresh(campaignId)
+  }
+
+  const ROLE_COLORS: Record<string, string> = {
+    campaign_admin: 'bg-vc-purple/20 text-vc-purple-light border-vc-purple/30',
+    org_owner: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+    organizer: 'bg-vc-teal/20 text-vc-teal border-vc-teal/30',
+    volunteer: 'bg-white/10 text-white/60 border-white/20',
+    platform_admin: 'bg-red-500/20 text-red-400 border-red-500/30',
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Campaign Info */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-4 text-xs text-white/40">
+          <span className="font-mono">{campaignId}</span>
+          <span>Slug: <span className="text-white/60 font-mono">{campaign.slug}</span></span>
+          {campaign.election_date && (
+            <span>Election: <span className="text-white/60">{new Date(campaign.election_date).toLocaleDateString()}</span></span>
+          )}
+        </div>
+        <button
+          onClick={() => onToggleActive(campaignId, campaign.is_active)}
+          className={clsx(
+            'px-3 py-1 rounded-btn text-xs font-medium transition-colors',
+            campaign.is_active
+              ? 'bg-green-500/20 text-green-400 hover:bg-red-500/20 hover:text-red-400'
+              : 'bg-white/10 text-white/40 hover:bg-green-500/20 hover:text-green-400'
+          )}
+        >
+          {campaign.is_active ? 'Active' : 'Inactive'}
+        </button>
+      </div>
+
+      {/* Voter Datasets */}
+      <div>
+        <p className="text-xs text-white/40 mb-2">Voter Datasets ({detail.voterDatasets.length})</p>
+        {detail.voterDatasets.length > 0 ? (
+          <div className="space-y-1.5">
+            {detail.voterDatasets.map(ds => {
+              const badges = formatFilterBadges(ds)
+              return (
+                <div key={ds.dataset_id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-vc-purple/20 text-vc-purple-light border border-vc-purple/30 mr-2">
+                  <Database className="w-3 h-3" />
+                  {ds.dataset_name}
+                  <span className="text-white/30">({ds.dataset_state} · {ds.record_count?.toLocaleString()})</span>
+                  {badges.length > 0 && (
+                    <span className="text-vc-teal/80 font-medium ml-1">[{badges.join(', ')}]</span>
+                  )}
+                  <button
+                    onClick={() => handleUnassign(ds.dataset_id)}
+                    className="ml-1 text-white/30 hover:text-red-400 transition-colors"
+                    title="Unassign"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="text-xs text-white/30">No voter datasets assigned</p>
+        )}
+
+        {detail.availableDatasets.length > 0 && (
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedDataset}
+                onChange={e => setSelectedDataset(e.target.value)}
+                className="glass-input px-3 py-1.5 rounded-btn text-white text-xs bg-transparent max-w-xs"
+              >
+                <option value="" className="bg-vc-surface">Assign dataset...</option>
+                {detail.availableDatasets.map(d => (
+                  <option key={d.id} value={d.id} className="bg-vc-surface">
+                    {d.name} ({d.state} · {d.record_count?.toLocaleString()})
+                  </option>
+                ))}
+              </select>
+              {selectedDataset && (
+                <>
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={clsx(
+                      'px-2.5 py-1.5 rounded-btn text-xs transition-colors',
+                      showFilters ? 'bg-vc-purple/30 text-vc-purple-light' : 'text-white/40 hover:text-white/60'
+                    )}
+                  >
+                    {showFilters ? 'Hide Filters' : 'Add Geo Filter'}
+                  </button>
+                  <button
+                    onClick={handleAssign}
+                    disabled={assigning}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-btn text-xs font-medium bg-vc-teal/80 text-white hover:bg-vc-teal transition-colors disabled:opacity-50"
+                  >
+                    {assigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <LinkIcon className="w-3 h-3" />}
+                    Assign
+                  </button>
+                </>
+              )}
+            </div>
+
+            {showFilters && selectedDataset && geoOptions && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pl-1">
+                {geoOptions.stateHouseDistricts.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] text-white/40 mb-0.5">House District</label>
+                    <select value={filterHouse} onChange={e => setFilterHouse(e.target.value)}
+                      className="glass-input w-full px-2 py-1 rounded text-white text-xs bg-transparent">
+                      <option value="" className="bg-vc-surface">All</option>
+                      {geoOptions.stateHouseDistricts.map(d => (
+                        <option key={d} value={d} className="bg-vc-surface">HD-{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {geoOptions.stateSenateDistricts.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] text-white/40 mb-0.5">Senate District</label>
+                    <select value={filterSenate} onChange={e => setFilterSenate(e.target.value)}
+                      className="glass-input w-full px-2 py-1 rounded text-white text-xs bg-transparent">
+                      <option value="" className="bg-vc-surface">All</option>
+                      {geoOptions.stateSenateDistricts.map(d => (
+                        <option key={d} value={d} className="bg-vc-surface">SD-{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {geoOptions.congressionalDistricts.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] text-white/40 mb-0.5">Congressional</label>
+                    <select value={filterCongressional} onChange={e => setFilterCongressional(e.target.value)}
+                      className="glass-input w-full px-2 py-1 rounded text-white text-xs bg-transparent">
+                      <option value="" className="bg-vc-surface">All</option>
+                      {geoOptions.congressionalDistricts.map(d => (
+                        <option key={d} value={d} className="bg-vc-surface">CD-{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {geoOptions.cities.length > 0 && (
+                  <div>
+                    <label className="block text-[10px] text-white/40 mb-0.5">City</label>
+                    <select value={filterCity} onChange={e => setFilterCity(e.target.value)}
+                      className="glass-input w-full px-2 py-1 rounded text-white text-xs bg-transparent">
+                      <option value="" className="bg-vc-surface">All</option>
+                      {geoOptions.cities.slice(0, 200).map(c => (
+                        <option key={c} value={c} className="bg-vc-surface">{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+            {showFilters && selectedDataset && !geoOptions && (
+              <p className="text-[10px] text-white/30 pl-1">Loading geographic options...</p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Members */}
+      <div>
+        <p className="text-xs text-white/40 mb-2">Members ({detail.members.length})</p>
+        {detail.members.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {detail.members.map(m => (
+              <div key={m.id} className={clsx(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border',
+                ROLE_COLORS[m.role] || ROLE_COLORS.volunteer
+              )}>
+                <Users className="w-3 h-3" />
+                {m.user_name}
+                <span className="text-white/30">({m.role})</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-white/30">No members yet — assign users in the Users tab</p>
+        )}
       </div>
     </div>
   )
@@ -1160,12 +1735,26 @@ interface Campaign {
   name: string
   slug: string
   org_name: string
+  filter_congressional?: string | null
+  filter_state_senate?: string | null
+  filter_state_house?: string | null
+  filter_city?: string | null
+  filter_zip?: string | null
+}
+
+interface GeoOptions {
+  congressionalDistricts: string[]
+  stateSenateDistricts: string[]
+  stateHouseDistricts: string[]
+  cities: string[]
+  zips: string[]
 }
 
 interface DatasetDetail {
   dataset: VoterDataset
   cities: string[]
   assignedCampaigns: Campaign[]
+  geoOptions?: GeoOptions
 }
 
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
@@ -1202,7 +1791,7 @@ function VoterDataTab() {
   useEffect(() => {
     fetch('/api/platform/campaigns')
       .then(r => r.json())
-      .then(d => setAllCampaigns(d.campaigns || []))
+      .then(d => setAllCampaigns(d.relationalCampaigns || []))
   }, [])
 
   async function loadDetail(datasetId: string) {
@@ -1255,11 +1844,17 @@ function VoterDataTab() {
     loadDatasets()
   }
 
-  async function handleAssign(datasetId: string, campaignId: string) {
+  async function handleAssign(datasetId: string, campaignId: string, filters?: {
+    filterCongressional?: string
+    filterStateSenate?: string
+    filterStateHouse?: string
+    filterCity?: string
+    filterZip?: string
+  }) {
     await fetch(`/api/platform/voter-datasets/${datasetId}/assign`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ campaignId }),
+      body: JSON.stringify({ campaignId, ...filters }),
     })
     // Refresh detail
     const res = await fetch(`/api/platform/voter-datasets/${datasetId}`)
@@ -1305,6 +1900,11 @@ function VoterDataTab() {
           Upload Dataset
         </button>
       </div>
+
+      <p className="text-xs text-white/30">
+        Web upload supports files up to 100MB. For larger statewide voter files, use the CLI:{' '}
+        <code className="text-white/50 bg-white/5 px-1.5 py-0.5 rounded text-[10px]">npm run import:voters -- --file=data/voters.json --name=&quot;Name&quot; --state=PA</code>
+      </p>
 
       {showForm && (
         <form onSubmit={handleUpload} className="glass-card p-4 space-y-3">
@@ -1469,15 +2069,37 @@ function DatasetExpandedRow({
   datasetId: string
   detail?: DatasetDetail
   allCampaigns: Campaign[]
-  onAssign: (datasetId: string, campaignId: string) => void
+  onAssign: (datasetId: string, campaignId: string, filters?: {
+    filterCongressional?: string
+    filterStateSenate?: string
+    filterStateHouse?: string
+    filterCity?: string
+    filterZip?: string
+  }) => void
   onUnassign: (datasetId: string, campaignId: string) => void
 }) {
   const [assigning, setAssigning] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterHouse, setFilterHouse] = useState('')
+  const [filterSenate, setFilterSenate] = useState('')
+  const [filterCongressional, setFilterCongressional] = useState('')
+  const [filterCity, setFilterCity] = useState('')
 
   if (!detail) return <LoadingState />
 
   const assignedIds = new Set(detail.assignedCampaigns.map(c => c.id))
   const unassignedCampaigns = allCampaigns.filter(c => !assignedIds.has(c.id))
+  const geo = detail.geoOptions
+
+  function formatFilters(c: Campaign): string | null {
+    const parts: string[] = []
+    if (c.filter_state_house) parts.push(`HD-${c.filter_state_house}`)
+    if (c.filter_state_senate) parts.push(`SD-${c.filter_state_senate}`)
+    if (c.filter_congressional) parts.push(`CD-${c.filter_congressional}`)
+    if (c.filter_city) parts.push(c.filter_city)
+    if (c.filter_zip) parts.push(`ZIP ${c.filter_zip}`)
+    return parts.length > 0 ? parts.join(', ') : null
+  }
 
   return (
     <div className="space-y-3">
@@ -1490,6 +2112,16 @@ function DatasetExpandedRow({
               : 'No city data'}
           </p>
         </div>
+        {geo && (
+          <div>
+            <p className="text-xs text-white/40 mb-1">Districts</p>
+            <p className="text-xs text-white/60">
+              {geo.stateHouseDistricts.length > 0 && `${geo.stateHouseDistricts.length} House`}
+              {geo.stateSenateDistricts.length > 0 && ` · ${geo.stateSenateDistricts.length} Senate`}
+              {geo.congressionalDistricts.length > 0 && ` · ${geo.congressionalDistricts.length} Congressional`}
+            </p>
+          </div>
+        )}
         {detail.dataset.error_message && (
           <div>
             <p className="text-xs text-red-400/80 mb-1">Error</p>
@@ -1501,21 +2133,27 @@ function DatasetExpandedRow({
       <div>
         <p className="text-xs text-white/40 mb-2">Assigned Campaigns</p>
         {detail.assignedCampaigns.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {detail.assignedCampaigns.map(c => (
-              <span key={c.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-vc-purple/20 text-vc-purple-light border border-vc-purple/30">
-                <LinkIcon className="w-3 h-3" />
-                {c.name}
-                <span className="text-white/30">({c.org_name})</span>
-                <button
-                  onClick={() => onUnassign(datasetId, c.id)}
-                  className="ml-1 text-white/30 hover:text-red-400 transition-colors"
-                  title="Unassign"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
+          <div className="space-y-1.5">
+            {detail.assignedCampaigns.map(c => {
+              const filterStr = formatFilters(c)
+              return (
+                <div key={c.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-vc-purple/20 text-vc-purple-light border border-vc-purple/30 mr-2">
+                  <LinkIcon className="w-3 h-3" />
+                  {c.name}
+                  <span className="text-white/30">({c.org_name})</span>
+                  {filterStr && (
+                    <span className="text-vc-teal/80 font-medium ml-1">[{filterStr}]</span>
+                  )}
+                  <button
+                    onClick={() => onUnassign(datasetId, c.id)}
+                    className="ml-1 text-white/30 hover:text-red-400 transition-colors"
+                    title="Unassign"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )
+            })}
           </div>
         ) : (
           <p className="text-xs text-white/30">No campaigns assigned</p>
@@ -1523,32 +2161,121 @@ function DatasetExpandedRow({
       </div>
 
       {unassignedCampaigns.length > 0 && (
-        <div className="flex items-center gap-2">
-          <select
-            id={`assign-${datasetId}`}
-            className="glass-input px-3 py-1.5 rounded-btn text-white text-xs bg-transparent max-w-xs"
-            defaultValue=""
-          >
-            <option value="" disabled className="bg-vc-surface">Assign to campaign...</option>
-            {unassignedCampaigns.map(c => (
-              <option key={c.id} value={c.id} className="bg-vc-surface">{c.name} ({c.org_name})</option>
-            ))}
-          </select>
-          <button
-            onClick={async () => {
-              const sel = document.getElementById(`assign-${datasetId}`) as HTMLSelectElement
-              if (!sel?.value) return
-              setAssigning(true)
-              await onAssign(datasetId, sel.value)
-              sel.value = ''
-              setAssigning(false)
-            }}
-            disabled={assigning}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-btn text-xs font-medium bg-vc-teal/80 text-white hover:bg-vc-teal transition-colors disabled:opacity-50"
-          >
-            {assigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <LinkIcon className="w-3 h-3" />}
-            Assign
-          </button>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <select
+              id={`assign-${datasetId}`}
+              className="glass-input px-3 py-1.5 rounded-btn text-white text-xs bg-transparent max-w-xs"
+              defaultValue=""
+            >
+              <option value="" disabled className="bg-vc-surface">Assign to campaign...</option>
+              {unassignedCampaigns.map(c => (
+                <option key={c.id} value={c.id} className="bg-vc-surface">{c.name} ({c.org_name})</option>
+              ))}
+            </select>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={clsx(
+                'px-2.5 py-1.5 rounded-btn text-xs transition-colors',
+                showFilters ? 'bg-vc-purple/30 text-vc-purple-light' : 'text-white/40 hover:text-white/60'
+              )}
+            >
+              {showFilters ? 'Hide Filters' : 'Add Geo Filter'}
+            </button>
+            <button
+              onClick={async () => {
+                const sel = document.getElementById(`assign-${datasetId}`) as HTMLSelectElement
+                if (!sel?.value) return
+                setAssigning(true)
+                const filters = showFilters ? {
+                  filterStateHouse: filterHouse || undefined,
+                  filterStateSenate: filterSenate || undefined,
+                  filterCongressional: filterCongressional || undefined,
+                  filterCity: filterCity || undefined,
+                } : undefined
+                await onAssign(datasetId, sel.value, filters)
+                sel.value = ''
+                setFilterHouse('')
+                setFilterSenate('')
+                setFilterCongressional('')
+                setFilterCity('')
+                setAssigning(false)
+              }}
+              disabled={assigning}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-btn text-xs font-medium bg-vc-teal/80 text-white hover:bg-vc-teal transition-colors disabled:opacity-50"
+            >
+              {assigning ? <Loader2 className="w-3 h-3 animate-spin" /> : <LinkIcon className="w-3 h-3" />}
+              Assign
+            </button>
+          </div>
+
+          {showFilters && geo && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pl-1">
+              {geo.stateHouseDistricts.length > 0 && (
+                <div>
+                  <label className="block text-[10px] text-white/40 mb-0.5">House District</label>
+                  <select
+                    value={filterHouse}
+                    onChange={e => setFilterHouse(e.target.value)}
+                    className="glass-input w-full px-2 py-1 rounded text-white text-xs bg-transparent"
+                  >
+                    <option value="" className="bg-vc-surface">All</option>
+                    {geo.stateHouseDistricts.map(d => (
+                      <option key={d} value={d} className="bg-vc-surface">HD-{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {geo.stateSenateDistricts.length > 0 && (
+                <div>
+                  <label className="block text-[10px] text-white/40 mb-0.5">Senate District</label>
+                  <select
+                    value={filterSenate}
+                    onChange={e => setFilterSenate(e.target.value)}
+                    className="glass-input w-full px-2 py-1 rounded text-white text-xs bg-transparent"
+                  >
+                    <option value="" className="bg-vc-surface">All</option>
+                    {geo.stateSenateDistricts.map(d => (
+                      <option key={d} value={d} className="bg-vc-surface">SD-{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {geo.congressionalDistricts.length > 0 && (
+                <div>
+                  <label className="block text-[10px] text-white/40 mb-0.5">Congressional</label>
+                  <select
+                    value={filterCongressional}
+                    onChange={e => setFilterCongressional(e.target.value)}
+                    className="glass-input w-full px-2 py-1 rounded text-white text-xs bg-transparent"
+                  >
+                    <option value="" className="bg-vc-surface">All</option>
+                    {geo.congressionalDistricts.map(d => (
+                      <option key={d} value={d} className="bg-vc-surface">CD-{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {geo.cities.length > 0 && (
+                <div>
+                  <label className="block text-[10px] text-white/40 mb-0.5">City</label>
+                  <select
+                    value={filterCity}
+                    onChange={e => setFilterCity(e.target.value)}
+                    className="glass-input w-full px-2 py-1 rounded text-white text-xs bg-transparent"
+                  >
+                    <option value="" className="bg-vc-surface">All</option>
+                    {geo.cities.slice(0, 200).map(c => (
+                      <option key={c} value={c} className="bg-vc-surface">{c}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+          {showFilters && !geo && (
+            <p className="text-[10px] text-white/30 pl-1">Loading geographic options...</p>
+          )}
         </div>
       )}
     </div>
@@ -2121,6 +2848,7 @@ export default function PlatformPage() {
       <div className="animate-fade-in">
         {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'organizations' && <OrganizationsTab />}
+        {activeTab === 'campaigns' && <CampaignsTab />}
         {activeTab === 'users' && <UsersTab />}
         {activeTab === 'subscriptions' && <SubscriptionsTab />}
         {activeTab === 'voter-data' && <VoterDataTab />}
