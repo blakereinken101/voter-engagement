@@ -3,6 +3,7 @@ import Script from 'next/script'
 import './globals.css'
 import { AppProvider } from '@/context/AppContext'
 import { AuthProvider } from '@/context/AuthContext'
+import ScrollToTop from '@/components/ScrollToTop'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -33,12 +34,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         )}
       </head>
-      <body className="bg-vc-bg text-white overflow-x-hidden min-h-[100dvh] flex flex-col safe-bottom w-full">
+      <body className="bg-vc-bg text-white overflow-x-hidden">
+        <ScrollToTop />
         <AuthProvider>
           <AppProvider>
-            <main className="flex-grow flex flex-col w-full">
-              {children}
-            </main>
+            {children}
           </AppProvider>
         </AuthProvider>
       </body>

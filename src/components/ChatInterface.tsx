@@ -280,7 +280,7 @@ export default function ChatInterface() {
       />
 
       {/* Input area */}
-      <div className="px-4 pb-4 pt-2">
+      <div className="px-4 pb-4 pt-2 safe-bottom">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
