@@ -3,7 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRef, useEffect, useState, RefObject, FormEvent } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { ArrowRight, CheckCircle, Mail, Phone, Users, BarChart3, Settings, Send, Calendar, Sparkles, Brain, Zap, Shield, Globe, MessageCircle, BookUser } from 'lucide-react'
+import { ArrowRight, CheckCircle, Settings, Send, Calendar, Sparkles, Shield, Globe, MessageCircle, BookUser } from 'lucide-react'
 
 function useInView(ref: RefObject<HTMLElement | null>, options?: IntersectionObserverInit) {
   const [isInView, setIsInView] = useState(false)
@@ -32,13 +32,11 @@ function useInView(ref: RefObject<HTMLElement | null>, options?: IntersectionObs
 export default function LandingPage() {
   const { user, hasRelationalAccess } = useAuth()
   const eventsRef = useRef<HTMLElement>(null)
-  const aiRef = useRef<HTMLElement>(null)
   const featuresRef = useRef<HTMLElement>(null)
   const whyRef = useRef<HTMLElement>(null)
   const contactRef = useRef<HTMLElement>(null)
 
   const eventsInView = useInView(eventsRef)
-  const aiInView = useInView(aiRef)
   const featuresInView = useInView(featuresRef)
   const whyInView = useInView(whyRef)
   const contactInView = useInView(contactRef)
@@ -144,7 +142,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Relational Organizing Features — the big draw */}
+      {/* Core Features */}
       <section
         ref={featuresRef}
         className={`px-6 py-20 max-w-5xl mx-auto text-center opacity-0 ${featuresInView ? 'animate-slide-up' : ''}`}
@@ -154,47 +152,47 @@ export default function LandingPage() {
           <span>Relational Organizing Tool</span>
         </div>
         <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 text-center tracking-tight">
-          Give every organizer an AI-powered campaign coach
+          The AI campaign coach that actually knows your race
         </h2>
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-14">
-          Threshold helps organizers and volunteers do what they already do &mdash; just faster and better. Through a simple chat conversation, the AI helps them work through their full networks and build a contact list they&rsquo;d never put together on their own. No forms, no menus &mdash; if they can text, they can use Threshold. The model is fully customizable to your campaign&rsquo;s priorities, issues, and messaging.
+          Threshold isn&rsquo;t generic campaign software &mdash; it&rsquo;s an AI assistant trained on your specific race, your issues, and your strategy. Messy real-world input goes in, clean structured data comes out. If your volunteers can text, they can use Threshold.
         </p>
         <div className="grid md:grid-cols-3 gap-6 text-left">
           {[
             {
-              icon: Users,
-              title: 'Relational Contact Lists',
-              desc: 'Volunteers add the people they already know \u2014 family, friends, neighbors, coworkers. The AI coach helps them think through their full network and builds their outreach list automatically, or they can add contacts manually.',
-              color: 'bg-vc-purple/10 text-vc-purple',
-            },
-            {
-              icon: BarChart3,
-              title: 'Voter File Integration',
-              desc: 'AI automatically matches every contact against your state voter file \u2014 even with partial names or addresses. Volunteers instantly see registration status, party affiliation, voting history, and district info without wasting time filling out forms.',
-              color: 'bg-vc-teal/10 text-vc-teal',
-            },
-            {
-              icon: Phone,
-              title: 'Outreach Tracking',
-              desc: 'Log every text, call, and one-on-one. After each conversation, the AI helps volunteers record the outcome, write a follow-up note, and decide who to contact next. Campaign managers see every result in real time.',
-              color: 'bg-vc-coral/10 text-vc-coral',
-            },
-            {
               icon: Settings,
-              title: 'Campaign Customization',
-              desc: 'Each campaign trains the AI coach on its own issues, endorsements, and messaging. Every volunteer\u2019s conversations are guided by your talking points \u2014 consistently and at scale.',
+              title: 'Adapts to Your Exact Strategy',
+              desc: 'Your AI coach is securely trained on your campaign\u2019s specific priorities and organizing best practices. Whether your current goal is persuasion, GOTV, volunteer recruitment, fundraising, or rapid list-building, the AI seamlessly tailors its coaching and talking points to match your immediate objective. Built by scrappy organizers, Threshold can be custom-tailored and coded for your unique campaign.',
               color: 'bg-vc-gold/10 text-vc-gold',
             },
             {
-              icon: Mail,
-              title: 'Team Management',
-              desc: 'Invite volunteers by email and track who\u2019s making the most contacts. Leaderboards, conversion rates, and AI-generated summaries show your campaign\u2019s progress \u2014 so you know where to focus your energy.',
+              icon: BookUser,
+              title: 'AI-Powered Rolodexing',
+              desc: 'Most volunteers know dozens of potential voters but freeze up when asked to list them. Through natural conversation, the AI acts as a thought partner \u2014 jogging their memory about their neighborhood, workplace, church, and social circles \u2014 rapidly building a high-impact relational outreach list faster than they ever could alone, then handling the data entry for them. Plus it\u2019s only one click for volunteers to send prewritten texts and links to their friends and neighbors.',
               color: 'bg-vc-purple/10 text-vc-purple-light',
             },
             {
+              icon: MessageCircle,
+              title: 'AI-Powered Data Input',
+              desc: 'Campaign software usually requires navigating dropdowns, survey questions, and rigid forms after every interaction. Threshold handles it automatically. After a text, call, or one-on-one, volunteers simply tell the AI how the conversation went. The AI extracts the data, logs the specific survey responses, and updates the contact\u2019s profile \u2014 accurately entering several conversations at once, saving time so everyone can focus on talking to more voters.',
+              color: 'bg-vc-coral/10 text-vc-coral',
+            },
+            {
+              icon: Sparkles,
+              title: 'Zero-Friction for the Whole Team',
+              desc: 'Organizing doesn\u2019t always go by the book. Sometimes a volunteer texts their organizer a messy recap, or the campaign needs to enter data on someone\u2019s behalf. Threshold\u2019s AI and OCR tools work across accounts \u2014 organizers and campaign staff can process conversations, scan sign-in sheets, and update contact records for any volunteer. Messy real-world input goes in, clean structured data comes out.',
+              color: 'bg-vc-purple/10 text-vc-purple',
+            },
+            {
               icon: Globe,
-              title: 'Data Export',
-              desc: 'Export your contacts, canvass responses, and outreach data in VoteBuilder-ready CSV format anytime. Keep your data portable and ready for any tool.',
+              title: 'Geofiltered Voter Matching',
+              desc: 'Rolodexing against a massive voter file shouldn\u2019t take hours. Threshold supercharges your voter matching with smart, location-based geofiltering. By immediately filtering contacts to your specific region or district, the AI matches partial names, fuzzy addresses, or just phone numbers to the voter file in milliseconds \u2014 making list-building lightning-fast and highly accurate.',
+              color: 'bg-vc-teal/10 text-vc-teal',
+            },
+            {
+              icon: Shield,
+              title: 'Private & VoteBuilder-Ready',
+              desc: 'Your campaign strategy, voter data, and conversation logs are strictly siloed and never shared or used to train public AI models. Every contact, RSVP, and canvass response is tracked and instantly exportable in VoteBuilder-ready formats, seamlessly feeding back into your existing data infrastructure.',
               color: 'bg-vc-teal/10 text-vc-teal',
             },
           ].map(({ icon: Icon, title, desc, color }) => (
@@ -206,89 +204,6 @@ export default function LandingPage() {
               <p className="text-white/60 text-sm leading-relaxed">{desc}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* Photo divider 1 */}
-      <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-3.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
-      </div>
-
-      {/* AI-Powered Section */}
-      <section
-        ref={aiRef}
-        className={`px-6 py-20 opacity-0 ${aiInView ? 'animate-slide-up' : ''}`}
-      >
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-vc-gold/10 border border-vc-gold/20 text-vc-gold text-sm mb-4">
-              <Brain className="w-4 h-4" />
-              <span>AI-Powered</span>
-            </div>
-            <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
-              An AI campaign coach that actually knows your race
-            </h2>
-            <p className="text-white/50 max-w-2xl mx-auto leading-relaxed">
-              Threshold&rsquo;s AI isn&rsquo;t a chatbot you have to prompt carefully &mdash; it&rsquo;s a purpose-built campaign coach. Every volunteer on your team gets an assistant trained on your specific race: your district, your issues, your endorsements, your messaging. It knows the voter file. It knows the script. It helps with every step.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="glass-card p-7">
-              <div className="w-12 h-12 rounded-xl bg-vc-gold/10 text-vc-gold flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">Always on the cutting edge</h3>
-              <p className="text-white/60 text-sm leading-relaxed">
-                Threshold runs on the most capable AI models available and upgrades automatically. You get state-of-the-art AI without managing it yourself.
-              </p>
-            </div>
-            <div className="glass-card p-7">
-              <div className="w-12 h-12 rounded-xl bg-vc-purple/10 text-vc-purple-light flex items-center justify-center mb-4">
-                <BookUser className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">AI-powered contact building</h3>
-              <p className="text-white/60 text-sm leading-relaxed">
-                The AI coach walks volunteers through their full network &mdash; neighborhood, workplace, church, gym, social circles &mdash; and populates their outreach list faster than any spreadsheet. Most volunteers find contacts they forgot they had.
-              </p>
-            </div>
-            <div className="glass-card p-7">
-              <div className="w-12 h-12 rounded-xl bg-vc-coral/10 text-vc-coral flex items-center justify-center mb-4">
-                <MessageCircle className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">Conversation coaching in real time</h3>
-              <p className="text-white/60 text-sm leading-relaxed">
-                Before every call or knock, volunteers get AI talking points tailored to that specific voter. After the conversation, the AI helps them log the outcome and tells them exactly what to do next.
-              </p>
-            </div>
-            <div className="glass-card p-7">
-              <div className="w-12 h-12 rounded-xl bg-vc-purple/10 text-vc-purple flex items-center justify-center mb-4">
-                <Brain className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">No tech background needed</h3>
-              <p className="text-white/60 text-sm leading-relaxed">
-                Volunteers interact through plain conversation &mdash; no forms to fill out, no menus to navigate. If they can text, they can use Threshold. The AI figures out the rest.
-              </p>
-            </div>
-            <div className="glass-card p-7">
-              <div className="w-12 h-12 rounded-xl bg-vc-teal/10 text-vc-teal flex items-center justify-center mb-4">
-                <Shield className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">Your data stays yours</h3>
-              <p className="text-white/60 text-sm leading-relaxed">
-                Your voter data, campaign strategy, and conversation logs are never used to train AI models or shared with anyone outside your team. The AI is powerful because it knows your race &mdash; that knowledge stays private.
-              </p>
-            </div>
-            <div className="glass-card p-7">
-              <div className="w-12 h-12 rounded-xl bg-vc-teal/10 text-vc-teal flex items-center justify-center mb-4">
-                <BarChart3 className="w-6 h-6" />
-              </div>
-              <h3 className="font-display font-bold text-lg text-white mb-2">AI voter file matching</h3>
-              <p className="text-white/60 text-sm leading-relaxed">
-                The moment a contact is added, AI matches them to the state voter file &mdash; even with a nickname or a partial address. Volunteers see registration status, voting history, and district info before they ever pick up the phone.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -330,45 +245,23 @@ export default function LandingPage() {
         <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" style={{ objectPosition: 'center 70%' }} />
       </div>
 
-      {/* Events Platform CTA */}
+      {/* Events Platform — brief mention */}
       <section
         ref={eventsRef}
-        className={`px-6 pt-16 pb-8 opacity-0 ${eventsInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 py-10 opacity-0 ${eventsInView ? 'animate-slide-up' : ''}`}
       >
-        <div className="max-w-3xl mx-auto">
-          <div className="glass-card p-8 md:p-10 relative overflow-hidden">
-            <div className="absolute -top-12 -right-12 w-48 h-48 bg-vc-purple/15 rounded-full blur-3xl" />
-            <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-vc-teal/10 rounded-full blur-3xl" />
-
-            <div className="relative">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-vc-purple/10 border border-vc-purple/20 text-vc-purple-light text-sm mb-4">
-                <Calendar className="w-4 h-4" />
-                <span>Now Live</span>
-              </div>
-              <h2 className="font-display text-2xl md:text-3xl font-extrabold text-white mb-3 tracking-tight">
-                Threshold Events Platform
-              </h2>
-              <p className="text-white/60 leading-relaxed mb-6 max-w-xl">
-                Any Democrat can sign up and have their first event page live in minutes &mdash; no onboarding calls, no week-long setup. Host canvasses, phone banks, rallies, fundraisers, watch parties, and more. AI helps you write event descriptions, message your attendees, and manage follow-ups. It&rsquo;s clean, modern, easy to use, and more affordable than the major competitors. Each event gets a shareable page, RSVP management, attendee messaging, and comment threads.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/events"
-                  className="inline-flex items-center gap-2 bg-vc-purple text-white font-bold font-display text-base px-8 py-3 rounded-btn transition-all hover:bg-vc-purple-light hover:shadow-glow"
-                >
-                  <Calendar className="w-4 h-4" />
-                  Explore Events
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link
-                  href="/events/pricing"
-                  className="inline-flex items-center gap-2 glass text-white font-bold font-display text-base px-8 py-3 rounded-btn transition-all hover:bg-white/10"
-                >
-                  View Pricing
-                </Link>
-              </div>
-            </div>
-          </div>
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-white/40 text-sm leading-relaxed mb-3">
+            We also offer the <span className="text-white/60 font-semibold">Threshold Events Platform</span> &mdash; create event pages, collect RSVPs, and message attendees in minutes. Open to all Democrats, no waitlist required.
+          </p>
+          <Link
+            href="/events"
+            className="inline-flex items-center gap-2 text-vc-purple-light text-sm font-bold hover:text-white transition-colors"
+          >
+            <Calendar className="w-4 h-4" />
+            Explore Events
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </section>
 

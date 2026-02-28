@@ -190,14 +190,14 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
   const includedCount = contacts.filter(c => c.included).length
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg max-h-[85dvh] overflow-y-auto overscroll-contain glass-card mx-4 animate-slide-up">
+      <div className="relative w-full max-w-lg md:max-h-[85dvh] h-full md:h-auto overflow-y-auto overscroll-contain glass-card mx-0 md:mx-4 rounded-b-none md:rounded-b-2xl animate-slide-up">
         {/* Header */}
-        <div className="sticky top-0 z-10 glass-dark flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl">
+        <div className="sticky top-0 z-10 glass-dark flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl safe-top">
           <div>
             <h2 className="text-sm font-bold text-white">Scan Contact Sheet</h2>
             <p className="text-[10px] text-white/40">
@@ -309,7 +309,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
               )}
 
               {/* Contact rows */}
-              <div className="space-y-2 max-h-[50dvh] overflow-y-auto">
+              <div className="space-y-2 md:max-h-[50dvh] overflow-y-auto">
                 {contacts.map((contact, idx) => (
                   <div
                     key={idx}
@@ -414,7 +414,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
               </div>
 
               {/* Import bar */}
-              <div className="flex items-center justify-between pt-2 border-t border-white/10">
+              <div className="flex items-center justify-between pt-2 border-t border-white/10 safe-bottom">
                 <p className="text-xs text-white/50 font-display tabular-nums">
                   {includedCount} of {contacts.length} selected
                 </p>
@@ -448,7 +448,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
                   They&apos;ve been added to your rolodex.
                 </p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-3 safe-bottom">
                 <button
                   onClick={handleReset}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-btn text-xs font-bold glass hover:border-white/20 text-white/60 hover:text-white transition-all"
