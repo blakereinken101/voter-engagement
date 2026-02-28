@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Try DB-backed dataset first
-    const datasetId = await getDatasetForCampaign(ctx.campaignId)
-    if (datasetId) {
-      const stats = await getDatasetStats(datasetId)
+    const assignment = await getDatasetForCampaign(ctx.campaignId)
+    if (assignment) {
+      const stats = await getDatasetStats(assignment.datasetId)
       return NextResponse.json({
         state: state.toUpperCase(),
         recordCount: stats.recordCount,

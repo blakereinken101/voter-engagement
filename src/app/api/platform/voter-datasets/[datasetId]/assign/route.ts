@@ -5,7 +5,7 @@ import { getPool } from '@/lib/db'
 
 /**
  * POST /api/platform/voter-datasets/[datasetId]/assign
- * Assign a voter dataset to a campaign.
+ * Assign a voter dataset to a campaign, optionally with geographic filters.
  */
 export async function POST(
   request: NextRequest,
@@ -16,7 +16,14 @@ export async function POST(
     const { datasetId } = await params
     const pool = getPool()
 
-    let body: { campaignId: string }
+    let body: {
+      campaignId: string
+      filterCongressional?: string
+      filterStateSenate?: string
+      filterStateHouse?: string
+      filterCity?: string
+      filterZip?: string
+    }
     try {
       body = await request.json()
     } catch {
@@ -46,10 +53,23 @@ export async function POST(
     }
 
     await pool.query(
-      `INSERT INTO campaign_voter_datasets (campaign_id, dataset_id)
-       VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [body.campaignId, datasetId]
+      `INSERT INTO campaign_voter_datasets (campaign_id, dataset_id, filter_congressional, filter_state_senate, filter_state_house, filter_city, filter_zip)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (campaign_id, dataset_id) DO UPDATE SET
+         filter_congressional = EXCLUDED.filter_congressional,
+         filter_state_senate = EXCLUDED.filter_state_senate,
+         filter_state_house = EXCLUDED.filter_state_house,
+         filter_city = EXCLUDED.filter_city,
+         filter_zip = EXCLUDED.filter_zip`,
+      [
+        body.campaignId,
+        datasetId,
+        body.filterCongressional?.trim() || null,
+        body.filterStateSenate?.trim() || null,
+        body.filterStateHouse?.trim() || null,
+        body.filterCity?.trim() || null,
+        body.filterZip?.trim() || null,
+      ]
     )
 
     return NextResponse.json({ assigned: true })

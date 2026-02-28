@@ -7,6 +7,7 @@ import {
   queryVotersByMetaphone,
   queryVotersFuzzy,
 } from './voter-db'
+import type { GeoFilters } from './voter-db'
 
 let jaroWinklerDistance: (s1: string, s2: string) => number
 
@@ -613,7 +614,8 @@ function buildMatchResult(
 export async function matchPeopleToVoterDb(
   people: PersonEntry[],
   datasetId: string,
-  options: Partial<MatchingOptions> = {}
+  options: Partial<MatchingOptions> = {},
+  filters?: GeoFilters
 ): Promise<MatchResult[]> {
   const opts = { ...DEFAULT_OPTIONS, ...options }
   const jw = await getJaroWinkler()
@@ -622,7 +624,7 @@ export async function matchPeopleToVoterDb(
   const results: MatchResult[] = []
 
   for (const person of people) {
-    const result = await matchSinglePersonDb(person, datasetId, jw, dm, opts)
+    const result = await matchSinglePersonDb(person, datasetId, jw, dm, opts, filters)
     results.push(result)
   }
 
@@ -634,14 +636,15 @@ async function matchSinglePersonDb(
   datasetId: string,
   jw: (s1: string, s2: string) => number,
   dm: (word: string) => string[],
-  opts: MatchingOptions
+  opts: MatchingOptions,
+  filters?: GeoFilters
 ): Promise<MatchResult> {
   const normalFirst = normalizeName(person.firstName)
   const normalLast = normalizeName(person.lastName)
   const nicknameForms = expandNicknames(normalFirst)
 
   // PASS 1: Exact last name lookup via DB index
-  const lastNameMatches = await queryVotersForMatch(datasetId, [normalLast])
+  const lastNameMatches = await queryVotersForMatch(datasetId, [normalLast], filters)
 
   const exactMatches = lastNameMatches.filter(record => {
     const recFirst = normalizeName(record.first_name)
@@ -655,7 +658,7 @@ async function matchSinglePersonDb(
 
   // PASS 1.5: Phonetic name lookup via DB
   const lastNameCodes = dm(normalLast)
-  const phoneticLastNameMatches = await queryVotersByMetaphone(datasetId, lastNameCodes)
+  const phoneticLastNameMatches = await queryVotersByMetaphone(datasetId, lastNameCodes, filters)
 
   // Deduplicate
   const phoneticUnique = new Map<string, VoterRecord>()
@@ -683,7 +686,7 @@ async function matchSinglePersonDb(
   }
 
   // PASS 2: Fuzzy search via trigram similarity in DB
-  const candidatePool = await queryVotersFuzzy(datasetId, normalLast, person.zip)
+  const candidatePool = await queryVotersFuzzy(datasetId, normalLast, person.zip, filters)
 
   if (candidatePool.length === 0) {
     return { personEntry: person, status: 'unmatched', candidates: [] }

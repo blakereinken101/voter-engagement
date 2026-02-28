@@ -122,9 +122,9 @@ export async function POST(request: NextRequest) {
   const safeOffset = Math.max(0, Number(offset) || 0)
 
   // Try DB-backed dataset first, fall back to file
-  const datasetId = await getDatasetForCampaign(ctx.campaignId)
+  const assignment = await getDatasetForCampaign(ctx.campaignId)
   let voterFile: VoterRecord[] | null = null
-  if (!datasetId) {
+  if (!assignment) {
     const campaignConfig = await getCampaignConfig(ctx.campaignId)
     voterFile = await getVoterFile(cleanState, campaignConfig.voterFile)
   }
@@ -144,10 +144,10 @@ export async function POST(request: NextRequest) {
     // Get active voters in same zip + neighboring zips
     let candidates: VoterRecord[] = []
     if (searchZip) {
-      if (datasetId) {
+      if (assignment) {
         const [sameZip, neighborZip] = await Promise.all([
-          queryVotersByZip(datasetId, searchZip, true),
-          queryVotersByZipPrefix(datasetId, searchZip.slice(0, 3), searchZip, true),
+          queryVotersByZip(assignment.datasetId, searchZip, true, assignment.filters),
+          queryVotersByZipPrefix(assignment.datasetId, searchZip.slice(0, 3), searchZip, true, assignment.filters),
         ])
         candidates = [...sameZip, ...neighborZip]
       } else {
@@ -235,10 +235,10 @@ export async function POST(request: NextRequest) {
   const zipGeo = await geocodeZip(cleanZip, cleanState)
 
   let combined: VoterRecord[]
-  if (datasetId) {
+  if (assignment) {
     const [sameZip, samePrefix] = await Promise.all([
-      queryVotersByZip(datasetId, cleanZip, true),
-      queryVotersByZipPrefix(datasetId, cleanZip.slice(0, 3), cleanZip, true),
+      queryVotersByZip(assignment.datasetId, cleanZip, true, assignment.filters),
+      queryVotersByZipPrefix(assignment.datasetId, cleanZip.slice(0, 3), cleanZip, true, assignment.filters),
     ])
     combined = [...sameZip, ...samePrefix]
   } else {

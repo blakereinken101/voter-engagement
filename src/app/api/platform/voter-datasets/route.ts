@@ -62,6 +62,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'JSON file is required' }, { status: 400 })
     }
 
+    // Reject large files — they need the CLI import script
+    if (file.size > 100 * 1024 * 1024) {
+      return NextResponse.json({
+        error: 'File too large for web upload (>100MB). Use the CLI instead: npm run import:voters -- --file=path/to/file.json --name="Dataset Name" --state=PA'
+      }, { status: 413 })
+    }
+
     const datasetId = `vds-${crypto.randomUUID().slice(0, 12)}`
 
     // Create dataset record with processing status

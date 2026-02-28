@@ -409,6 +409,12 @@ async function initSchema() {
       ALTER TABLE voters ADD COLUMN IF NOT EXISTS congressional_district TEXT;
       ALTER TABLE voters ADD COLUMN IF NOT EXISTS state_senate_district TEXT;
       ALTER TABLE voters ADD COLUMN IF NOT EXISTS state_house_district TEXT;
+
+      ALTER TABLE campaign_voter_datasets ADD COLUMN IF NOT EXISTS filter_congressional TEXT;
+      ALTER TABLE campaign_voter_datasets ADD COLUMN IF NOT EXISTS filter_state_senate TEXT;
+      ALTER TABLE campaign_voter_datasets ADD COLUMN IF NOT EXISTS filter_state_house TEXT;
+      ALTER TABLE campaign_voter_datasets ADD COLUMN IF NOT EXISTS filter_city TEXT;
+      ALTER TABLE campaign_voter_datasets ADD COLUMN IF NOT EXISTS filter_zip TEXT;
     `)
 
     // ── Indexes ──────────────────────────────────────────────────────
