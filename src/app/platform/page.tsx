@@ -610,15 +610,16 @@ function CampaignExpandedRow({
   const [filterCity, setFilterCity] = useState('')
 
   // Inline edit state
-  const [editing, setEditing] = useState<'state' | 'election_date' | 'candidate' | null>(null)
+  const [editing, setEditing] = useState<'name' | 'state' | 'election_date' | 'candidate' | null>(null)
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
 
   const EDIT_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
 
-  function startEdit(field: 'state' | 'election_date' | 'candidate') {
+  function startEdit(field: 'name' | 'state' | 'election_date' | 'candidate') {
     setEditing(field)
-    if (field === 'state') setEditValue(campaign.state || '')
+    if (field === 'name') setEditValue(campaign.name || '')
+    else if (field === 'state') setEditValue(campaign.state || '')
     else if (field === 'election_date') setEditValue(campaign.election_date ? campaign.election_date.split('T')[0] : '')
     else if (field === 'candidate') setEditValue(campaign.candidate_name || '')
   }
@@ -627,7 +628,8 @@ function CampaignExpandedRow({
     if (!editing) return
     setSaving(true)
     const body: Record<string, unknown> = { id: campaignId }
-    if (editing === 'state') body.state = editValue
+    if (editing === 'name') body.name = editValue
+    else if (editing === 'state') body.state = editValue
     else if (editing === 'election_date') body.electionDate = editValue || null
     else if (editing === 'candidate') body.candidateName = editValue || null
     try {
@@ -708,6 +710,31 @@ function CampaignExpandedRow({
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-white/40">
           <span className="font-mono">{campaignId}</span>
           <span>Slug: <span className="text-white/60 font-mono">{campaign.slug}</span></span>
+
+          {/* Editable: Name */}
+          <span className="inline-flex items-center gap-1">
+            Name:{' '}
+            {editing === 'name' ? (
+              <span className="inline-flex items-center gap-1">
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditing(null) }}
+                  className="glass-input px-1.5 py-0.5 rounded text-white text-xs w-48"
+                  placeholder="Campaign name"
+                />
+                <button onClick={saveEdit} disabled={saving || !editValue.trim()} className="text-vc-teal hover:text-vc-teal/80"><Check className="w-3 h-3" /></button>
+                <button onClick={() => setEditing(null)} className="text-white/30 hover:text-white/60"><X className="w-3 h-3" /></button>
+              </span>
+            ) : (
+              <button onClick={() => startEdit('name')} className="inline-flex items-center gap-1 text-white/60 hover:text-white transition-colors group">
+                <span>{campaign.name}</span>
+                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )}
+          </span>
 
           {/* Editable: State */}
           <span className="inline-flex items-center gap-1">
