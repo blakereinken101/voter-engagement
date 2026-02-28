@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           const lastNameMeta = lastNameNorm ? computeMetaphone(lastNameNorm) : ''
 
           placeholders.push(
-            `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`
+            `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`
           )
 
           values.push(
@@ -132,6 +132,9 @@ export async function POST(request: NextRequest) {
             r.lng != null ? Number(r.lng) : null,
             lastNameNorm,
             lastNameMeta,
+            r.congressional_district || null,
+            r.state_senate_district || null,
+            r.state_house_district || null,
           )
 
           inserted++
@@ -141,7 +144,8 @@ export async function POST(request: NextRequest) {
           `INSERT INTO voters (dataset_id, voter_id, first_name, last_name, date_of_birth, gender,
             residential_address, city, state, zip, party_affiliation, registration_date, voter_status,
             vh2024g, vh2022g, vh2020g, vh2024p, vh2022p, vh2020p, lat, lng,
-            last_name_normalized, last_name_metaphone)
+            last_name_normalized, last_name_metaphone,
+            congressional_district, state_senate_district, state_house_district)
            VALUES ${placeholders.join(', ')}
            ON CONFLICT (dataset_id, voter_id) DO NOTHING`,
           values

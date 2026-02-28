@@ -215,6 +215,11 @@ async function main() {
 
     const regDate = convertDate((record.registr_dt || '').trim())
 
+    // District assignments
+    const congDist = (record.cong_dist_abbrv || '').trim()
+    const senateDist = (record.nc_senate_abbrv || '').trim()
+    const houseDist = (record.nc_house_abbrv || '').trim()
+
     voters.push({
       voter_id: ncid,
       first_name: titleCase(firstName),
@@ -230,6 +235,9 @@ async function main() {
       registration_date: regDate,
       voter_status: 'Active',
       ...vh,
+      congressional_district: congDist || null,
+      state_senate_district: senateDist || null,
+      state_house_district: houseDist || null,
     })
   })
 

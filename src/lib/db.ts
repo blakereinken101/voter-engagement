@@ -405,6 +405,10 @@ async function initSchema() {
         dataset_id TEXT NOT NULL REFERENCES voter_datasets(id) ON DELETE CASCADE,
         PRIMARY KEY (campaign_id, dataset_id)
       );
+
+      ALTER TABLE voters ADD COLUMN IF NOT EXISTS congressional_district TEXT;
+      ALTER TABLE voters ADD COLUMN IF NOT EXISTS state_senate_district TEXT;
+      ALTER TABLE voters ADD COLUMN IF NOT EXISTS state_house_district TEXT;
     `)
 
     // ── Indexes ──────────────────────────────────────────────────────
@@ -443,6 +447,7 @@ async function initSchema() {
       CREATE INDEX IF NOT EXISTS idx_voters_dataset_voter ON voters(dataset_id, voter_id);
       CREATE INDEX IF NOT EXISTS idx_campaign_voter_datasets_campaign ON campaign_voter_datasets(campaign_id);
       CREATE INDEX IF NOT EXISTS idx_campaign_voter_datasets_dataset ON campaign_voter_datasets(dataset_id);
+      CREATE INDEX IF NOT EXISTS idx_voters_state_house ON voters(dataset_id, state_house_district);
 
     `)
 

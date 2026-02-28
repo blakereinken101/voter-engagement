@@ -26,6 +26,7 @@ yarn-error.log*
 
 # voter data files (large — go on Railway persistent volume, not in repo)
 data/*.json
+data/*.json.gz
 data/*.zip
 data/*.txt
 data/*.db
@@ -33,6 +34,8 @@ data/*.db-shm
 data/*.db-wal
 data/*.db-journal
 data/*.csv
+data/Statewide/
+data/pa-fve/
 
 # geocoding cache
 data/geocode-cache.json

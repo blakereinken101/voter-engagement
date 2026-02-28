@@ -48,12 +48,16 @@ function rowToVoterRecord(row: Record<string, unknown>): VoterRecord {
     VH2020P: ((row.vh2020p as string) || '') as VoteValue,
     lat: row.lat as number | null | undefined,
     lng: row.lng as number | null | undefined,
+    congressional_district: (row.congressional_district as string) || null,
+    state_senate_district: (row.state_senate_district as string) || null,
+    state_house_district: (row.state_house_district as string) || null,
   }
 }
 
 const VOTER_SELECT = `voter_id, first_name, last_name, date_of_birth, gender,
   residential_address, city, state, zip, party_affiliation, registration_date,
-  voter_status, vh2024g, vh2022g, vh2020g, vh2024p, vh2022p, vh2020p, lat, lng`
+  voter_status, vh2024g, vh2022g, vh2020g, vh2024p, vh2022p, vh2020p, lat, lng,
+  congressional_district, state_senate_district, state_house_district`
 
 /**
  * Pass 1: Exact last name lookup.
