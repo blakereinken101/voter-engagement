@@ -43,7 +43,9 @@ export default function DashboardPage() {
     : '?'
 
   return (
-    <div className="min-h-screen cosmic-bg constellation flex flex-col safe-top">
+    <div className={`cosmic-bg constellation flex flex-col safe-top ${
+      view === 'chat' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
+    }`}>
       {/* Header — glass bar */}
       <header className="glass-dark border-b border-white/10 sticky top-0 z-50">
         {/* Top bar */}
@@ -210,7 +212,9 @@ export default function DashboardPage() {
       )}
 
       {/* Main content */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-4">
+      <main className={`flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-4 ${
+        view === 'chat' ? 'min-h-0 flex flex-col overflow-hidden' : ''
+      }`}>
         {view !== 'chat' && (
           <button
             onClick={() => setView('chat')}
@@ -234,8 +238,10 @@ export default function DashboardPage() {
         <ScanSheetPanel onClose={() => setShowScanSheet(false)} />
       )}
 
-      {/* Footer */}
-      <footer className="text-center py-4 border-t border-white/5 safe-bottom">
+      {/* Footer — hidden in chat mode on mobile to save space */}
+      <footer className={`text-center py-4 border-t border-white/5 safe-bottom ${
+        view === 'chat' ? 'hidden md:block' : ''
+      }`}>
         <p className="text-white/30 text-xs">
           &copy; {new Date().getFullYear()} Vote Threshold LLC. All Rights Reserved.
         </p>

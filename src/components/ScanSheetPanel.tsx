@@ -70,11 +70,27 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
   const [importedCount, setImportedCount] = useState(0)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
 
-  // Lock body scroll when panel is open to prevent shaking on mobile
+  // Lock body scroll when panel is open — iOS-safe pattern
   useEffect(() => {
-    const orig = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = orig }
+    const scrollY = window.scrollY
+    const body = document.body
+    const origPosition = body.style.position
+    const origTop = body.style.top
+    const origWidth = body.style.width
+    const origOverflow = body.style.overflow
+
+    body.style.position = 'fixed'
+    body.style.top = `-${scrollY}px`
+    body.style.width = '100%'
+    body.style.overflow = 'hidden'
+
+    return () => {
+      body.style.position = origPosition
+      body.style.top = origTop
+      body.style.width = origWidth
+      body.style.overflow = origOverflow
+      window.scrollTo(0, scrollY)
+    }
   }, [])
 
   const handleImageSelected = useCallback(async (file: File) => {
@@ -192,12 +208,12 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} style={{ touchAction: 'none' }} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg md:max-h-[85dvh] h-full md:h-auto overflow-y-auto overscroll-contain glass-card mx-0 md:mx-4 rounded-b-none md:rounded-b-2xl animate-slide-up">
+      <div className="relative w-full max-w-lg h-full md:h-auto max-h-[100dvh] md:max-h-[85dvh] flex flex-col overscroll-contain glass-card mx-0 md:mx-4 rounded-b-none md:rounded-b-2xl animate-slide-up">
         {/* Header */}
-        <div className="sticky top-0 z-10 glass-dark flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl safe-top">
+        <div className="shrink-0 z-10 glass-dark flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl safe-top">
           <div>
             <h2 className="text-sm font-bold text-white">Scan Contact Sheet</h2>
             <p className="text-[10px] text-white/40">
@@ -215,7 +231,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
           {/* Error */}
           {error && (
             <div className="bg-red-500/20 text-red-300 text-xs px-3 py-2 rounded-lg border border-red-500/30">
@@ -309,7 +325,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
               )}
 
               {/* Contact rows */}
-              <div className="space-y-2 md:max-h-[50dvh] overflow-y-auto">
+              <div className="space-y-2 md:max-h-[50dvh] md:overflow-y-auto">
                 {contacts.map((contact, idx) => (
                   <div
                     key={idx}

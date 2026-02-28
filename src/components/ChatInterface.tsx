@@ -34,9 +34,19 @@ export default function ChatInterface() {
       .finally(() => setIsLoading(false))
   }, [])
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages (only if already near bottom)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const container = messagesContainerRef.current
+    if (!container) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+      return
+    }
+    // Only auto-scroll if user is within 150px of the bottom
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 150
+    if (isNearBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant' })
+    }
   }, [messages])
 
   // Handle tool results — sync to AppContext
@@ -185,7 +195,10 @@ export default function ChatInterface() {
         setMessages(prev => prev.filter(m => m.id !== assistantId || m.content))
       } finally {
         setIsStreaming(false)
-        inputRef.current?.focus()
+        // Only re-focus on desktop — on mobile this causes keyboard bounce
+        if (window.innerWidth >= 768) {
+          inputRef.current?.focus()
+        }
       }
     },
     [input, isStreaming, handleToolResult],
@@ -227,7 +240,7 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-200px)] md:h-[calc(100dvh-220px)]">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
         <div className="flex items-center gap-2">
@@ -251,7 +264,7 @@ export default function ChatInterface() {
       </div>
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-1">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-1">
         {messages.map(msg => (
           <ChatMessageBubble
             key={msg.id}
