@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useAppContext } from '@/context/AppContext'
+import { useRouter } from 'next/navigation'
 import { compressImage } from '@/lib/image-compress'
-import { Camera, Upload, X, Loader2, Check, RotateCcw, Trash2 } from 'lucide-react'
-import clsx from 'clsx'
+import { Camera, Upload, X, Loader2 } from 'lucide-react'
 import type { RelationshipCategory, ContactOutcome } from '@/types'
 
 const CATEGORY_OPTIONS: { value: RelationshipCategory; label: string }[] = [
@@ -33,13 +32,6 @@ const SUPPORT_STATUS_OPTIONS: { value: ContactOutcome | ''; label: string }[] = 
   { value: 'no-answer', label: 'No Answer' },
 ]
 
-const VOLUNTEER_OPTIONS: { value: '' | 'yes' | 'no' | 'maybe'; label: string }[] = [
-  { value: '', label: 'Vol?' },
-  { value: 'yes', label: 'Vol: Yes' },
-  { value: 'maybe', label: 'Vol: Maybe' },
-  { value: 'no', label: 'Vol: No' },
-]
-
 interface ExtractedContact {
   firstName: string
   lastName: string
@@ -53,21 +45,19 @@ interface ExtractedContact {
   volunteerInterest?: 'yes' | 'no' | 'maybe'
 }
 
-type PanelState = 'idle' | 'processing' | 'review' | 'done'
+type PanelState = 'idle' | 'processing'
 
 interface ScanSheetPanelProps {
   onClose: () => void
 }
 
 export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
-  const { addPerson } = useAppContext()
+  const router = useRouter()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const uploadInputRef = useRef<HTMLInputElement>(null)
 
   const [panelState, setPanelState] = useState<PanelState>('idle')
-  const [contacts, setContacts] = useState<ExtractedContact[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [importedCount, setImportedCount] = useState(0)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
 
   // Lock body scroll when panel is open — iOS-safe pattern
@@ -102,7 +92,8 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
       const { base64, mimeType } = await compressImage(file)
 
       // Create thumbnail for display
-      setThumbnailUrl(`data:${mimeType};base64,${base64}`)
+      const thumb = `data:${mimeType};base64,${base64}`
+      setThumbnailUrl(thumb)
 
       // Send to API
       const response = await fetch('/api/ai/scan-sheet', {
@@ -138,14 +129,17 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
         return
       }
 
-      setContacts(extracted)
-      setPanelState('review')
+      // Stash extracted contacts and navigate to full-screen review page
+      sessionStorage.setItem('scan-sheet-contacts', JSON.stringify(extracted))
+      sessionStorage.setItem('scan-sheet-thumbnail', thumb)
+      onClose()
+      router.push('/dashboard/scan')
     } catch (err) {
       console.error('[ScanSheet] Error:', err)
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setPanelState('idle')
     }
-  }, [])
+  }, [onClose, router])
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,61 +151,13 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
     [handleImageSelected],
   )
 
-  const updateContact = useCallback((index: number, field: string, value: string | boolean) => {
-    setContacts(prev =>
-      prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)),
-    )
-  }, [])
-
-  const removeContact = useCallback((index: number) => {
-    setContacts(prev => prev.filter((_, i) => i !== index))
-  }, [])
-
-  const handleImport = useCallback(() => {
-    const toImport = contacts.filter(c => c.included && c.firstName.trim() && c.lastName.trim())
-    let count = 0
-
-    for (const c of toImport) {
-      const initialActionData: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe' } = {}
-      if (c.contactOutcome) initialActionData.contactOutcome = c.contactOutcome
-      if (c.volunteerInterest) initialActionData.volunteerInterest = c.volunteerInterest
-
-      addPerson(
-        {
-          firstName: c.firstName.trim(),
-          lastName: c.lastName.trim(),
-          phone: c.phone?.trim() || undefined,
-          city: c.city?.trim() || undefined,
-          address: c.address?.trim() || undefined,
-          category: c.category,
-        },
-        undefined,
-        Object.keys(initialActionData).length > 0 ? initialActionData : undefined,
-      )
-      count++
-    }
-
-    setImportedCount(count)
-    setPanelState('done')
-  }, [contacts, addPerson])
-
-  const handleReset = useCallback(() => {
-    setContacts([])
-    setError(null)
-    setImportedCount(0)
-    setThumbnailUrl(null)
-    setPanelState('idle')
-  }, [])
-
-  const includedCount = contacts.filter(c => c.included).length
-
   return (
     <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} style={{ touchAction: 'none' }} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={panelState === 'idle' ? onClose : undefined} style={{ touchAction: 'none' }} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg h-full md:h-auto max-h-[100dvh] md:max-h-[85dvh] flex flex-col overscroll-contain glass-card mx-0 md:mx-4 rounded-b-none md:rounded-b-2xl animate-slide-up">
+      <div className="relative w-full max-w-lg md:h-auto max-h-[85dvh] flex flex-col overscroll-contain glass-card mx-0 md:mx-4 rounded-t-2xl md:rounded-b-2xl animate-slide-up">
         {/* Header */}
         <div className="shrink-0 z-10 glass-dark flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl safe-top">
           <div>
@@ -219,16 +165,16 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
             <p className="text-[10px] text-white/40">
               {panelState === 'idle' && 'Take a photo or upload an image'}
               {panelState === 'processing' && 'Reading handwriting...'}
-              {panelState === 'review' && `${contacts.length} contacts found — review & import`}
-              {panelState === 'done' && `${importedCount} contacts imported!`}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white/30 hover:text-white/60 transition-colors p-1"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {panelState === 'idle' && (
+            <button
+              onClick={onClose}
+              className="text-white/30 hover:text-white/60 transition-colors p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
@@ -241,7 +187,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
 
           {/* ─── IDLE STATE ─── */}
           {panelState === 'idle' && (
-            <div className="space-y-3">
+            <div className="space-y-3 safe-bottom">
               <p className="text-xs text-white/60 leading-relaxed">
                 Photograph a handwritten contact sheet and AI will extract the names and details for you.
               </p>
@@ -289,7 +235,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
 
           {/* ─── PROCESSING STATE ─── */}
           {panelState === 'processing' && (
-            <div className="flex flex-col items-center gap-4 py-8">
+            <div className="flex flex-col items-center gap-4 py-8 safe-bottom">
               {thumbnailUrl && (
                 <img
                   src={thumbnailUrl}
@@ -304,181 +250,6 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
               <p className="text-[10px] text-white/40 text-center">
                 This may take a few seconds
               </p>
-            </div>
-          )}
-
-          {/* ─── REVIEW STATE ─── */}
-          {panelState === 'review' && (
-            <div className="space-y-3">
-              {/* Thumbnail */}
-              {thumbnailUrl && (
-                <div className="flex items-start gap-3">
-                  <img
-                    src={thumbnailUrl}
-                    alt="Scanned sheet"
-                    className="w-16 h-16 object-cover rounded-lg border border-white/10 shrink-0"
-                  />
-                  <div className="text-xs text-white/50 leading-relaxed">
-                    Review the extracted contacts below. Edit any errors and uncheck rows you don&apos;t want to import.
-                  </div>
-                </div>
-              )}
-
-              {/* Contact rows */}
-              <div className="space-y-2 md:max-h-[50dvh] md:overflow-y-auto">
-                {contacts.map((contact, idx) => (
-                  <div
-                    key={idx}
-                    className={clsx(
-                      'glass-row p-3 space-y-2',
-                      !contact.included && 'opacity-40',
-                    )}
-                  >
-                    {/* Row header: checkbox + name + delete */}
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={contact.included}
-                        onChange={e => updateContact(idx, 'included', e.target.checked)}
-                        className="w-4 h-4 rounded accent-vc-purple"
-                      />
-                      <div className="flex-1 grid grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          value={contact.firstName}
-                          onChange={e => updateContact(idx, 'firstName', e.target.value)}
-                          placeholder="First name"
-                          className="glass-input px-2 py-1 text-xs rounded"
-                        />
-                        <input
-                          type="text"
-                          value={contact.lastName}
-                          onChange={e => updateContact(idx, 'lastName', e.target.value)}
-                          placeholder="Last name"
-                          className="glass-input px-2 py-1 text-xs rounded"
-                        />
-                      </div>
-                      <button
-                        onClick={() => removeContact(idx)}
-                        className="text-white/20 hover:text-red-400 transition-colors p-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Extra fields */}
-                    {contact.included && (
-                      <div className="grid grid-cols-2 gap-2 pl-6">
-                        <input
-                          type="text"
-                          value={contact.phone || ''}
-                          onChange={e => updateContact(idx, 'phone', e.target.value)}
-                          placeholder="Phone"
-                          className="glass-input px-2 py-1 text-xs rounded"
-                        />
-                        <input
-                          type="text"
-                          value={contact.city || ''}
-                          onChange={e => updateContact(idx, 'city', e.target.value)}
-                          placeholder="City"
-                          className="glass-input px-2 py-1 text-xs rounded"
-                        />
-                        <select
-                          value={contact.category}
-                          onChange={e =>
-                            updateContact(idx, 'category', e.target.value)
-                          }
-                          className="glass-input px-2 py-1 text-xs rounded col-span-2"
-                        >
-                          {CATEGORY_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={contact.contactOutcome || ''}
-                          onChange={e => updateContact(idx, 'contactOutcome', e.target.value || undefined as unknown as string)}
-                          className="glass-input px-2 py-1 text-xs rounded"
-                        >
-                          {SUPPORT_STATUS_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          value={contact.volunteerInterest || ''}
-                          onChange={e => updateContact(idx, 'volunteerInterest', e.target.value || undefined as unknown as string)}
-                          className="glass-input px-2 py-1 text-xs rounded"
-                        >
-                          {VOLUNTEER_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                        {contact.notes && (
-                          <p className="text-[10px] text-white/40 col-span-2 italic">
-                            AI notes: {contact.notes}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Import bar */}
-              <div className="flex items-center justify-between pt-2 border-t border-white/10 safe-bottom">
-                <p className="text-xs text-white/50 font-display tabular-nums">
-                  {includedCount} of {contacts.length} selected
-                </p>
-                <button
-                  onClick={handleImport}
-                  disabled={includedCount === 0}
-                  className={clsx(
-                    'px-5 py-2 rounded-btn text-sm font-bold transition-all',
-                    includedCount > 0
-                      ? 'bg-vc-purple text-white hover:bg-vc-purple-light shadow-glow'
-                      : 'bg-white/10 text-white/30 cursor-not-allowed',
-                  )}
-                >
-                  Import {includedCount} {includedCount === 1 ? 'Contact' : 'Contacts'}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* ─── DONE STATE ─── */}
-          {panelState === 'done' && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="w-12 h-12 rounded-full bg-vc-teal/20 flex items-center justify-center">
-                <Check className="w-6 h-6 text-vc-teal" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-bold text-white">
-                  {importedCount} {importedCount === 1 ? 'contact' : 'contacts'} imported!
-                </p>
-                <p className="text-xs text-white/40 mt-1">
-                  They&apos;ve been added to your rolodex.
-                </p>
-              </div>
-              <div className="flex gap-3 safe-bottom">
-                <button
-                  onClick={handleReset}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-btn text-xs font-bold glass hover:border-white/20 text-white/60 hover:text-white transition-all"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Scan Another
-                </button>
-                <button
-                  onClick={onClose}
-                  className="px-4 py-2 rounded-btn text-xs font-bold bg-vc-purple text-white hover:bg-vc-purple-light shadow-glow transition-all"
-                >
-                  Done
-                </button>
-              </div>
             </div>
           )}
         </div>

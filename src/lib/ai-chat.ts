@@ -556,10 +556,10 @@ async function executeRunMatching(ctx: ToolContext): Promise<Record<string, unkn
     category: row.category,
   }))
 
-  const datasetId = await getDatasetForCampaign(ctx.campaignId)
+  const assignment = await getDatasetForCampaign(ctx.campaignId)
   let results: MatchResult[]
-  if (datasetId) {
-    results = await matchPeopleToVoterDb(people, datasetId)
+  if (assignment) {
+    results = await matchPeopleToVoterDb(people, assignment.datasetId, {}, assignment.filters)
   } else {
     const config = await getCampaignConfig(ctx.campaignId)
     const voterFile = await getVoterFile(config.state, config.voterFile)
