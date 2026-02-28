@@ -10,7 +10,7 @@ export default function MatchAllBar({ unmatchedCount, isLoading, onMatchAll }: P
   if (unmatchedCount === 0) return null
 
   return (
-    <div className="sticky bottom-0 glass-dark border-t border-white/10 px-4 py-3 flex items-center justify-between z-10">
+    <div className="sticky bottom-0 glass-dark border-t border-white/10 px-4 py-3 flex items-center justify-between z-10 safe-bottom">
       <p className="text-sm text-white/70">
         <span className="font-bold text-vc-purple-light">{unmatchedCount}</span>{' '}
         {unmatchedCount === 1 ? 'person' : 'people'} not yet matched

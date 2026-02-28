@@ -209,10 +209,18 @@ body {
   mask-image: linear-gradient(to bottom, black 85%, transparent 100%);
 }
 
+/* ─── Smooth scrolling for keyboard transitions ───── */
+html {
+  scroll-behavior: smooth;
+}
+
 /* ─── Safe area insets for notched iPhones ────────── */
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
+}
+
 @supports (padding: env(safe-area-inset-top)) {
   .safe-top { padding-top: env(safe-area-inset-top); }
-  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   .safe-x {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);

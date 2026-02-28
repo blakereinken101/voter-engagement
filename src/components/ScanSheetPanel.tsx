@@ -195,7 +195,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto overscroll-contain glass-card mx-4 animate-slide-up">
+      <div className="relative w-full max-w-lg max-h-[85dvh] overflow-y-auto overscroll-contain glass-card mx-4 animate-slide-up">
         {/* Header */}
         <div className="sticky top-0 z-10 glass-dark flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl">
           <div>
@@ -309,7 +309,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
               )}
 
               {/* Contact rows */}
-              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              <div className="space-y-2 max-h-[50dvh] overflow-y-auto">
                 {contacts.map((contact, idx) => (
                   <div
                     key={idx}

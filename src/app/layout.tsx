@@ -7,6 +7,7 @@ import { AuthProvider } from '@/context/AuthContext'
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
   viewportFit: 'cover',
 }
 
@@ -32,10 +33,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         )}
       </head>
-      <body className="bg-vc-bg text-white overflow-x-hidden">
+      <body className="bg-vc-bg text-white overflow-x-hidden min-h-[100dvh] flex flex-col safe-bottom w-full">
         <AuthProvider>
           <AppProvider>
-            {children}
+            <main className="flex-grow flex flex-col w-full">
+              {children}
+            </main>
           </AppProvider>
         </AuthProvider>
       </body>

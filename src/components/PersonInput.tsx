@@ -126,7 +126,6 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
               'glass-input w-full p-2.5 rounded-btn text-sm font-medium focus:outline-none focus:ring-2 focus:ring-vc-purple/30',
               errors.firstName && 'border-vc-coral/60'
             )}
-            autoFocus={mode === 'add'}
           />
         </div>
         <div>
