@@ -16,7 +16,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { DashboardView } from '@/types'
 import ScanSheetPanel from '@/components/ScanSheetPanel'
-import { Download, Shield, LogOut, Camera, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Sparkles, Table, Calendar } from 'lucide-react'
+import { Download, Shield, LogOut, Camera, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Sparkles, Table, Calendar, ArrowLeft } from 'lucide-react'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
@@ -211,6 +211,15 @@ export default function DashboardPage() {
 
       {/* Main content */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-4">
+        {view !== 'chat' && (
+          <button
+            onClick={() => setView('chat')}
+            className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors mb-3 md:mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Chat
+          </button>
+        )}
         {view === 'admin' ? (
           <AdminPanel />
         ) : view === 'contacts' ? (

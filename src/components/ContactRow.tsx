@@ -152,6 +152,11 @@ export default function ContactRow({
           {bestMatch?.city || person.city || '—'}
         </td>
 
+        {/* Age */}
+        <td className="py-2.5 px-2 text-xs text-white/70">
+          {person.age || '—'}
+        </td>
+
         {/* Match Status */}
         <td className="py-2.5 px-2">
           {!matchResult && (

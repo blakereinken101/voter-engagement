@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useAppContext } from '@/context/AppContext'
 import { compressImage } from '@/lib/image-compress'
 import { Camera, Upload, X, Loader2, Check, RotateCcw, Trash2 } from 'lucide-react'
@@ -69,6 +69,13 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [importedCount, setImportedCount] = useState(0)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
+
+  // Lock body scroll when panel is open to prevent shaking on mobile
+  useEffect(() => {
+    const orig = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = orig }
+  }, [])
 
   const handleImageSelected = useCallback(async (file: File) => {
     setError(null)
@@ -183,12 +190,12 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
   const includedCount = contacts.filter(c => c.included).length
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto glass-card mx-4 mb-4 sm:mb-0 animate-slide-up">
+      <div className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto overscroll-contain glass-card mx-4 animate-slide-up">
         {/* Header */}
         <div className="sticky top-0 z-10 glass-dark flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl">
           <div>

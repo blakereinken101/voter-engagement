@@ -227,7 +227,7 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] md:h-[calc(100vh-220px)]">
+    <div className="flex flex-col h-[calc(100dvh-200px)] md:h-[calc(100dvh-220px)]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/5">
         <div className="flex items-center gap-2">
@@ -251,7 +251,7 @@ export default function ChatInterface() {
       </div>
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-1">
         {messages.map(msg => (
           <ChatMessageBubble
             key={msg.id}
@@ -301,6 +301,7 @@ export default function ChatInterface() {
             <Send className="w-4 h-4" />
           </button>
         </div>
+        <p className="text-[10px] text-white/30 text-center mt-2">The responses are from AI, which can make mistakes.</p>
       </div>
     </div>
   )

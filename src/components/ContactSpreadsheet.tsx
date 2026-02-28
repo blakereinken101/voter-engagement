@@ -271,6 +271,7 @@ export default function ContactSpreadsheet() {
                   Cat{sortIndicator('category')}
                 </th>
                 <th className="py-2 px-2">City</th>
+                <th className="py-2 px-2">Age</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('matchStatus')}>
                   Match{sortIndicator('matchStatus')}
                 </th>

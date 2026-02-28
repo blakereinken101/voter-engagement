@@ -12,7 +12,7 @@ import DataPurge from './DataPurge'
 import TeamManagement from './TeamManagement'
 import AICampaignContext from './AICampaignContext'
 import VanIntegration from './VanIntegration'
-import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Bot, Link2 } from 'lucide-react'
+import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Sparkles, Link2 } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
@@ -24,7 +24,7 @@ const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'leaderboard', label: 'Leaderboard', Icon: Trophy },
   { id: 'export', label: 'Export', Icon: Download },
   { id: 'purge', label: 'Purge', Icon: Trash2 },
-  { id: 'ai-context', label: 'AI Coach', Icon: Bot },
+  { id: 'ai-context', label: 'AI Coach', Icon: Sparkles },
   { id: 'van', label: 'VAN', Icon: Link2 },
 ]
 
