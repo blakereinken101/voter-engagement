@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN action_items ai ON ai.contact_id = c.id
       ${where}
       ORDER BY c.created_at DESC
+      LIMIT 50000
     `, params)
 
     const headers = ['Volunteer','First Name','Last Name','Phone','Category','City','Zip','Match Status','Party','Vote Score','Segment','Outreach Method','Outcome','Notes','Volunteer Prospect','Contact Date','Created']

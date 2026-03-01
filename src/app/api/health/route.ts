@@ -10,7 +10,13 @@ export async function GET() {
 
   let dbStatus = 'ok'
   try {
-    await getPool().query('SELECT 1')
+    // Test both read AND write capability — a SELECT-only check misses
+    // permission issues that would break login and all write operations.
+    await getPool().query(`
+      INSERT INTO platform_settings (key, value, updated_at)
+      VALUES ('_health_check', 'ok', NOW())
+      ON CONFLICT (key) DO UPDATE SET value = 'ok', updated_at = NOW()
+    `)
   } catch {
     dbStatus = 'error'
   }

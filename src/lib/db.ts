@@ -10,8 +10,9 @@ const useSSL = dbUrl.includes('.railway.internal') ? false
 const pool = new Pool({
   connectionString: dbUrl || undefined,
   ssl: useSSL,
-  max: 10,
+  max: 25,
   idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000, // fail fast if pool is exhausted
 })
 
 export function getPool(): Pool {
@@ -25,8 +26,13 @@ export async function getDb(): Promise<Pool> {
 }
 
 export async function logActivity(userId: string, action: string, details?: Record<string, unknown>, campaignId?: string) {
-  await pool.query(
-    `INSERT INTO activity_log (user_id, action, details, campaign_id) VALUES ($1, $2, $3, $4)`,
-    [userId, action, details ? JSON.stringify(details) : null, campaignId || null]
-  )
+  try {
+    await pool.query(
+      `INSERT INTO activity_log (user_id, action, details, campaign_id) VALUES ($1, $2, $3, $4)`,
+      [userId, action, details ? JSON.stringify(details) : null, campaignId || null]
+    )
+  } catch (err) {
+    // Activity logging should never crash a request
+    console.error('[logActivity] Failed (non-fatal):', err)
+  }
 }

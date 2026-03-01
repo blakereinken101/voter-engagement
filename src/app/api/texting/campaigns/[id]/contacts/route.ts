@@ -60,6 +60,9 @@ export async function POST(
     if (!body.contacts?.length) {
       return NextResponse.json({ error: 'No contacts provided' }, { status: 400 })
     }
+    if (body.contacts.length > 5000) {
+      return NextResponse.json({ error: 'Maximum 5,000 contacts per request' }, { status: 400 })
+    }
 
     const pool = getPool()
 
@@ -81,6 +84,9 @@ export async function POST(
     let skippedDuplicate = 0
     let skippedInvalid = 0
     let skippedOptOut = 0
+
+    // Validate and filter contacts first (no DB calls in the loop)
+    const toInsert: { firstName: string; lastName: string; cell: string; customFields: string }[] = []
 
     for (const c of body.contacts) {
       if (!c.firstName?.trim() || !c.lastName?.trim() || !c.cell?.trim()) {
@@ -104,20 +110,34 @@ export async function POST(
         continue
       }
 
+      toInsert.push({
+        firstName: c.firstName.trim(),
+        lastName: c.lastName.trim(),
+        cell: normalized,
+        customFields: JSON.stringify(c.customFields || {}),
+      })
+      existingPhones.add(normalized)
+    }
+
+    // Batch insert in chunks of 200 (single query per batch instead of N+1)
+    const BATCH_SIZE = 200
+    for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+      const batch = toInsert.slice(i, i + BATCH_SIZE)
+      const values: unknown[] = []
+      const placeholders: string[] = []
+      let idx = 1
+
+      for (const row of batch) {
+        placeholders.push(`($${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++}, $${idx++})`)
+        values.push(crypto.randomUUID(), params.id, row.firstName, row.lastName, row.cell, row.customFields)
+      }
+
       await pool.query(
         `INSERT INTO text_campaign_contacts (id, text_campaign_id, first_name, last_name, cell, custom_fields)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          crypto.randomUUID(),
-          params.id,
-          c.firstName.trim(),
-          c.lastName.trim(),
-          normalized,
-          JSON.stringify(c.customFields || {}),
-        ]
+         VALUES ${placeholders.join(', ')}`,
+        values
       )
-      existingPhones.add(normalized)
-      imported++
+      imported += batch.length
     }
 
     return NextResponse.json({

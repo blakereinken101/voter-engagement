@@ -3,9 +3,20 @@ import { getDb } from '@/lib/db'
 import { hashPassword, verifyPassword, createPendingToken, generateVerificationCode } from '@/lib/auth'
 import { sendVerificationCode } from '@/lib/email'
 import { sanitizeSlug, validateSlug } from '@/lib/slugs'
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 sign-up attempts per IP per 15 minutes
+    const ip = getClientIP(request)
+    const rl = checkRateLimit(`sign-up:${ip}`)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `Too many sign-up attempts. Try again in ${rl.retryAfterSeconds} seconds.` },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { name, email, password, phone, organizationName, slug: rawSlug, product, plan } = body
 

@@ -43,6 +43,14 @@ export async function POST(request: NextRequest) {
     const session = await requirePlatformAdmin()
     const pool = getPool()
 
+    // Reject oversized requests before parsing the body into memory
+    const contentLength = request.headers.get('content-length')
+    if (contentLength && parseInt(contentLength, 10) > 105 * 1024 * 1024) {
+      return NextResponse.json({
+        error: 'File too large for web upload (>100MB). Use the CLI instead: npm run import:voters -- --file=path/to/file.json --name="Dataset Name" --state=PA'
+      }, { status: 413 })
+    }
+
     const formData = await request.formData()
     const name = formData.get('name') as string
     const state = formData.get('state') as string
