@@ -188,7 +188,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={panelState === 'idle' ? onClose : undefined} style={{ touchAction: 'none' }} />
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={panelState === 'idle' ? onClose : undefined} style={{ touchAction: 'none' }} />
 
       {/* Panel */}
       <div className="relative w-full max-w-lg md:h-auto max-h-[85dvh] flex flex-col overscroll-contain glass-card mx-0 md:mx-4 rounded-t-2xl md:rounded-b-2xl animate-slide-up">

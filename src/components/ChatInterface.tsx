@@ -263,16 +263,19 @@ export default function ChatInterface() {
         )}
       </div>
 
-      {/* Messages area */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-1">
-        {messages.map(msg => (
-          <ChatMessageBubble
-            key={msg.id}
-            message={msg}
-            isStreaming={isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant'}
-          />
-        ))}
-        <div ref={messagesEndRef} />
+      {/* Messages area — justify-end so few messages sit near the input, not stranded at the top */}
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 flex flex-col">
+        <div className="flex-1" />
+        <div className="space-y-1">
+          {messages.map(msg => (
+            <ChatMessageBubble
+              key={msg.id}
+              message={msg}
+              isStreaming={isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant'}
+            />
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Error */}
@@ -314,7 +317,7 @@ export default function ChatInterface() {
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] text-white/30 text-center mt-2">The responses are from AI, which can make mistakes.</p>
+        <p className="text-[10px] text-white/30 text-center mt-2 mb-1">The responses are from AI, which can make mistakes.</p>
       </div>
     </div>
   )

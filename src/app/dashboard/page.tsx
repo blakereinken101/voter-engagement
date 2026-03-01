@@ -238,9 +238,9 @@ export default function DashboardPage() {
         <ScanSheetPanel onClose={() => setShowScanSheet(false)} />
       )}
 
-      {/* Footer — hidden in chat mode on mobile to save space */}
-      <footer className={`text-center py-4 border-t border-white/5 safe-bottom ${
-        view === 'chat' ? 'hidden md:block' : ''
+      {/* Footer — hidden entirely in chat mode (the AI disclaimer serves as footer) */}
+      <footer className={`text-center pt-4 pb-6 border-t border-white/5 safe-bottom ${
+        view === 'chat' ? 'hidden' : ''
       }`}>
         <p className="text-white/30 text-xs">
           &copy; {new Date().getFullYear()} Vote Threshold LLC. All Rights Reserved.
