@@ -678,6 +678,10 @@ async function initSchema() {
         matched_count INTEGER DEFAULT 0,
         validity_rate REAL DEFAULT 0,
         status TEXT DEFAULT 'pending',
+        fingerprint TEXT,
+        is_duplicate BOOLEAN DEFAULT false,
+        duplicate_of TEXT,
+        petitioner_id TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
@@ -694,11 +698,43 @@ async function initSchema() {
         match_status TEXT DEFAULT 'pending',
         match_data TEXT,
         match_score REAL,
+        candidates_data TEXT,
+        user_confirmed BOOLEAN DEFAULT false,
+        confirmed_by TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
       CREATE INDEX IF NOT EXISTS idx_petition_sheets_campaign ON petition_sheets(campaign_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_petition_sheets_fingerprint ON petition_sheets(campaign_id, fingerprint);
       CREATE INDEX IF NOT EXISTS idx_petition_signatures_sheet ON petition_signatures(sheet_id);
+    `)
+
+    // ── Petition Petitioners ────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS petition_petitioners (
+        id TEXT PRIMARY KEY,
+        campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+        canonical_name TEXT NOT NULL,
+        name_variants TEXT DEFAULT '[]',
+        total_sheets INTEGER DEFAULT 0,
+        total_signatures INTEGER DEFAULT 0,
+        matched_count INTEGER DEFAULT 0,
+        validity_rate REAL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_petition_petitioners_campaign ON petition_petitioners(campaign_id);
+    `)
+
+    // ── Petition schema migrations (add columns if missing) ─────────
+    await client.query(`
+      ALTER TABLE petition_signatures ADD COLUMN IF NOT EXISTS candidates_data TEXT;
+      ALTER TABLE petition_signatures ADD COLUMN IF NOT EXISTS user_confirmed BOOLEAN DEFAULT false;
+      ALTER TABLE petition_signatures ADD COLUMN IF NOT EXISTS confirmed_by TEXT;
+      ALTER TABLE petition_sheets ADD COLUMN IF NOT EXISTS fingerprint TEXT;
+      ALTER TABLE petition_sheets ADD COLUMN IF NOT EXISTS is_duplicate BOOLEAN DEFAULT false;
+      ALTER TABLE petition_sheets ADD COLUMN IF NOT EXISTS duplicate_of TEXT;
+      ALTER TABLE petition_sheets ADD COLUMN IF NOT EXISTS petitioner_id TEXT;
     `)
 
     // ── Seed defaults ────────────────────────────────────────────────

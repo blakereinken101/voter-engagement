@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ArrowLeft, Check, Trash2, RotateCcw, FileSignature, Loader2 } from 'lucide-react'
+import { ArrowLeft, Check, Trash2, RotateCcw, FileSignature, Loader2, AlertTriangle } from 'lucide-react'
 
 interface PetitionSignature {
   lineNumber?: number
@@ -27,6 +27,7 @@ export default function PetitionReviewPage() {
   const [done, setDone] = useState(false)
   const [savedCount, setSavedCount] = useState(0)
   const [matchResult, setMatchResult] = useState<{ matchedCount: number; validityRate: number } | null>(null)
+  const [isDuplicate, setIsDuplicate] = useState(false)
 
   useEffect(() => {
     const raw = sessionStorage.getItem('petition-sheet-signatures')
@@ -97,6 +98,9 @@ export default function PetitionReviewPage() {
 
       const saveData = await saveRes.json()
       setSavedCount(saveData.signatureCount || toSave.length)
+      if (saveData.isDuplicate) {
+        setIsDuplicate(true)
+      }
 
       // Trigger voter file matching
       try {
@@ -150,6 +154,15 @@ export default function PetitionReviewPage() {
           <div className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center">
             <Check className="w-7 h-7 text-emerald-400" />
           </div>
+          {isDuplicate && (
+            <div className="rounded-lg bg-red-500/15 border border-red-500/30 p-3 flex items-center gap-2 max-w-sm">
+              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
+              <p className="text-xs text-red-300">
+                This sheet appears to be a <span className="font-bold">duplicate</span> of a previously scanned sheet.
+                You can review it in the admin Petitions tab.
+              </p>
+            </div>
+          )}
           <div className="text-center">
             <p className="text-lg font-bold text-white">
               {savedCount} {savedCount === 1 ? 'signature' : 'signatures'} saved!

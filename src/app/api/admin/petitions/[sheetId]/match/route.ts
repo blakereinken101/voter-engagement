@@ -5,6 +5,7 @@ import { matchPeopleToVoterDb, matchPeopleToVoterFile } from '@/lib/matching'
 import { getDatasetForCampaign } from '@/lib/voter-db'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
 import { getVoterFile } from '@/lib/mock-data'
+import { recalcPetitionerStats } from '@/lib/petition-utils'
 import type { PersonEntry, MatchResult } from '@/types'
 
 export async function POST(
@@ -70,6 +71,17 @@ export async function POST(
         let matchStatus: string
         let matchData: string | null = null
         let matchScore: number | null = null
+        let candidatesData: string | null = null
+
+        // Store all candidates (up to 3) for side-by-side comparison
+        if (result.candidates.length > 0) {
+          candidatesData = JSON.stringify(result.candidates.map(c => ({
+            voterRecord: c.voterRecord,
+            score: c.score,
+            confidenceLevel: c.confidenceLevel,
+            matchedOn: c.matchedOn,
+          })))
+        }
 
         if (result.status === 'confirmed' || (result.bestMatch && result.candidates.length > 0 && result.candidates[0].score >= 0.70)) {
           matchStatus = 'matched'
@@ -88,9 +100,9 @@ export async function POST(
 
         await client.query(`
           UPDATE petition_signatures
-          SET match_status = $1, match_data = $2, match_score = $3
-          WHERE id = $4
-        `, [matchStatus, matchData, matchScore, sigId])
+          SET match_status = $1, match_data = $2, match_score = $3, candidates_data = $4
+          WHERE id = $5
+        `, [matchStatus, matchData, matchScore, candidatesData, sigId])
       }
 
       // Update sheet stats
@@ -110,6 +122,15 @@ export async function POST(
       throw e
     } finally {
       client.release()
+    }
+
+    // Recalculate petitioner stats if this sheet is linked to a petitioner
+    const { rows: sheetData } = await db.query(
+      'SELECT petitioner_id FROM petition_sheets WHERE id = $1',
+      [sheetId],
+    )
+    if (sheetData[0]?.petitioner_id) {
+      await recalcPetitionerStats(db, sheetData[0].petitioner_id)
     }
 
     await logActivity(ctx.userId, 'petition_sheet_matched', {

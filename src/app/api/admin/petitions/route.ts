@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
+import { computeSheetFingerprint, findOrCreatePetitioner } from '@/lib/petition-utils'
 
 // GET: List all petition sheets for the campaign, or signatures for a specific sheet
 export async function GET(request: NextRequest) {
@@ -22,7 +23,11 @@ export async function GET(request: NextRequest) {
       }
 
       const { rows: signatures } = await db.query(
-        'SELECT * FROM petition_signatures WHERE sheet_id = $1 ORDER BY line_number ASC NULLS LAST, created_at ASC',
+        `SELECT id, sheet_id, line_number, first_name, last_name, address, city, zip,
+                date_signed, match_status, match_data, match_score, candidates_data,
+                user_confirmed, confirmed_by, created_at
+         FROM petition_signatures WHERE sheet_id = $1
+         ORDER BY line_number ASC NULLS LAST, created_at ASC`,
         [sheetId],
       )
       return NextResponse.json({ signatures })
@@ -30,14 +35,16 @@ export async function GET(request: NextRequest) {
 
     const { rows: sheets } = await db.query(`
       SELECT ps.*, u.name as scanned_by_name,
+             pp.canonical_name as petitioner_canonical_name,
              (SELECT COUNT(*) FROM petition_signatures WHERE sheet_id = ps.id) as signature_count
       FROM petition_sheets ps
       JOIN users u ON u.id = ps.scanned_by
+      LEFT JOIN petition_petitioners pp ON pp.id = ps.petitioner_id
       WHERE ps.campaign_id = $1
       ORDER BY ps.created_at DESC
     `, [ctx.campaignId])
 
-    // Get overall stats
+    // Get overall stats (exclude duplicates)
     const { rows: statsRows } = await db.query(`
       SELECT
         COUNT(DISTINCT ps.id) as total_sheets,
@@ -48,7 +55,7 @@ export async function GET(request: NextRequest) {
           ELSE 0
         END as overall_validity_rate
       FROM petition_sheets ps
-      WHERE ps.campaign_id = $1
+      WHERE ps.campaign_id = $1 AND ps.is_duplicate = false
     `, [ctx.campaignId])
 
     return NextResponse.json({
@@ -96,6 +103,23 @@ export async function POST(request: NextRequest) {
     const sanitize = (val: unknown, maxLen = 200): string | null =>
       typeof val === 'string' ? val.replace(/<[^>]*>/g, '').trim().slice(0, maxLen) : null
 
+    // Compute fingerprint for duplicate detection
+    const fingerprint = computeSheetFingerprint(signatures)
+
+    // Check for existing sheet with same fingerprint
+    const { rows: dupeCheck } = await db.query(
+      'SELECT id FROM petition_sheets WHERE campaign_id = $1 AND fingerprint = $2',
+      [ctx.campaignId, fingerprint],
+    )
+    const isDuplicate = dupeCheck.length > 0
+    const duplicateOf = isDuplicate ? dupeCheck[0].id : null
+
+    // Find or create petitioner
+    let petitionerId: string | null = null
+    if (petitionerName?.trim()) {
+      petitionerId = await findOrCreatePetitioner(db, ctx.campaignId, petitionerName.trim())
+    }
+
     const sheetId = crypto.randomUUID()
     const client = await db.connect()
 
@@ -104,9 +128,9 @@ export async function POST(request: NextRequest) {
 
       // Create the petition sheet
       await client.query(`
-        INSERT INTO petition_sheets (id, campaign_id, petitioner_name, scanned_by, total_signatures, status)
-        VALUES ($1, $2, $3, $4, $5, 'pending')
-      `, [sheetId, ctx.campaignId, sanitize(petitionerName, 100), ctx.userId, signatures.length])
+        INSERT INTO petition_sheets (id, campaign_id, petitioner_name, scanned_by, total_signatures, status, fingerprint, is_duplicate, duplicate_of, petitioner_id)
+        VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9)
+      `, [sheetId, ctx.campaignId, sanitize(petitionerName, 100), ctx.userId, signatures.length, fingerprint, isDuplicate, duplicateOf, petitionerId])
 
       // Insert signatures
       for (const sig of signatures) {
@@ -138,9 +162,16 @@ export async function POST(request: NextRequest) {
       sheetId,
       petitionerName: petitionerName || null,
       signatureCount: signatures.length,
+      isDuplicate,
     }, ctx.campaignId)
 
-    return NextResponse.json({ success: true, sheetId, signatureCount: signatures.length })
+    return NextResponse.json({
+      success: true,
+      sheetId,
+      signatureCount: signatures.length,
+      isDuplicate,
+      duplicateOf,
+    })
   } catch (error: unknown) {
     const { error: msg, status } = handleAuthError(error)
     return NextResponse.json({ error: msg }, { status })
