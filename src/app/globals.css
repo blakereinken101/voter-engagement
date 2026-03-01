@@ -23,6 +23,7 @@ body {
 
 .constellation {
   position: relative;
+  isolation: isolate;
 }
 .constellation::before {
   content: '';
@@ -46,11 +47,7 @@ body {
     radial-gradient(2px 2px at 75% 65%, rgba(108, 60, 225, 0.6) 0%, transparent 100%),
     radial-gradient(2px 2px at 20% 80%, rgba(20, 184, 166, 0.5) 0%, transparent 100%);
   pointer-events: none;
-  z-index: 0;
-}
-.constellation > * {
-  position: relative;
-  z-index: 1;
+  z-index: -1;
 }
 
 /* ─── Glass utilities ─────────────────────────────── */

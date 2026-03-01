@@ -193,7 +193,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
       {/* Panel */}
       <div className="relative w-full max-w-lg md:h-auto max-h-[85dvh] flex flex-col overscroll-contain glass-card mx-0 md:mx-4 rounded-t-2xl md:rounded-b-2xl animate-slide-up">
         {/* Header */}
-        <div className="shrink-0 z-10 glass-dark flex items-center justify-between px-4 py-4 border-b border-white/10 rounded-t-2xl safe-top">
+        <div className="shrink-0 z-10 glass-dark flex items-center justify-between px-5 pb-4 border-b border-white/10 rounded-t-2xl" style={{ paddingTop: '19px' }}>
           <div>
             <h2 className="text-sm font-bold text-white">
               {petitionMode ? 'Scan Petition Sheet' : 'Scan Contact Sheet'}
