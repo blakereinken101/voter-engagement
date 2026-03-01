@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
-import { computeSheetFingerprint, findOrCreatePetitioner } from '@/lib/petition-utils'
+import { computeSheetFingerprint, findOrCreatePetitioner, recalcPetitionerStats } from '@/lib/petition-utils'
 
 // GET: List all petition sheets for the campaign, or signatures for a specific sheet
 export async function GET(request: NextRequest) {
@@ -172,6 +172,61 @@ export async function POST(request: NextRequest) {
       isDuplicate,
       duplicateOf,
     })
+  } catch (error: unknown) {
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
+  }
+}
+
+// DELETE: Remove a petition sheet and its signatures
+export async function DELETE(request: NextRequest) {
+  try {
+    const ctx = await requireAdmin()
+    const db = await getDb()
+
+    const { searchParams } = new URL(request.url)
+    const sheetId = searchParams.get('sheetId')
+
+    if (!sheetId) {
+      return NextResponse.json({ error: 'sheetId query parameter required' }, { status: 400 })
+    }
+
+    // Verify sheet belongs to this campaign and get petitioner info
+    const { rows: sheetRows } = await db.query(
+      'SELECT id, petitioner_id, petitioner_name, total_signatures FROM petition_sheets WHERE id = $1 AND campaign_id = $2',
+      [sheetId, ctx.campaignId],
+    )
+    if (sheetRows.length === 0) {
+      return NextResponse.json({ error: 'Petition sheet not found' }, { status: 404 })
+    }
+
+    const sheet = sheetRows[0]
+    const client = await db.connect()
+
+    try {
+      await client.query('BEGIN')
+      await client.query('DELETE FROM petition_signatures WHERE sheet_id = $1', [sheetId])
+      await client.query('DELETE FROM petition_sheets WHERE id = $1', [sheetId])
+      await client.query('COMMIT')
+    } catch (e) {
+      await client.query('ROLLBACK')
+      throw e
+    } finally {
+      client.release()
+    }
+
+    // Recalculate petitioner stats if linked
+    if (sheet.petitioner_id) {
+      await recalcPetitionerStats(db, sheet.petitioner_id)
+    }
+
+    await logActivity(ctx.userId, 'petition_sheet_deleted', {
+      sheetId,
+      petitionerName: sheet.petitioner_name,
+      totalSignatures: sheet.total_signatures,
+    }, ctx.campaignId)
+
+    return NextResponse.json({ success: true })
   } catch (error: unknown) {
     const { error: msg, status } = handleAuthError(error)
     return NextResponse.json({ error: msg }, { status })

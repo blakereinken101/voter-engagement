@@ -6,7 +6,11 @@ import { getDatasetForCampaign } from '@/lib/voter-db'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
 import { getVoterFile } from '@/lib/mock-data'
 import { recalcPetitionerStats } from '@/lib/petition-utils'
+import { aiRerankMatches, applyAiReranking } from '@/lib/ai-rerank'
+import { isAIEnabled } from '@/lib/ai-chat'
+import { getAISettings } from '@/lib/ai-settings'
 import type { PersonEntry, MatchResult } from '@/types'
+import type { AiRerankInput } from '@/lib/ai-rerank'
 
 export async function POST(
   request: NextRequest,
@@ -37,7 +41,7 @@ export async function POST(
     }
 
     // Convert signatures to PersonEntry format for matching
-    const people: PersonEntry[] = signatures.map((sig, idx) => ({
+    const people: PersonEntry[] = signatures.map((sig) => ({
       id: sig.id,
       firstName: sig.first_name,
       lastName: sig.last_name,
@@ -47,7 +51,7 @@ export async function POST(
       category: 'who-did-we-miss' as const,
     }))
 
-    // Run matching using existing infrastructure
+    // Run algorithmic matching
     const assignment = await getDatasetForCampaign(ctx.campaignId)
     let results: MatchResult[]
     if (assignment) {
@@ -57,6 +61,47 @@ export async function POST(
       const state = campaignConfig.state || 'NC'
       const voterFile = await getVoterFile(state, campaignConfig.voterFile)
       results = await matchPeopleToVoterFile(people, voterFile)
+    }
+
+    // AI re-ranking: send candidates to LLM for holistic evaluation
+    if (isAIEnabled()) {
+      try {
+        const aiSettings = await getAISettings()
+
+        const rerankInputs: AiRerankInput[] = results
+          .filter(r => r.candidates.length > 0)
+          .map(r => ({
+            signatureId: r.personEntry.id,
+            ocrData: {
+              firstName: r.personEntry.firstName,
+              lastName: r.personEntry.lastName,
+              address: r.personEntry.address,
+              city: r.personEntry.city,
+              zip: r.personEntry.zip,
+            },
+            candidates: r.candidates.map((c, idx) => ({
+              index: idx,
+              firstName: c.voterRecord.first_name,
+              lastName: c.voterRecord.last_name,
+              address: c.voterRecord.residential_address,
+              city: c.voterRecord.city,
+              zip: c.voterRecord.zip,
+              party: c.voterRecord.party_affiliation,
+              algorithmicScore: c.score,
+            })),
+          }))
+
+        if (rerankInputs.length > 0) {
+          const aiResults = await aiRerankMatches(
+            rerankInputs,
+            aiSettings.provider,
+            aiSettings.suggestModel,
+          )
+          applyAiReranking(results, aiResults)
+        }
+      } catch (err) {
+        console.error('[petition-match] AI re-ranking failed (falling back to algorithmic):', err)
+      }
     }
 
     // Update each signature with match results
@@ -73,13 +118,15 @@ export async function POST(
         let matchScore: number | null = null
         let candidatesData: string | null = null
 
-        // Store all candidates (up to 3) for side-by-side comparison
+        // Store all candidates for side-by-side comparison (including AI fields)
         if (result.candidates.length > 0) {
           candidatesData = JSON.stringify(result.candidates.map(c => ({
             voterRecord: c.voterRecord,
             score: c.score,
             confidenceLevel: c.confidenceLevel,
             matchedOn: c.matchedOn,
+            ...(c.aiConfidence ? { aiConfidence: c.aiConfidence } : {}),
+            ...(c.aiReasoning ? { aiReasoning: c.aiReasoning } : {}),
           })))
         }
 
@@ -96,6 +143,11 @@ export async function POST(
           matchedCount++
         } else {
           matchStatus = 'unmatched'
+          // Still store best match data for "best guess" display
+          if (result.bestMatch) {
+            matchData = JSON.stringify(result.bestMatch)
+            matchScore = result.candidates[0]?.score || null
+          }
         }
 
         await client.query(`

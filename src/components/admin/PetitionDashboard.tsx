@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { FileSignature, ChevronDown, ChevronRight, Check, X, HelpCircle, Loader2, AlertTriangle, Users, ArrowRightLeft } from 'lucide-react'
+import { FileSignature, ChevronDown, ChevronRight, Check, X, HelpCircle, Loader2, AlertTriangle, Users, ArrowRightLeft, Trash2 } from 'lucide-react'
 
 // =============================================
 // TYPES
@@ -23,6 +23,8 @@ interface MatchCandidateData {
   score: number
   confidenceLevel: string
   matchedOn: string[]
+  aiConfidence?: 'likely-match' | 'possible-match' | 'unlikely-match'
+  aiReasoning?: string
 }
 
 interface PetitionSignatureRow {
@@ -100,6 +102,10 @@ export default function PetitionDashboard() {
   const [pickerSigId, setPickerSigId] = useState<string | null>(null)
   const [savingOverride, setSavingOverride] = useState(false)
 
+  // Delete confirmation state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   const fetchSheets = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/petitions')
@@ -161,13 +167,25 @@ export default function PetitionDashboard() {
     }
   }, [expandedSheet, sheetSignatures])
 
-  // Handle selecting a different match candidate
-  const handleMatchOverride = useCallback(async (sheetId: string, sigId: string, candidateIndex: number | null) => {
+  // Handle match override: confirm, reject, or swap candidate
+  const handleMatchOverride = useCallback(async (
+    sheetId: string,
+    sigId: string,
+    candidateIndex: number | null,
+    forceStatus?: 'matched' | 'unmatched'
+  ) => {
     setSavingOverride(true)
     try {
-      const body = candidateIndex === null
-        ? { matchStatus: 'unmatched' as const }
-        : { candidateIndex }
+      const body: { candidateIndex?: number; matchStatus?: 'matched' | 'unmatched' } = {}
+
+      if (forceStatus === 'unmatched' || (candidateIndex === null && !forceStatus)) {
+        body.matchStatus = 'unmatched'
+      } else if (forceStatus === 'matched') {
+        body.matchStatus = 'matched'
+        if (candidateIndex !== null) body.candidateIndex = candidateIndex
+      } else if (candidateIndex !== null) {
+        body.candidateIndex = candidateIndex
+      }
 
       const res = await fetch(`/api/admin/petitions/${sheetId}/signatures/${sigId}/match`, {
         method: 'PATCH',
@@ -193,24 +211,58 @@ export default function PetitionDashboard() {
     }
   }, [fetchSheets])
 
+  // Handle sheet deletion
+  const handleDeleteSheet = useCallback(async (sheetId: string) => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/admin/petitions?sheetId=${sheetId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        setDeleteConfirmId(null)
+        setExpandedSheet(null)
+        fetchSheets()
+        if (viewMode === 'petitioners') fetchPetitioners()
+      }
+    } catch (err) {
+      console.error('[petitions] Error deleting sheet:', err)
+    } finally {
+      setDeleting(false)
+    }
+  }, [fetchSheets, fetchPetitioners, viewMode])
+
   // =============================================
   // MATCH STATUS HELPERS
   // =============================================
 
-  const matchStatusLabel = (status: string, score: number | null, confirmed: boolean) => {
+  const matchStatusLabel = (status: string, score: number | null, confirmed: boolean, aiConfidence?: string) => {
     if (confirmed && status === 'matched') {
       return { label: 'Confirmed', color: 'text-emerald-400', icon: <Check className="w-3.5 h-3.5" /> }
     }
     if (confirmed && status === 'unmatched') {
       return { label: 'No Match', color: 'text-red-400', icon: <X className="w-3.5 h-3.5" /> }
     }
+    // AI-enhanced labels take priority when available
+    if (aiConfidence === 'likely-match') {
+      return { label: 'AI: Likely Match', color: 'text-emerald-400', icon: <Check className="w-3.5 h-3.5" /> }
+    }
+    if (aiConfidence === 'unlikely-match') {
+      return { label: 'AI: Unlikely', color: 'text-red-400', icon: <X className="w-3.5 h-3.5" /> }
+    }
+    if (aiConfidence === 'possible-match') {
+      return { label: 'AI: Possible', color: 'text-amber-400', icon: <HelpCircle className="w-3.5 h-3.5" /> }
+    }
+    // Fallback to score-based labels
     if (status === 'matched' || (score && score >= 0.70)) {
       return { label: 'Likely Match', color: 'text-emerald-400', icon: <Check className="w-3.5 h-3.5" /> }
     }
     if (status === 'ambiguous' || (score && score >= 0.55)) {
       return { label: 'Possible Match', color: 'text-amber-400', icon: <HelpCircle className="w-3.5 h-3.5" /> }
     }
-    return { label: 'Likely No Match', color: 'text-red-400', icon: <X className="w-3.5 h-3.5" /> }
+    if (score && score > 0) {
+      return { label: 'Best Guess', color: 'text-white/40', icon: <HelpCircle className="w-3.5 h-3.5" /> }
+    }
+    return { label: 'No Match', color: 'text-red-400', icon: <X className="w-3.5 h-3.5" /> }
   }
 
   const parseCandidates = (json: string | null): MatchCandidateData[] => {
@@ -333,16 +385,53 @@ export default function PetitionDashboard() {
                         {sheet.signature_count} signatures · Scanned by {sheet.scanned_by_name} · {new Date(sheet.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className={`text-lg font-bold ${
-                        sheet.is_duplicate ? 'text-red-400/50' :
-                        sheet.validity_rate >= 70 ? 'text-emerald-400' : sheet.validity_rate >= 50 ? 'text-amber-400' : 'text-red-400'
-                      }`}>
-                        {sheet.status === 'matched' ? `${sheet.validity_rate}%` : '—'}
-                      </p>
-                      <p className="text-[10px] text-white/30">validity</p>
+                    <div className="text-right shrink-0 flex items-center gap-3">
+                      <div>
+                        <p className={`text-lg font-bold ${
+                          sheet.is_duplicate ? 'text-red-400/50' :
+                          sheet.validity_rate >= 70 ? 'text-emerald-400' : sheet.validity_rate >= 50 ? 'text-amber-400' : 'text-red-400'
+                        }`}>
+                          {sheet.status === 'matched' ? `${sheet.validity_rate}%` : '—'}
+                        </p>
+                        <p className="text-[10px] text-white/30">validity</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirmId(deleteConfirmId === sheet.id ? null : sheet.id)
+                        }}
+                        className="text-white/20 hover:text-red-400 transition-colors p-1 rounded hover:bg-red-500/10"
+                        title="Delete sheet"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </button>
+
+                  {/* Delete confirmation banner */}
+                  {deleteConfirmId === sheet.id && (
+                    <div className="border-t border-red-500/30 bg-red-500/5 px-4 py-3 flex items-center justify-between">
+                      <p className="text-xs text-red-400">
+                        Delete this sheet and all {sheet.signature_count} signatures? This cannot be undone.
+                      </p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="text-xs text-white/50 hover:text-white px-3 py-1.5 rounded bg-white/5 hover:bg-white/10 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSheet(sheet.id)}
+                          disabled={deleting}
+                          className="text-xs text-white font-bold px-3 py-1.5 rounded bg-red-500/80 hover:bg-red-500 transition-colors flex items-center gap-1.5"
+                        >
+                          {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Expanded: side-by-side signature comparison */}
                   {expandedSheet === sheet.id && (
@@ -356,14 +445,17 @@ export default function PetitionDashboard() {
                       ) : (
                         <div className="space-y-3">
                           {(sheetSignatures[sheet.id] || []).map(sig => {
-                            const matchInfo = matchStatusLabel(sig.match_status, sig.match_score, sig.user_confirmed)
-                            const matchVoter = parseMatchData(sig.match_data)
                             const candidates = parseCandidates(sig.candidates_data)
+                            const topCandidate = candidates[0]
+                            const matchInfo = matchStatusLabel(sig.match_status, sig.match_score, sig.user_confirmed, topCandidate?.aiConfidence)
+                            const matchVoter = parseMatchData(sig.match_data)
                             const isPickerOpen = pickerSigId === sig.id
+                            const isUnmatchedWithGuess = sig.match_status === 'unmatched' && matchVoter
+                            const hasMatch = matchVoter && sig.match_status !== 'unmatched'
 
                             return (
                               <div key={sig.id} className="rounded-lg bg-white/[0.03] border border-white/5 overflow-hidden">
-                                {/* Status header */}
+                                {/* Status header with action buttons */}
                                 <div className="flex items-center justify-between px-3 py-2 border-b border-white/5">
                                   <div className="flex items-center gap-2">
                                     <span className="text-[10px] text-white/20 font-mono w-5 text-right">
@@ -384,18 +476,52 @@ export default function PetitionDashboard() {
                                       <span className="text-[9px] px-1 py-0.5 rounded bg-white/10 text-white/40 font-bold">MANUAL</span>
                                     )}
                                   </div>
-                                  {candidates.length > 0 && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setPickerSigId(isPickerOpen ? null : sig.id)
-                                      }}
-                                      className="text-[10px] text-white/40 hover:text-white/70 transition-colors flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5"
-                                    >
-                                      <ArrowRightLeft className="w-3 h-3" />
-                                      Change
-                                    </button>
-                                  )}
+                                  {/* Override action buttons — always visible */}
+                                  <div className="flex items-center gap-1">
+                                    {/* Confirm Match — show when not already confirmed */}
+                                    {matchVoter && !(sig.user_confirmed && sig.match_status === 'matched') && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleMatchOverride(sheet.id, sig.id, 0, 'matched')
+                                        }}
+                                        disabled={savingOverride}
+                                        className="text-[10px] text-emerald-400/70 hover:text-emerald-400 transition-colors flex items-center gap-1 px-2 py-1 rounded hover:bg-emerald-500/10"
+                                        title="Confirm this is a match"
+                                      >
+                                        <Check className="w-3 h-3" />
+                                        Confirm
+                                      </button>
+                                    )}
+                                    {/* Not a Match — show when not already rejected */}
+                                    {matchVoter && !(sig.user_confirmed && sig.match_status === 'unmatched') && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleMatchOverride(sheet.id, sig.id, null, 'unmatched')
+                                        }}
+                                        disabled={savingOverride}
+                                        className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors flex items-center gap-1 px-2 py-1 rounded hover:bg-red-500/10"
+                                        title="Mark as not a match"
+                                      >
+                                        <X className="w-3 h-3" />
+                                        Not a Match
+                                      </button>
+                                    )}
+                                    {/* Swap candidates — show when there are alternatives */}
+                                    {candidates.length > 1 && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setPickerSigId(isPickerOpen ? null : sig.id)
+                                        }}
+                                        className="text-[10px] text-white/40 hover:text-white/70 transition-colors flex items-center gap-1 px-2 py-1 rounded hover:bg-white/5"
+                                      >
+                                        <ArrowRightLeft className="w-3 h-3" />
+                                        {candidates.length} Options
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* Side-by-side comparison: OCR vs Voter File */}
@@ -417,27 +543,44 @@ export default function PetitionDashboard() {
                                     )}
                                   </div>
 
-                                  {/* Right: Voter File Match */}
+                                  {/* Right: Voter File Match (or Best Guess) */}
                                   <div className="p-3 border-t border-white/5 md:border-t-0">
-                                    <p className="text-[9px] text-white/30 uppercase tracking-wider font-bold mb-1.5">Voter File Match</p>
+                                    <p className="text-[9px] text-white/30 uppercase tracking-wider font-bold mb-1.5">
+                                      {isUnmatchedWithGuess ? 'Best Guess' : hasMatch ? 'Voter File Match' : 'Voter File'}
+                                    </p>
                                     {matchVoter ? (
                                       <>
-                                        <p className="text-sm font-bold text-white">
+                                        <p className={`text-sm font-bold ${isUnmatchedWithGuess ? 'text-white/40' : 'text-white'}`}>
                                           {matchVoter.first_name} {matchVoter.last_name}
                                         </p>
                                         {matchVoter.residential_address && (
-                                          <p className="text-[11px] text-white/50">{matchVoter.residential_address}</p>
+                                          <p className={`text-[11px] ${isUnmatchedWithGuess ? 'text-white/30' : 'text-white/50'}`}>{matchVoter.residential_address}</p>
                                         )}
-                                        <p className="text-[11px] text-white/40">
+                                        <p className={`text-[11px] ${isUnmatchedWithGuess ? 'text-white/25' : 'text-white/40'}`}>
                                           {[matchVoter.city, matchVoter.state, matchVoter.zip].filter(Boolean).join(', ')}
                                         </p>
-                                        <p className="text-[10px] text-white/30 mt-1">
+                                        <p className={`text-[10px] mt-1 ${isUnmatchedWithGuess ? 'text-white/20' : 'text-white/30'}`}>
                                           {matchVoter.party_affiliation} · {matchVoter.voter_status}
                                           {matchVoter.birth_year ? ` · Born ${matchVoter.birth_year}` : ''}
                                         </p>
+                                        {/* AI reasoning badge */}
+                                        {topCandidate?.aiConfidence && (
+                                          <span className={`text-[9px] mt-1.5 px-1.5 py-0.5 rounded inline-block font-bold ${
+                                            topCandidate.aiConfidence === 'likely-match' ? 'bg-emerald-500/15 text-emerald-400' :
+                                            topCandidate.aiConfidence === 'possible-match' ? 'bg-amber-500/15 text-amber-400' :
+                                            'bg-red-500/15 text-red-400'
+                                          }`}>
+                                            AI: {topCandidate.aiConfidence.replace('-', ' ')}
+                                          </span>
+                                        )}
+                                        {topCandidate?.aiReasoning && (
+                                          <p className="text-[9px] text-white/25 mt-0.5 italic">
+                                            {topCandidate.aiReasoning}
+                                          </p>
+                                        )}
                                       </>
                                     ) : (
-                                      <p className="text-xs text-white/20 italic">No match found</p>
+                                      <p className="text-xs text-white/20 italic">No candidates found in voter file</p>
                                     )}
                                   </div>
                                 </div>
@@ -476,6 +619,15 @@ export default function PetitionDashboard() {
                                                   {c.voterRecord.city}, {c.voterRecord.zip}
                                                   {' · '}{c.voterRecord.party_affiliation}
                                                 </p>
+                                                {c.aiConfidence && (
+                                                  <span className={`text-[9px] px-1 py-0.5 rounded inline-block font-bold mt-0.5 ${
+                                                    c.aiConfidence === 'likely-match' ? 'bg-emerald-500/15 text-emerald-400' :
+                                                    c.aiConfidence === 'possible-match' ? 'bg-amber-500/15 text-amber-400' :
+                                                    'bg-red-500/15 text-red-400'
+                                                  }`}>
+                                                    AI: {c.aiConfidence.replace('-', ' ')}
+                                                  </span>
+                                                )}
                                               </div>
                                               <span className={`text-xs font-mono font-bold ${
                                                 c.score >= 0.7 ? 'text-emerald-400' : c.score >= 0.55 ? 'text-amber-400' : 'text-red-400'
@@ -489,7 +641,7 @@ export default function PetitionDashboard() {
 
                                       {/* Mark as No Match option */}
                                       <button
-                                        onClick={() => handleMatchOverride(sheet.id, sig.id, null)}
+                                        onClick={() => handleMatchOverride(sheet.id, sig.id, null, 'unmatched')}
                                         disabled={savingOverride}
                                         className="w-full text-left rounded-md px-3 py-2 bg-white/[0.03] border border-white/5 hover:bg-red-500/10 hover:border-red-500/20 transition-colors"
                                       >

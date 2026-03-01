@@ -99,7 +99,8 @@ export type RelationshipCategory =
 // =============================================
 
 export type MatchStatus = 'confirmed' | 'ambiguous' | 'unmatched' | 'pending'
-export type ConfidenceLevel = 'high' | 'medium' | 'low'
+export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'very-low'
+export type AiConfidence = 'likely-match' | 'possible-match' | 'unlikely-match'
 
 export type MatchedField = 'exact-name' | 'phonetic-name' | 'fuzzy-name' | 'city' | 'age-range' | 'exact-age' | 'zip' | 'address' | 'gender'
 
@@ -108,6 +109,8 @@ export interface MatchCandidate {
   score: number
   confidenceLevel: ConfidenceLevel
   matchedOn: MatchedField[]
+  aiConfidence?: AiConfidence
+  aiReasoning?: string
 }
 
 export interface MatchResult {

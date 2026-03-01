@@ -404,7 +404,8 @@ function matchSinglePerson(
 
       const confidenceLevel: ConfidenceLevel =
         combinedScore >= opts.highConfidenceThreshold ? 'high'
-          : combinedScore >= opts.mediumConfidenceThreshold ? 'medium' : 'low'
+          : combinedScore >= opts.mediumConfidenceThreshold ? 'medium'
+          : combinedScore >= opts.lowCutoff ? 'low' : 'very-low'
 
       return {
         voterRecord: sanitizeVoterRecord(record),
@@ -413,7 +414,6 @@ function matchSinglePerson(
         matchedOn,
       }
     })
-    .filter(c => c.score >= opts.lowCutoff)
     .sort((a, b) => b.score - a.score)
     .slice(0, opts.maxCandidatesPerPerson)
 
@@ -590,12 +590,14 @@ function buildMatchResult(
     status = 'unmatched'
   }
 
-  const voteScore = status !== 'unmatched' ? calculateVoteScore(best.voterRecord) : undefined
+  // Always set bestMatch when we have candidates, even for unmatched.
+  // This lets petition UI show a "best guess" for admin review & override.
+  const voteScore = best.score >= opts.lowCutoff ? calculateVoteScore(best.voterRecord) : undefined
 
   return {
     personEntry: person,
     status,
-    bestMatch: status !== 'unmatched' ? best.voterRecord : undefined,
+    bestMatch: best.voterRecord,
     candidates,
     voteScore,
     segment: voteScore !== undefined ? determineSegment(voteScore) : undefined,
@@ -775,7 +777,8 @@ async function matchSinglePersonDb(
 
       const confidenceLevel: ConfidenceLevel =
         combinedScore >= opts.highConfidenceThreshold ? 'high'
-          : combinedScore >= opts.mediumConfidenceThreshold ? 'medium' : 'low'
+          : combinedScore >= opts.mediumConfidenceThreshold ? 'medium'
+          : combinedScore >= opts.lowCutoff ? 'low' : 'very-low'
 
       return {
         voterRecord: sanitizeVoterRecord(record),
@@ -784,7 +787,6 @@ async function matchSinglePersonDb(
         matchedOn,
       }
     })
-    .filter(c => c.score >= opts.lowCutoff)
     .sort((a, b) => b.score - a.score)
     .slice(0, opts.maxCandidatesPerPerson)
 

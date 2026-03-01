@@ -6,6 +6,7 @@ import { recalcPetitionerStats } from '@/lib/petition-utils'
 /**
  * PATCH: Override a signature's match selection.
  * - candidateIndex: select a specific candidate from candidates_data
+ * - matchStatus: 'matched' to force-confirm the current/specified candidate
  * - matchStatus: 'unmatched' to manually mark as no match
  */
 export async function PATCH(
@@ -48,7 +49,46 @@ export async function PATCH(
     try {
       await client.query('BEGIN')
 
-      if (body.matchStatus === 'unmatched') {
+      if (body.matchStatus === 'matched') {
+        // Force-confirm as matched
+        const candidateIdx = body.candidateIndex ?? 0
+        let candidates: Array<{
+          voterRecord: Record<string, unknown>
+          score: number
+          confidenceLevel: string
+          matchedOn: string[]
+        }> = []
+
+        try {
+          candidates = sig.candidates_data ? JSON.parse(sig.candidates_data) : []
+        } catch {
+          // No candidates to parse
+        }
+
+        if (candidates.length > 0 && candidateIdx >= 0 && candidateIdx < candidates.length) {
+          const selected = candidates[candidateIdx]
+          await client.query(`
+            UPDATE petition_signatures
+            SET match_status = 'matched', match_data = $1, match_score = $2,
+                user_confirmed = true, confirmed_by = $3
+            WHERE id = $4
+          `, [
+            JSON.stringify(selected.voterRecord),
+            selected.score,
+            ctx.userId,
+            sigId,
+          ])
+        } else if (sig.match_data) {
+          // No candidates but has existing match_data — confirm it
+          await client.query(`
+            UPDATE petition_signatures
+            SET match_status = 'matched', user_confirmed = true, confirmed_by = $1
+            WHERE id = $2
+          `, [ctx.userId, sigId])
+        } else {
+          return NextResponse.json({ error: 'No match data to confirm' }, { status: 400 })
+        }
+      } else if (body.matchStatus === 'unmatched') {
         // Mark as manually unmatched
         await client.query(`
           UPDATE petition_signatures
@@ -57,7 +97,7 @@ export async function PATCH(
           WHERE id = $2
         `, [ctx.userId, sigId])
       } else if (typeof body.candidateIndex === 'number') {
-        // Select a specific candidate
+        // Select a specific candidate (swap)
         let candidates: Array<{
           voterRecord: Record<string, unknown>
           score: number
@@ -127,7 +167,9 @@ export async function PATCH(
     await logActivity(ctx.userId, 'petition_signature_match_override', {
       sheetId,
       sigId,
-      action: body.matchStatus === 'unmatched' ? 'mark_unmatched' : `select_candidate_${body.candidateIndex}`,
+      action: body.matchStatus === 'matched' ? 'confirm_match'
+        : body.matchStatus === 'unmatched' ? 'mark_unmatched'
+        : `select_candidate_${body.candidateIndex}`,
     }, ctx.campaignId)
 
     return NextResponse.json({ success: true })

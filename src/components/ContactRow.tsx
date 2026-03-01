@@ -81,6 +81,7 @@ export default function ContactRow({
   const [expanded, setExpanded] = useState(false)
   const [showCandidates, setShowCandidates] = useState(false)
   const [localNotes, setLocalNotes] = useState(actionItem?.notes ?? '')
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   const bestMatch = matchResult?.bestMatch
   const segment = matchResult?.segment
@@ -130,13 +131,30 @@ export default function ContactRow({
             >
               {expanded ? '▾' : '▸'}
             </button>
-            <button
-              onClick={() => onRemove(person.id)}
-              className="text-vc-coral/30 text-[10px] hover:text-vc-coral transition-colors ml-1"
-              title="Remove"
-            >
-              <X className="w-3 h-3" />
-            </button>
+            {confirmRemove ? (
+              <span className="flex items-center gap-1 ml-1">
+                <button
+                  onClick={() => { onRemove(person.id); setConfirmRemove(false) }}
+                  className="text-[9px] font-bold text-red-400 bg-red-500/15 hover:bg-red-500/30 px-1.5 py-0.5 rounded transition-colors"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => setConfirmRemove(false)}
+                  className="text-[9px] text-white/40 hover:text-white/60 px-1 py-0.5 rounded transition-colors"
+                >
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <button
+                onClick={() => setConfirmRemove(true)}
+                className="text-vc-coral/30 text-[10px] hover:text-vc-coral transition-colors ml-1"
+                title="Remove"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </td>
 
