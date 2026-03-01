@@ -317,7 +317,7 @@ export default function ChatInterface() {
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] text-white/30 text-center mt-2 mb-1">The responses are from AI, which can make mistakes.</p>
+        <p className="text-[10px] text-white/30 text-center mt-2 mb-1">Powered by our AI organizing platform — responses can make mistakes.</p>
       </div>
     </div>
   )
