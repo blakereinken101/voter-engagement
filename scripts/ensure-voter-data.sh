@@ -20,25 +20,47 @@ else
   if [ $DL_EXIT -ne 0 ]; then
     echo "[voter-data] ERROR: Download failed (exit code: $DL_EXIT)"
     echo "[voter-data] Starting without voter data (will use mock data)."
-    exec node server.js
+  else
+    DOWNLOAD_SIZE=$(wc -c < "$VOTER_FILE.gz" | tr -d ' ')
+    echo "[voter-data] Downloaded $DOWNLOAD_SIZE bytes. Decompressing..."
+
+    gunzip -f "$VOTER_FILE.gz"
+    GUNZIP_EXIT=$?
+
+    if [ $GUNZIP_EXIT -ne 0 ]; then
+      echo "[voter-data] ERROR: Decompression failed (exit code: $GUNZIP_EXIT)"
+      rm -f "$VOTER_FILE.gz"
+      echo "[voter-data] Starting without voter data (will use mock data)."
+    else
+      FINAL_SIZE=$(wc -c < "$VOTER_FILE" | tr -d ' ')
+      echo "[voter-data] Voter file ready ($FINAL_SIZE bytes)"
+    fi
   fi
-
-  DOWNLOAD_SIZE=$(wc -c < "$VOTER_FILE.gz" | tr -d ' ')
-  echo "[voter-data] Downloaded $DOWNLOAD_SIZE bytes. Decompressing..."
-
-  gunzip -f "$VOTER_FILE.gz"
-  GUNZIP_EXIT=$?
-
-  if [ $GUNZIP_EXIT -ne 0 ]; then
-    echo "[voter-data] ERROR: Decompression failed (exit code: $GUNZIP_EXIT)"
-    rm -f "$VOTER_FILE.gz"
-    echo "[voter-data] Starting without voter data (will use mock data)."
-    exec node server.js
-  fi
-
-  FINAL_SIZE=$(wc -c < "$VOTER_FILE" | tr -d ' ')
-  echo "[voter-data] Voter file ready ($FINAL_SIZE bytes)"
 fi
 
-echo "[voter-data] Starting server..."
+# ── Database migrations (fail-fast — do NOT start server with broken schema) ──
+echo "[startup] Running database migrations..."
+node node_modules/node-pg-migrate/bin/node-pg-migrate up \
+  --database-url-var DATABASE_URL \
+  --migrations-dir /app/migrations \
+  --no-lock
+MIGRATE_EXIT=$?
+
+if [ $MIGRATE_EXIT -ne 0 ]; then
+  echo "[startup] ERROR: Database migrations failed (exit code: $MIGRATE_EXIT)"
+  exit 1
+fi
+echo "[startup] Migrations complete."
+
+# ── Seed data (warn-only — server can start without seed data) ──
+echo "[startup] Running seed script..."
+node /app/scripts/seed.mjs
+SEED_EXIT=$?
+
+if [ $SEED_EXIT -ne 0 ]; then
+  echo "[startup] WARNING: Seed script failed (exit code: $SEED_EXIT)"
+  echo "[startup] Server will start anyway (seed data may be missing)."
+fi
+
+echo "[startup] Starting server..."
 exec node server.js

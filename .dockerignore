@@ -12,6 +12,7 @@ data/
 # Dev/processing scripts (but allow startup script)
 scripts/
 !scripts/ensure-voter-data.sh
+!scripts/seed.mjs
 
 # Dev files
 *.log

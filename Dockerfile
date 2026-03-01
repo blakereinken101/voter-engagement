@@ -41,6 +41,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules/sharp ./node_modules/sharp
 COPY --from=builder /app/node_modules/@img ./node_modules/@img
 
+# Copy database migration infrastructure (not traced by Next.js standalone)
+COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/node_modules/node-pg-migrate ./node_modules/node-pg-migrate
+COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
+COPY scripts/seed.mjs /app/scripts/seed.mjs
+
 # Create data directory for voter file volume
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
 
