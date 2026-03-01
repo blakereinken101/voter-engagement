@@ -6,31 +6,105 @@ import path from 'path'
 // REAL VOTER DATA LOADER
 // =============================================
 
+/**
+ * Thrown when no voter data is available for a campaign.
+ * Routes should catch this and return a 422 with a helpful message
+ * instead of silently matching against fake/wrong-state data.
+ */
+export class NoVoterDataError extends Error {
+  code = 'NO_VOTER_DATA' as const
+  constructor(state: string, campaignVoterFile?: string) {
+    const detail = campaignVoterFile
+      ? `Configured file '${campaignVoterFile}' not found.`
+      : `No voter file configured and no auto-discoverable file for state ${state}.`
+    super(
+      `No voter data available (state: ${state}). ${detail} ` +
+      `Upload a voter dataset in the platform admin or set settings.voterFile in campaign settings.`
+    )
+    this.name = 'NoVoterDataError'
+  }
+}
+
 const voterFileCache = new Map<string, VoterRecord[]>()
 
 async function loadRealVoterData(state: string, campaignVoterFile?: string): Promise<VoterRecord[] | null> {
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
 
-  // Priority: campaign-specific file > env var > default discovery
-  const voterFileName = campaignVoterFile || process.env.VOTER_FILE
-  const candidates = voterFileName
-    ? [path.join(dataDir, voterFileName)]
-    : [
-        path.join(dataDir, 'voters-geo.json'),
-        path.join(dataDir, 'voters.json'),
-        // Legacy NC filenames for backward compatibility
-        path.join(dataDir, 'mecklenburg-voters-geo.json'),
-        path.join(dataDir, 'mecklenburg-voters.json'),
-      ]
-
-  const dataPath = candidates.find(p => fs.existsSync(p))
-
-  if (!dataPath) {
-    console.warn(`[voter-data] No voter data file found for ${state} in ${dataDir}`)
-    console.warn('[voter-data] Expected one of:', candidates.map(p => path.basename(p)).join(', '))
+  // Priority 1: Campaign-specific file (from campaign settings.voterFile)
+  if (campaignVoterFile) {
+    const filePath = path.join(dataDir, campaignVoterFile)
+    if (fs.existsSync(filePath)) {
+      return loadAndParseFile(filePath)
+    }
+    console.warn(`[voter-data] Campaign voter file not found: ${campaignVoterFile}`)
     return null
   }
 
+  // Priority 2: Environment variable
+  if (process.env.VOTER_FILE) {
+    const filePath = path.join(dataDir, process.env.VOTER_FILE)
+    if (fs.existsSync(filePath)) {
+      return loadAndParseFile(filePath)
+    }
+    console.warn(`[voter-data] VOTER_FILE not found: ${process.env.VOTER_FILE}`)
+    return null
+  }
+
+  // Priority 3: State-aware file discovery
+  const statePrefix = state.toLowerCase()
+  const candidates = [
+    // Generic files (state-agnostic — typically used in single-campaign deployments)
+    path.join(dataDir, 'voters-geo.json'),
+    path.join(dataDir, 'voters.json'),
+    // Legacy NC filenames — ONLY match for NC campaigns to prevent cross-state contamination
+    ...(state === 'NC' ? [
+      path.join(dataDir, 'mecklenburg-voters-geo.json'),
+      path.join(dataDir, 'mecklenburg-voters.json'),
+    ] : []),
+  ]
+
+  const dataPath = candidates.find(p => fs.existsSync(p))
+  if (dataPath) {
+    return loadAndParseFile(dataPath)
+  }
+
+  // Priority 4: Scan data directory for state-prefixed voter files
+  // Finds files like ny-voters-jrk-ad38.json, pa-voters-hd91.json, etc.
+  if (fs.existsSync(dataDir)) {
+    const files = fs.readdirSync(dataDir)
+    const stateVoterFiles = files
+      .filter(f =>
+        f.startsWith(statePrefix + '-') &&
+        f.endsWith('.json') &&
+        f.includes('voter')
+      )
+      .sort((a, b) => {
+        // Prefer geocoded files, then alphabetical
+        const aGeo = a.includes('-geo') ? 0 : 1
+        const bGeo = b.includes('-geo') ? 0 : 1
+        return aGeo - bGeo || a.localeCompare(b)
+      })
+
+    if (stateVoterFiles.length === 1) {
+      console.log(`[voter-data] Auto-discovered voter file for ${state}: ${stateVoterFiles[0]}`)
+      return loadAndParseFile(path.join(dataDir, stateVoterFiles[0]))
+    }
+
+    if (stateVoterFiles.length > 1) {
+      console.warn(
+        `[voter-data] Multiple voter files found for ${state}: ${stateVoterFiles.join(', ')}. ` +
+        `Set settings.voterFile in campaign settings to choose one.`
+      )
+      // Don't guess — require explicit configuration when ambiguous
+      return null
+    }
+  }
+
+  console.warn(`[voter-data] No voter data file found for ${state} in ${dataDir}`)
+  return null
+}
+
+async function loadAndParseFile(dataPath: string): Promise<VoterRecord[]> {
   const isGeo = dataPath.includes('-geo')
   console.log(`[voter-data] Loading voter data from ${path.basename(dataPath)}${isGeo ? ' (geocoded)' : ''}...`)
   const start = Date.now()
@@ -41,22 +115,22 @@ async function loadRealVoterData(state: string, campaignVoterFile?: string): Pro
   return data
 }
 
+/**
+ * Load voter records for a state, using campaign-specific file if configured.
+ * Throws NoVoterDataError if no real voter data is available.
+ */
 export async function getVoterFile(state: string, campaignVoterFile?: string): Promise<VoterRecord[]> {
   const stateKey = state.toUpperCase()
   const cacheKey = campaignVoterFile ? `${stateKey}:${campaignVoterFile}` : stateKey
   if (voterFileCache.has(cacheKey)) return voterFileCache.get(cacheKey)!
 
-  // Try loading real data first
   const realData = await loadRealVoterData(stateKey, campaignVoterFile)
   if (realData) {
     voterFileCache.set(cacheKey, realData)
     return realData
   }
 
-  // Fall back to mock data if no voter file found
-  const mockData = generateMockVoterFile(stateKey, 750)
-  voterFileCache.set(cacheKey, mockData)
-  return mockData
+  throw new NoVoterDataError(stateKey, campaignVoterFile)
 }
 
 // =============================================

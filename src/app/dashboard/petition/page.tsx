@@ -28,6 +28,7 @@ export default function PetitionReviewPage() {
   const [savedCount, setSavedCount] = useState(0)
   const [matchResult, setMatchResult] = useState<{ matchedCount: number; validityRate: number } | null>(null)
   const [isDuplicate, setIsDuplicate] = useState(false)
+  const [matchError, setMatchError] = useState(false)
 
   useEffect(() => {
     const raw = sessionStorage.getItem('petition-sheet-signatures')
@@ -113,10 +114,14 @@ export default function PetitionReviewPage() {
             matchedCount: matchData.matchedCount,
             validityRate: matchData.validityRate,
           })
+        } else {
+          console.error('[petition] Matching returned error:', matchRes.status, await matchRes.text().catch(() => ''))
+          setMatchError(true)
         }
-      } catch {
+      } catch (err) {
         // Matching failure is non-fatal — sheet is still saved
-        console.error('[petition] Matching failed, but sheet was saved')
+        console.error('[petition] Matching failed, but sheet was saved:', err)
+        setMatchError(true)
       }
     } catch (err) {
       console.error('[petition-save]', err)
@@ -177,9 +182,14 @@ export default function PetitionReviewPage() {
                 </p>
               </div>
             )}
-            {!matchResult && (
+            {!matchResult && !matchError && (
               <p className="text-sm text-white/40 mt-1">
                 Signatures saved. Voter matching will be available once a voter file is assigned.
+              </p>
+            )}
+            {matchError && (
+              <p className="text-sm text-amber-400/80 mt-1">
+                Signatures saved, but voter matching encountered an error. You can retry matching from the Petitions admin tab.
               </p>
             )}
           </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getVoterFile } from '@/lib/mock-data'
+import { getVoterFile, NoVoterDataError } from '@/lib/mock-data'
 import { matchPeopleToVoterFile, matchPeopleToVoterDb } from '@/lib/matching'
 import { MatchRequestBody, PersonEntry } from '@/types'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
@@ -92,6 +92,13 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ results, processingTimeMs })
 
   } catch (error) {
+    if (error instanceof NoVoterDataError) {
+      console.error('[match]', error.message)
+      return NextResponse.json({
+        error: 'No voter data configured for this campaign. An admin needs to upload a voter dataset in the platform admin.',
+        code: error.code,
+      }, { status: 422 })
+    }
     if (error instanceof AuthError) {
       const { error: msg, status } = handleAuthError(error)
       return NextResponse.json({ error: msg }, { status })

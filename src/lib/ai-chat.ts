@@ -11,7 +11,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getDb, logActivity } from './db'
 import { getCampaignConfig } from './campaign-config.server'
 import type { CampaignConfig } from './campaign-config'
-import { getVoterFile } from './mock-data'
+import { getVoterFile, NoVoterDataError } from './mock-data'
 import { matchPeopleToVoterFile, matchPeopleToVoterDb } from './matching'
 import { getDatasetForCampaign } from './voter-db'
 import { calculatePriority, sortByPriority } from './contact-priority'
@@ -561,8 +561,16 @@ async function executeRunMatching(ctx: ToolContext): Promise<Record<string, unkn
   if (assignment) {
     results = await matchPeopleToVoterDb(people, assignment.datasetId, {}, assignment.filters)
   } else {
-    const config = await getCampaignConfig(ctx.campaignId)
-    const voterFile = await getVoterFile(config.state, config.voterFile)
+    let voterFile
+    try {
+      const config = await getCampaignConfig(ctx.campaignId)
+      voterFile = await getVoterFile(config.state, config.voterFile)
+    } catch (err) {
+      if (err instanceof NoVoterDataError) {
+        return { error: true, message: 'No voter data is configured for this campaign. An admin needs to upload a voter dataset in the platform admin before matching can work.' }
+      }
+      throw err
+    }
     results = await matchPeopleToVoterFile(people, voterFile)
   }
 

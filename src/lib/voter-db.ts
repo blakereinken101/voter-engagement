@@ -236,7 +236,7 @@ export async function queryVotersFuzzy(
   // Also add same-zip voters for coverage
   if (zip && results.size < 5000) {
     const cleanZip = zip.trim().slice(0, 5)
-    const geo2 = buildGeoWhere(filters, 4)
+    const geo2 = buildGeoWhere(filters, 3)
     const { rows: zipRows } = await pool.query(
       `SELECT ${VOTER_SELECT} FROM voters
        WHERE dataset_id = $1 AND zip = $2

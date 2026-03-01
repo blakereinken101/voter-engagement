@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getVoterFile } from '@/lib/mock-data'
+import { getVoterFile, NoVoterDataError } from '@/lib/mock-data'
 import { SafeVoterRecord, VoterRecord } from '@/types'
 import { geocodeAddress, geocodeZip } from '@/lib/geocode'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
@@ -288,6 +288,13 @@ export async function POST(request: NextRequest) {
   })
 
   } catch (error) {
+    if (error instanceof NoVoterDataError) {
+      console.error('[nearby]', error.message)
+      return NextResponse.json({
+        error: 'No voter data configured for this campaign. An admin needs to upload a voter dataset in the platform admin.',
+        code: error.code,
+      }, { status: 422 })
+    }
     if (error instanceof AuthError) {
       const { error: msg, status } = handleAuthError(error)
       return NextResponse.json({ error: msg }, { status })

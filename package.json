@@ -11,7 +11,8 @@
     "migrate": "node-pg-migrate up --migrations-dir migrations",
     "migrate:down": "node-pg-migrate down --migrations-dir migrations",
     "migrate:create": "node-pg-migrate create --migrations-dir migrations",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "check:voter-data": "node scripts/check-voter-data.mjs"
   },
   "keywords": [],
   "author": "",

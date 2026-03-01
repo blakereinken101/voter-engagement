@@ -4,7 +4,7 @@ import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 import { matchPeopleToVoterDb, matchPeopleToVoterFile } from '@/lib/matching'
 import { getDatasetForCampaign } from '@/lib/voter-db'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
-import { getVoterFile } from '@/lib/mock-data'
+import { getVoterFile, NoVoterDataError } from '@/lib/mock-data'
 import { recalcPetitionerStats } from '@/lib/petition-utils'
 import { aiRerankMatches, applyAiReranking } from '@/lib/ai-rerank'
 import { isAIEnabled } from '@/lib/ai-chat'
@@ -199,6 +199,15 @@ export async function POST(
       validityRate: signatures.length > 0 ? Math.round((matchedCount / signatures.length) * 1000) / 10 : 0,
     })
   } catch (error: unknown) {
+    if (error instanceof NoVoterDataError) {
+      console.error('[petition-match]', error.message)
+      return NextResponse.json({
+        error: 'No voter data configured for this campaign. An admin needs to upload a voter dataset in the platform admin.',
+        code: error.code,
+      }, { status: 422 })
+    }
+    // Log the full error so matching failures are diagnosable in server logs
+    console.error('[petition-match] Matching failed for sheet:', request.url, error)
     const { error: msg, status } = handleAuthError(error)
     return NextResponse.json({ error: msg }, { status })
   }
