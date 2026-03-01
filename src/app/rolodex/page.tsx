@@ -1,12 +1,21 @@
 'use client'
+import { useMemo } from 'react'
 import { useAppContext } from '@/context/AppContext'
 import RolodexCard from '@/components/RolodexCard'
 import RelationalTopBar from '@/components/RelationalTopBar'
+import MatchAllBar from '@/components/MatchAllBar'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
 export default function RolodexPage() {
-  const { state } = useAppContext()
+  const { state, runMatchingForUnmatched } = useAppContext()
+
+  const unmatchedCount = useMemo(() => {
+    return state.actionPlanState.filter(item => {
+      const { status, bestMatch } = item.matchResult
+      return status === 'unmatched' || status === 'pending' || (!bestMatch && status !== 'confirmed')
+    }).length
+  }, [state.actionPlanState])
 
   if (state.actionPlanState.length === 0) {
     return (
@@ -23,7 +32,7 @@ export default function RolodexPage() {
   }
 
   return (
-    <div className="min-h-screen cosmic-bg constellation text-white">
+    <div className="min-h-screen cosmic-bg constellation text-white flex flex-col">
       <RelationalTopBar />
       <header className="bg-gradient-to-r from-vc-purple-dark via-vc-purple to-vc-purple-light text-white px-6 py-4">
         <div className="max-w-lg mx-auto flex items-center justify-between">
@@ -37,7 +46,14 @@ export default function RolodexPage() {
           </Link>
         </div>
       </header>
-      <RolodexCard />
+      <div className="flex-1">
+        <RolodexCard />
+      </div>
+      <MatchAllBar
+        unmatchedCount={unmatchedCount}
+        isLoading={state.isLoading}
+        onMatchAll={runMatchingForUnmatched}
+      />
     </div>
   )
 }

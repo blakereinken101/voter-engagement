@@ -183,6 +183,9 @@ export default function RolodexCard() {
             {status === 'unmatched' && (
               <span className="text-xs font-display text-white/40">Not in voter file</span>
             )}
+            {status === 'pending' && (
+              <span className="text-xs font-display text-amber-400/70">Awaiting match</span>
+            )}
           </div>
           {voteScore !== undefined && (
             <div className="mt-2 ml-5">
