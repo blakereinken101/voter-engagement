@@ -57,7 +57,7 @@ export default function AboutPage() {
                 He founded Threshold to change that &mdash; two products that combine intuitive product design with the intelligent deployment of AI-powered tools that help campaigns activate personal networks at scale.
               </p>
               <p>
-                Blake is currently a 3L at New York University School of Law, where he studies governance. Threshold is an independent venture and is not affiliated with or endorsed by any political campaign or academic institution.
+                Blake is currently a 3L at New York University School of Law. Threshold is an independent venture and is not affiliated with or endorsed by any political campaign or academic institution.
               </p>
             </div>
           </div>
