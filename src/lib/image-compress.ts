@@ -23,20 +23,30 @@ function isHeic(file: File): boolean {
 
 /**
  * Convert a HEIC/HEIF file to a JPEG Blob.
+ *
+ * heic2any can throw non-Error values (strings, plain objects),
+ * so we normalise everything into a real Error with a helpful message.
  */
 async function convertHeicToJpeg(file: File): Promise<File> {
-  // Dynamic import to avoid SSR issues (heic2any references `window`)
-  const heic2any = (await import('heic2any')).default
-  const result = await heic2any({
-    blob: file,
-    toType: 'image/jpeg',
-    quality: JPEG_QUALITY,
-  })
-  // heic2any can return a single Blob or an array
-  const blob = Array.isArray(result) ? result[0] : result
-  return new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), {
-    type: 'image/jpeg',
-  })
+  try {
+    // Dynamic import to avoid SSR issues (heic2any references `window`)
+    const heic2any = (await import('heic2any')).default
+    const result = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: JPEG_QUALITY,
+    })
+    // heic2any can return a single Blob or an array
+    const blob = Array.isArray(result) ? result[0] : result
+    return new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), {
+      type: 'image/jpeg',
+    })
+  } catch (err: unknown) {
+    console.error('[image-compress] HEIC conversion failed:', err)
+    throw new Error(
+      'Could not convert this HEIC image. Try opening it on your phone and screenshotting it, or share it as a JPEG instead.',
+    )
+  }
 }
 
 /**

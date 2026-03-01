@@ -216,8 +216,17 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
           {/* Error */}
           {error && (
-            <div className="bg-red-500/20 text-red-300 text-xs px-3 py-2 rounded-lg border border-red-500/30">
-              {error}
+            <div className="glass-card border-red-500/20 bg-red-950/30 rounded-xl px-4 py-3 flex items-start gap-3">
+              <div className="shrink-0 mt-0.5 w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                <span className="text-red-400 text-xs font-bold">!</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-red-300/90 mb-0.5">Couldn&apos;t process image</p>
+                <p className="text-[11px] text-white/50 leading-relaxed">{error}</p>
+              </div>
+              <button onClick={() => setError(null)} className="text-white/20 hover:text-white/50 transition-colors shrink-0">
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
 
