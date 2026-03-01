@@ -46,9 +46,42 @@ COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/node_modules/bcryptjs ./node_modules/bcryptjs
 COPY scripts/seed.mjs /app/scripts/seed.mjs
 
-# Install node-pg-migrate with its full dependency tree (yargs, glob, pg, etc.)
-# Copying only the folder leaves transitive deps behind; npm install is the safe approach.
-RUN npm install --no-save --legacy-peer-deps node-pg-migrate@8.0.4
+# Copy node-pg-migrate and its full transitive dependency tree from the builder.
+# The standalone trace doesn't include these, so every runtime dep must be explicit.
+# -- node-pg-migrate itself (includes nested node_modules: glob@11, jackspeak,
+#    lru-cache, path-scurry, @isaacs/cliui)
+COPY --from=builder /app/node_modules/node-pg-migrate ./node_modules/node-pg-migrate
+# -- yargs (CLI arg parser used by node-pg-migrate bin)
+COPY --from=builder /app/node_modules/yargs ./node_modules/yargs
+COPY --from=builder /app/node_modules/yargs-parser ./node_modules/yargs-parser
+COPY --from=builder /app/node_modules/cliui ./node_modules/cliui
+COPY --from=builder /app/node_modules/escalade ./node_modules/escalade
+COPY --from=builder /app/node_modules/get-caller-file ./node_modules/get-caller-file
+COPY --from=builder /app/node_modules/require-directory ./node_modules/require-directory
+COPY --from=builder /app/node_modules/y18n ./node_modules/y18n
+COPY --from=builder /app/node_modules/string-width ./node_modules/string-width
+COPY --from=builder /app/node_modules/strip-ansi ./node_modules/strip-ansi
+COPY --from=builder /app/node_modules/ansi-regex ./node_modules/ansi-regex
+COPY --from=builder /app/node_modules/wrap-ansi ./node_modules/wrap-ansi
+COPY --from=builder /app/node_modules/ansi-styles ./node_modules/ansi-styles
+COPY --from=builder /app/node_modules/color-convert ./node_modules/color-convert
+COPY --from=builder /app/node_modules/color-name ./node_modules/color-name
+COPY --from=builder /app/node_modules/emoji-regex ./node_modules/emoji-regex
+COPY --from=builder /app/node_modules/is-fullwidth-code-point ./node_modules/is-fullwidth-code-point
+# -- glob@11 top-level deps (not nested inside node-pg-migrate/node_modules)
+COPY --from=builder /app/node_modules/foreground-child ./node_modules/foreground-child
+COPY --from=builder /app/node_modules/cross-spawn ./node_modules/cross-spawn
+COPY --from=builder /app/node_modules/signal-exit ./node_modules/signal-exit
+COPY --from=builder /app/node_modules/path-key ./node_modules/path-key
+COPY --from=builder /app/node_modules/shebang-command ./node_modules/shebang-command
+COPY --from=builder /app/node_modules/shebang-regex ./node_modules/shebang-regex
+COPY --from=builder /app/node_modules/which ./node_modules/which
+COPY --from=builder /app/node_modules/isexe ./node_modules/isexe
+COPY --from=builder /app/node_modules/minimatch ./node_modules/minimatch
+COPY --from=builder /app/node_modules/brace-expansion ./node_modules/brace-expansion
+COPY --from=builder /app/node_modules/balanced-match ./node_modules/balanced-match
+COPY --from=builder /app/node_modules/minipass ./node_modules/minipass
+COPY --from=builder /app/node_modules/package-json-from-dist ./node_modules/package-json-from-dist
 
 # Create data directory for voter file volume
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
