@@ -52,8 +52,16 @@ async function convertHeicToJpeg(file: File): Promise<File> {
       type: 'image/jpeg',
     })
   } catch (err: unknown) {
-    const errorMessage = err instanceof Error ? err.message : String(err)
-    console.error('[image-compress] HEIC conversion failed:', err)
+    // heic2any throws plain objects like { code: 1, message: "..." }, not Error instances
+    let errorMessage: string
+    if (err instanceof Error) {
+      errorMessage = err.message
+    } else if (err && typeof err === 'object' && 'message' in err) {
+      errorMessage = String((err as { message: unknown }).message)
+    } else {
+      try { errorMessage = JSON.stringify(err) } catch { errorMessage = String(err) }
+    }
+    console.error('[image-compress] HEIC conversion failed:', JSON.stringify(err), err)
     throw new Error(
       `Could not convert this HEIC image (${errorMessage}). Try opening it on your phone and screenshotting it, or share it as a JPEG instead.`,
     )
