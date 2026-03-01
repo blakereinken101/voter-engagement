@@ -192,15 +192,15 @@ function parseScanResult(rawText: string): ScanSheetResult {
   }
 
   // Validate and clean each contact
-  const contacts = contactsArray
+  const contacts = (contactsArray as Record<string, unknown>[])
     .filter(
-      (c: Record<string, unknown>) =>
+      (c) =>
         typeof c.firstName === 'string' &&
         typeof c.lastName === 'string' &&
         c.firstName.trim().length > 0 &&
         c.lastName.trim().length > 0,
     )
-    .map((c: Record<string, unknown>) => {
+    .map((c) => {
       const contact: ExtractedContact = {
         firstName: String(c.firstName).trim().slice(0, 50),
         lastName: String(c.lastName).trim().slice(0, 50),
