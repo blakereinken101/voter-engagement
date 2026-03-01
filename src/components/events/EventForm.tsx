@@ -7,6 +7,7 @@ import type { EventType, EventFormData, EventVisibility, EventStatus } from '@/t
 import EventCoverImage from './EventCoverImage'
 import { Save, Eye, Globe, Lock, Users, Upload, X } from 'lucide-react'
 import AISuggestButton from './AISuggestButton'
+import { ensureBrowserImage, isImageFile } from '@/lib/image-compress'
 
 interface Props {
   initialData?: Partial<EventFormData>
@@ -94,34 +95,42 @@ export default function EventForm({ initialData, eventId, mode, plan }: Props) {
     setForm(prev => ({ ...prev, ...updates }))
   }
 
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
-      setError('Please select an image file (JPG, PNG, WebP, etc.)')
+    if (!isImageFile(file)) {
+      setError('Please select an image file (JPG, PNG, WebP, HEIC, etc.)')
       return
     }
 
-    // Limit to 2MB
-    if (file.size > 2 * 1024 * 1024) {
-      setError('Image must be under 2MB. Try compressing it first.')
+    // Limit to 2MB (check original; HEIC conversion may change size)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be under 5MB.')
       return
     }
 
     setUploadingImage(true)
     setError('')
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      updateForm({ coverImageUrl: reader.result as string })
+    try {
+      // Convert HEIC to JPEG if needed
+      const imageFile = await ensureBrowserImage(file)
+
+      const reader = new FileReader()
+      reader.onload = () => {
+        updateForm({ coverImageUrl: reader.result as string })
+        setUploadingImage(false)
+      }
+      reader.onerror = () => {
+        setError('Failed to read image file')
+        setUploadingImage(false)
+      }
+      reader.readAsDataURL(imageFile)
+    } catch {
+      setError('Failed to process image. Try a JPG or PNG instead.')
       setUploadingImage(false)
     }
-    reader.onerror = () => {
-      setError('Failed to read image file')
-      setUploadingImage(false)
-    }
-    reader.readAsDataURL(file)
 
     // Reset input so the same file can be re-selected
     e.target.value = ''

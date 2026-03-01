@@ -4,18 +4,71 @@
  * Resizes large camera photos to a max dimension of 1600px
  * and compresses to JPEG ~0.8 quality, keeping file size
  * under ~500KB for fast upload to the AI vision API.
+ *
+ * Supports HEIC/HEIF files (iPhone photos) by converting
+ * to JPEG before processing.
  */
 
 const MAX_DIMENSION = 1600
 const JPEG_QUALITY = 0.8
 
+/** Check if a file is HEIC/HEIF format by MIME type or extension. */
+function isHeic(file: File): boolean {
+  const type = file.type.toLowerCase()
+  if (type === 'image/heic' || type === 'image/heif') return true
+  // Some browsers don't set MIME type for HEIC — check extension
+  const ext = file.name.toLowerCase().split('.').pop()
+  return ext === 'heic' || ext === 'heif'
+}
+
+/**
+ * Convert a HEIC/HEIF file to a JPEG Blob.
+ */
+async function convertHeicToJpeg(file: File): Promise<File> {
+  // Dynamic import to avoid SSR issues (heic2any references `window`)
+  const heic2any = (await import('heic2any')).default
+  const result = await heic2any({
+    blob: file,
+    toType: 'image/jpeg',
+    quality: JPEG_QUALITY,
+  })
+  // heic2any can return a single Blob or an array
+  const blob = Array.isArray(result) ? result[0] : result
+  return new File([blob], file.name.replace(/\.heic$/i, '.jpg').replace(/\.heif$/i, '.jpg'), {
+    type: 'image/jpeg',
+  })
+}
+
+/**
+ * Ensure a file is in a browser-renderable image format.
+ * Converts HEIC/HEIF to JPEG; passes through everything else.
+ * Use this in upload handlers that don't need full compression.
+ */
+export async function ensureBrowserImage(file: File): Promise<File> {
+  return isHeic(file) ? convertHeicToJpeg(file) : file
+}
+
+/**
+ * Check if a file is an image (including HEIC/HEIF which some browsers
+ * don't recognize as image/* MIME type).
+ */
+export function isImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true
+  return isHeic(file)
+}
+
 /**
  * Compress an image File to a base64 data URL string.
- * Returns { dataUrl, mimeType } where mimeType is always 'image/jpeg'.
+ * Returns { base64, mimeType } where mimeType is always 'image/jpeg'.
+ *
+ * Handles HEIC/HEIF by converting to JPEG first.
  */
 export async function compressImage(
   file: File,
 ): Promise<{ base64: string; mimeType: string }> {
+  // Convert HEIC to JPEG first if needed
+  const inputFile = isHeic(file) ? await convertHeicToJpeg(file) : file
+
   return new Promise((resolve, reject) => {
     const img = new Image()
     const reader = new FileReader()
@@ -61,6 +114,6 @@ export async function compressImage(
     }
 
     reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(inputFile)
   })
 }

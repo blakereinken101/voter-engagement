@@ -8,6 +8,7 @@ import type { Event } from '@/types/events'
 import { FREE_EVENT_LIMIT } from '@/types/events'
 import { Plus, Lock, Sparkles, ArrowRight, Image, Upload, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { ensureBrowserImage, isImageFile } from '@/lib/image-compress'
 
 function EventManageContent() {
   const { user, isLoading: authLoading, hasEventsSubscription, freeEventsUsed, freeEventsRemaining } = useAuth()
@@ -129,19 +130,22 @@ function EventManageContent() {
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) return
-    if (file.size > 1024 * 1024) {
-      alert('Logo must be under 1MB')
+    if (!isImageFile(file)) return
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Logo must be under 3MB')
       return
     }
 
     setLogoUploading(true)
     try {
+      // Convert HEIC to JPEG if needed
+      const imageFile = await ensureBrowserImage(file)
+
       const reader = new FileReader()
       const dataUrl = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string)
         reader.onerror = reject
-        reader.readAsDataURL(file)
+        reader.readAsDataURL(imageFile)
       })
 
       const res = await fetch('/api/organizations/logo', {
