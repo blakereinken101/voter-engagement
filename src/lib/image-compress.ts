@@ -29,10 +29,20 @@ function isHeic(file: File): boolean {
  */
 async function convertHeicToJpeg(file: File): Promise<File> {
   try {
-    // Dynamic import to avoid SSR issues (heic2any references `window`)
-    const heic2any = (await import('heic2any')).default
+    // Robust dynamic import — handle CJS/ESM interop differences in Next.js/Webpack
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const heic2anyModule: any = await import('heic2any')
+    const heic2any = heic2anyModule.default?.default || heic2anyModule.default || heic2anyModule
+
+    if (typeof heic2any !== 'function') {
+      throw new Error('heic2any failed to load as a function')
+    }
+
+    // Wrap as a pure Blob to avoid prototype mismatches
+    const fileBlob = new Blob([file], { type: file.type })
+
     const result = await heic2any({
-      blob: file,
+      blob: fileBlob,
       toType: 'image/jpeg',
       quality: JPEG_QUALITY,
     })
@@ -42,9 +52,10 @@ async function convertHeicToJpeg(file: File): Promise<File> {
       type: 'image/jpeg',
     })
   } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err)
     console.error('[image-compress] HEIC conversion failed:', err)
     throw new Error(
-      'Could not convert this HEIC image. Try opening it on your phone and screenshotting it, or share it as a JPEG instead.',
+      `Could not convert this HEIC image (${errorMessage}). Try opening it on your phone and screenshotting it, or share it as a JPEG instead.`,
     )
   }
 }
