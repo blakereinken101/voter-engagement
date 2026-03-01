@@ -120,7 +120,7 @@ export default function LandingPage() {
             <span className="text-gradient">actually run.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-6 leading-relaxed">
-            An AI-first organizing platform that reimagines how volunteers interact with campaign tools. Rather than forcing volunteers into rigid workflows, Threshold meets them where they are &mdash; through conversational AI that handles the busywork of data entry and provides personalized coaching based on your campaign&rsquo;s strategy.
+            An artificial intelligence organizing platform that reimagines how volunteers interact with campaign tools. Rather than forcing volunteers into rigid workflows, Threshold meets them where they are &mdash; through conversational AI that handles the busywork of data entry and provides personalized coaching based on your campaign&rsquo;s strategy.
           </p>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed">
             Our <span className="text-gradient font-semibold">relational organizing tool</span> is in limited access: an AI coach customized to your campaign that helps volunteers work through their networks, match contacts to the voter file, and know who to call, what to say, and when to follow up.
