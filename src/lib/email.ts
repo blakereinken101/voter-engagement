@@ -112,6 +112,65 @@ export async function sendContactFormEmail(data: ContactFormData): Promise<void>
   }
 }
 
+// ── Campaign Invitation Email ────────────────────────────────────
+
+interface InvitationEmailData {
+  email: string
+  inviterName: string
+  campaignName: string
+  role: string
+  inviteToken: string
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  volunteer: 'Volunteer',
+  organizer: 'Organizer',
+  campaign_admin: 'Campaign Admin',
+}
+
+export async function sendInvitationEmail(data: InvitationEmailData): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[email/dev] Invitation email for ${data.email}: /invite/${data.inviteToken}`)
+    return
+  }
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const appUrl = getAppUrl()
+  const inviteUrl = `${appUrl}/invite/${data.inviteToken}`
+  const roleLabel = ROLE_LABELS[data.role] || data.role
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold <${FROM_EMAIL}>`,
+    to: data.email,
+    subject: `${escapeHtml(data.inviterName)} invited you to join ${escapeHtml(data.campaignName)} on Threshold`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="color: #1a1a2e; margin: 0 0 8px;">You've been invited!</h2>
+        <p style="color: #666; margin: 0 0 24px; font-size: 15px;">
+          <strong>${escapeHtml(data.inviterName)}</strong> has invited you to join
+          <strong>${escapeHtml(data.campaignName)}</strong> as a ${escapeHtml(roleLabel)} on Threshold.
+        </p>
+
+        <div style="background: #f5f5ff; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <p style="color: #1a1a2e; font-size: 15px; font-weight: 600; margin: 0 0 4px;">${escapeHtml(data.campaignName)}</p>
+          <p style="color: #7c3aed; font-size: 14px; margin: 0;">Role: ${escapeHtml(roleLabel)}</p>
+        </div>
+
+        <p style="color: #666; margin: 0 0 16px; font-size: 15px;">Click the button below to set up your account and get started:</p>
+
+        <a href="${inviteUrl}" style="display: inline-block; background: #7c3aed; color: #fff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">Set Up Your Account</a>
+
+        <p style="color: #999; font-size: 13px; margin-top: 24px;">If you already have an account, you can sign in first and then use this link to join the campaign.</p>
+        <p style="color: #999; font-size: 12px; margin-top: 12px;">If you weren't expecting this invitation, you can safely ignore this email.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send invitation email:', error)
+    // Don't throw — invitation was created successfully, email is a nice-to-have
+  }
+}
+
 // ── Shared Helpers ───────────────────────────────────────────────
 
 function getAppUrl(): string {

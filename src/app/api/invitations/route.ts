@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getRequestContext, requireCampaignAdmin, handleAuthError, getSessionFromRequest, hashPassword, createSessionToken } from '@/lib/auth'
+import { sendInvitationEmail } from '@/lib/email'
 import crypto from 'crypto'
 import { ADMIN_ROLES, MembershipRole } from '@/types'
 
@@ -75,6 +76,22 @@ export async function POST(request: NextRequest) {
       role,
       maxUses: uses,
     })
+
+    // Send invitation email if an email address was provided
+    if (normalizedEmail) {
+      const { rows: inviterRows } = await db.query('SELECT name FROM users WHERE id = $1', [ctx.userId])
+      const { rows: campaignRows } = await db.query('SELECT name FROM campaigns WHERE id = $1', [ctx.campaignId])
+      const inviterName = inviterRows[0]?.name || 'Someone'
+      const campaignName = campaignRows[0]?.name || 'a campaign'
+
+      await sendInvitationEmail({
+        email: normalizedEmail,
+        inviterName,
+        campaignName,
+        role,
+        inviteToken: token,
+      })
+    }
 
     return NextResponse.json({
       invitation: {
