@@ -705,7 +705,6 @@ async function initSchema() {
       );
 
       CREATE INDEX IF NOT EXISTS idx_petition_sheets_campaign ON petition_sheets(campaign_id, created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_petition_sheets_fingerprint ON petition_sheets(campaign_id, fingerprint);
       CREATE INDEX IF NOT EXISTS idx_petition_signatures_sheet ON petition_signatures(sheet_id);
     `)
 
@@ -727,6 +726,8 @@ async function initSchema() {
     `)
 
     // ── Petition schema migrations (add columns if missing) ─────────
+    // NOTE: ALTER TABLEs must run BEFORE the fingerprint index, since on
+    // existing databases the column doesn't exist until the migration adds it.
     await client.query(`
       ALTER TABLE petition_signatures ADD COLUMN IF NOT EXISTS candidates_data TEXT;
       ALTER TABLE petition_signatures ADD COLUMN IF NOT EXISTS user_confirmed BOOLEAN DEFAULT false;
@@ -735,6 +736,11 @@ async function initSchema() {
       ALTER TABLE petition_sheets ADD COLUMN IF NOT EXISTS is_duplicate BOOLEAN DEFAULT false;
       ALTER TABLE petition_sheets ADD COLUMN IF NOT EXISTS duplicate_of TEXT;
       ALTER TABLE petition_sheets ADD COLUMN IF NOT EXISTS petitioner_id TEXT;
+    `)
+
+    // Fingerprint index — created after the ALTER TABLE migration above
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_petition_sheets_fingerprint ON petition_sheets(campaign_id, fingerprint);
     `)
 
     // ── Seed defaults ────────────────────────────────────────────────
