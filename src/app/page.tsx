@@ -34,11 +34,13 @@ export default function LandingPage() {
   const eventsRef = useRef<HTMLElement>(null)
   const featuresRef = useRef<HTMLElement>(null)
   const whyRef = useRef<HTMLElement>(null)
+  const compareRef = useRef<HTMLElement>(null)
   const contactRef = useRef<HTMLElement>(null)
 
   const eventsInView = useInView(eventsRef)
   const featuresInView = useInView(featuresRef)
   const whyInView = useInView(whyRef)
+  const compareInView = useInView(compareRef)
   const contactInView = useInView(contactRef)
 
   // Contact form state
@@ -118,26 +120,19 @@ export default function LandingPage() {
             <span className="text-gradient">actually run.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-6 leading-relaxed">
-            Threshold is <span className="text-gradient font-semibold">two AI-powered tools</span> built for Democratic campaigns. Our <span className="text-gradient font-semibold">events platform</span> is open to Democrats &mdash; create a page, collect RSVPs, and message your attendees in minutes. Our <span className="text-gradient font-semibold">relational organizing tool</span> is in limited access: it gives organizers and volunteers an AI coach &mdash; customized to your campaign &mdash; that helps them work through their networks, match contacts to the voter file, and know who to call, what to say, and when to follow up.
+            An AI-first organizing platform that reimagines how volunteers interact with campaign tools. Rather than forcing volunteers into rigid workflows, Threshold meets them where they are &mdash; through conversational AI that handles the busywork of data entry and provides personalized coaching based on your campaign&rsquo;s strategy.
           </p>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed">
-            AI isn&rsquo;t a feature we bolted on &mdash; it&rsquo;s how Threshold works. From rolodexing volunteers to suggesting conversation tactics, the AI makes using the products easier, so you and your team can focus on organizing and talking to voters.
+            Our <span className="text-gradient font-semibold">relational organizing tool</span> is in limited access: an AI coach customized to your campaign that helps volunteers work through their networks, match contacts to the voter file, and know who to call, what to say, and when to follow up.
           </p>
           <div className="flex flex-wrap gap-4">
             <a
               href="#waitlist"
               className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
             >
-              Relational Tool
+              Join the Waitlist
               <ArrowRight className="w-5 h-5" />
             </a>
-            <Link
-              href="/events"
-              className="inline-flex items-center gap-2 glass text-white font-bold font-display text-lg px-10 py-4 rounded-btn transition-all hover:bg-white/10"
-            >
-              <Calendar className="w-5 h-5" />
-              Events Platform
-            </Link>
           </div>
         </div>
       </section>
@@ -236,6 +231,72 @@ export default function LandingPage() {
                 <p className="text-white/80 leading-relaxed">{text}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comparison table */}
+      <section
+        ref={compareRef}
+        className={`px-6 py-20 opacity-0 ${compareInView ? 'animate-slide-up' : ''}`}
+      >
+        <div className="max-w-3xl mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 text-center tracking-tight">
+            A campaign platform like no other
+          </h2>
+          <p className="text-white/50 text-center max-w-xl mx-auto mb-10">
+            Here&rsquo;s how Threshold works differently.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/10">
+                  <th className="py-3 pr-4 text-white/40 font-bold uppercase tracking-wider text-xs w-1/4"></th>
+                  <th className="py-3 px-4 text-vc-purple-light font-bold uppercase tracking-wider text-xs">Threshold</th>
+                  <th className="py-3 pl-4 text-white/40 font-bold uppercase tracking-wider text-xs">Traditional Tools</th>
+                </tr>
+              </thead>
+              <tbody className="text-white/70">
+                {[
+                  {
+                    label: 'Build your list',
+                    us: 'AI-guided conversation that maps your full network',
+                    them: 'Import phone contacts or add names manually',
+                  },
+                  {
+                    label: 'Voter matching',
+                    us: 'Handles nicknames, misspellings, and partial info',
+                    them: 'Basic voter file lookup',
+                  },
+                  {
+                    label: 'Conversation prep',
+                    us: 'Coaching tailored to each relationship and voter',
+                    them: 'Generic scripts',
+                  },
+                  {
+                    label: 'After the conversation',
+                    us: 'Tell the AI what happened \u2014 it logs everything',
+                    them: 'Fill out forms manually',
+                  },
+                  {
+                    label: 'Campaign customization',
+                    us: 'AI trained on your candidate\u2019s issues and strategy',
+                    them: 'One-size-fits-all scripts',
+                  },
+                  {
+                    label: 'Platform',
+                    us: 'Relational organizing + Events in one tool',
+                    them: 'Separate tools for each',
+                  },
+                ].map(({ label, us, them }, i) => (
+                  <tr key={i} className="border-b border-white/5">
+                    <td className="py-4 pr-4 font-semibold text-white/90">{label}</td>
+                    <td className="py-4 px-4 text-vc-teal">{us}</td>
+                    <td className="py-4 pl-4 text-white/40">{them}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
