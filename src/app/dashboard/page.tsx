@@ -16,7 +16,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { DashboardView } from '@/types'
 import ScanSheetPanel from '@/components/ScanSheetPanel'
-import { Download, Shield, LogOut, Camera, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Sparkles, Table, Calendar, ArrowLeft } from 'lucide-react'
+import { Download, Shield, LogOut, Camera, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Sparkles, Table, Calendar, ArrowLeft, ChevronsUpDown } from 'lucide-react'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
@@ -68,21 +68,24 @@ export default function DashboardPage() {
             )}
           </div>
           {user && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="text-right">
                 <p className="text-sm font-bold text-white leading-tight">{user.name || 'Volunteer'}</p>
                 {memberships.length > 1 ? (
-                  <select
-                    value={activeMembership?.campaignId || ''}
-                    onChange={e => switchCampaign(e.target.value)}
-                    className="text-xs text-vc-purple-light bg-transparent border-none p-0 cursor-pointer leading-tight focus:outline-none focus:ring-0"
-                  >
-                    {memberships.map(m => (
-                      <option key={m.campaignId} value={m.campaignId} className="bg-vc-bg text-white">
-                        {m.campaignName}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative inline-flex items-center">
+                    <select
+                      value={activeMembership?.campaignId || ''}
+                      onChange={e => switchCampaign(e.target.value)}
+                      className="appearance-none text-xs text-vc-purple-light bg-transparent border-none p-0 pr-4 cursor-pointer leading-tight focus:outline-none focus:ring-0"
+                    >
+                      {memberships.map(m => (
+                        <option key={m.campaignId} value={m.campaignId} className="bg-vc-bg text-white">
+                          {m.campaignName}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronsUpDown className="w-3 h-3 text-vc-purple-light/60 absolute right-0 pointer-events-none" />
+                  </div>
                 ) : (
                   <p className="text-xs text-vc-purple-light leading-tight">{campaignConfig.name}</p>
                 )}
