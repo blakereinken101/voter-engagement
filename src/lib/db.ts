@@ -19,6 +19,38 @@ export function getPool(): Pool {
   return pool
 }
 
+// ── Graceful shutdown ──────────────────────────────────────────────
+// When Railway sends SIGTERM during a rolling deploy, give in-flight
+// requests up to 15 seconds to finish, then close the pool cleanly.
+let shuttingDown = false
+
+export function isShuttingDown(): boolean {
+  return shuttingDown
+}
+
+function gracefulShutdown(signal: string) {
+  if (shuttingDown) return
+  shuttingDown = true
+  console.log(`[shutdown] Received ${signal} — draining connections...`)
+
+  // Stop accepting new work, let in-flight finish (pool.end waits for idle)
+  setTimeout(async () => {
+    try {
+      await pool.end()
+      console.log('[shutdown] Database pool closed.')
+    } catch (err) {
+      console.error('[shutdown] Error closing pool:', err)
+    }
+    process.exit(0)
+  }, 15_000) // 15s grace period for in-flight requests
+}
+
+// Only register signal handlers at runtime — not during `next build`
+if (process.env.NEXT_PHASE !== 'phase-production-build') {
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+}
+
 // Schema is now managed by node-pg-migrate (runs before server boots).
 // getDb() is kept for backward compatibility with existing call sites.
 export async function getDb(): Promise<Pool> {

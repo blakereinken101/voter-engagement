@@ -15,17 +15,26 @@ export async function register() {
     }
 
     // Wait 30 seconds for server to fully start before first run
-    setTimeout(async () => {
+    const initialTimer = setTimeout(async () => {
       console.log('[cron] Running initial reminder check...')
       await runReminderCron(APP_URL, CRON_SECRET)
     }, 30_000)
 
     // Then run every 15 minutes
-    setInterval(async () => {
+    const cronInterval = setInterval(async () => {
       await runReminderCron(APP_URL, CRON_SECRET)
     }, 15 * 60 * 1000)
 
     console.log('[cron] Event reminder cron scheduled (every 15 minutes)')
+
+    // Clean up timers on shutdown so the process can exit cleanly
+    const cleanup = () => {
+      clearTimeout(initialTimer)
+      clearInterval(cronInterval)
+      console.log('[cron] Timers cleared for shutdown.')
+    }
+    process.on('SIGTERM', cleanup)
+    process.on('SIGINT', cleanup)
   }
 }
 

@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server'
-import { getPool } from '@/lib/db'
+import { getPool, isShuttingDown } from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
 
 export async function GET() {
+  // During graceful shutdown, tell Railway to stop routing traffic here
+  if (isShuttingDown()) {
+    return NextResponse.json(
+      { status: 'shutting_down', timestamp: new Date().toISOString() },
+      { status: 503 }
+    )
+  }
+
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
   const voterPath = path.join(dataDir, 'mecklenburg-voters-geo.json')
   const voterFallback = path.join(dataDir, 'mecklenburg-voters.json')
@@ -21,8 +29,10 @@ export async function GET() {
     dbStatus = 'error'
   }
 
+  const healthy = dbStatus === 'ok'
+
   return NextResponse.json({
-    status: dbStatus === 'ok' ? 'ok' : 'degraded',
+    status: healthy ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     checks: {
@@ -34,5 +44,5 @@ export async function GET() {
           : 'missing',
       dataDir: fs.existsSync(dataDir) ? 'ok' : 'missing',
     },
-  })
+  }, { status: healthy ? 200 : 503 })
 }
