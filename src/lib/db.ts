@@ -667,6 +667,40 @@ async function initSchema() {
       ALTER TABLE users ALTER COLUMN campaign_id DROP NOT NULL;
     `)
 
+    // ── Petition Sheets ───────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS petition_sheets (
+        id TEXT PRIMARY KEY,
+        campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+        petitioner_name TEXT,
+        scanned_by TEXT NOT NULL REFERENCES users(id),
+        total_signatures INTEGER DEFAULT 0,
+        matched_count INTEGER DEFAULT 0,
+        validity_rate REAL DEFAULT 0,
+        status TEXT DEFAULT 'pending',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS petition_signatures (
+        id TEXT PRIMARY KEY,
+        sheet_id TEXT NOT NULL REFERENCES petition_sheets(id) ON DELETE CASCADE,
+        line_number INTEGER,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        address TEXT,
+        city TEXT,
+        zip TEXT,
+        date_signed TEXT,
+        match_status TEXT DEFAULT 'pending',
+        match_data TEXT,
+        match_score REAL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_petition_sheets_campaign ON petition_sheets(campaign_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_petition_signatures_sheet ON petition_signatures(sheet_id);
+    `)
+
     // ── Seed defaults ────────────────────────────────────────────────
     await seedDefaults(client)
   } finally {

@@ -3,7 +3,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { compressImage } from '@/lib/image-compress'
-import { Camera, Upload, X, Loader2 } from 'lucide-react'
+import { Camera, Upload, X, Loader2, FileSignature } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 import type { RelationshipCategory, ContactOutcome } from '@/types'
 
 const CATEGORY_OPTIONS: { value: RelationshipCategory; label: string }[] = [
@@ -53,12 +54,14 @@ interface ScanSheetPanelProps {
 
 export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
   const router = useRouter()
+  const { isAdmin } = useAuth()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const uploadInputRef = useRef<HTMLInputElement>(null)
 
   const [panelState, setPanelState] = useState<PanelState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
+  const [petitionMode, setPetitionMode] = useState(false)
 
   // Lock body scroll when panel is open — iOS-safe pattern
   useEffect(() => {
@@ -99,7 +102,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
       const response = await fetch('/api/ai/scan-sheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: base64, mimeType }),
+        body: JSON.stringify({ image: base64, mimeType, ...(petitionMode ? { mode: 'petition' } : {}) }),
       })
 
       if (!response.ok) {
@@ -109,6 +112,28 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
 
       const data = await response.json()
 
+      // ── Petition mode: stash signatures and navigate to petition review ──
+      if (petitionMode) {
+        const signatures = data.signatures || []
+        if (signatures.length === 0) {
+          setError('No signatures found in the image. Try a clearer photo or different angle.')
+          setPanelState('idle')
+          return
+        }
+        sessionStorage.setItem('petition-sheet-signatures', JSON.stringify(signatures))
+        sessionStorage.setItem('petition-sheet-thumbnail', thumb)
+        if (data.petitionerName) {
+          sessionStorage.setItem('petition-sheet-petitioner', data.petitionerName)
+        }
+        if (data.date) {
+          sessionStorage.setItem('petition-sheet-date', data.date)
+        }
+        onClose()
+        router.push('/dashboard/petition')
+        return
+      }
+
+      // ── Contact sheet mode (existing flow) ──
       // Stash volunteer name if OCR detected one (for admin data entry mode)
       if (data.volunteerName) {
         sessionStorage.setItem('scan-sheet-volunteer-name', data.volunteerName)
@@ -117,12 +142,13 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
       }
 
       const extracted: ExtractedContact[] = (data.contacts || []).map(
-        (c: { firstName: string; lastName: string; phone?: string; city?: string; address?: string; notes?: string; category?: string; supportStatus?: string; volunteerInterest?: string }) => ({
+        (c: { firstName: string; lastName: string; phone?: string; city?: string; address?: string; zip?: string; notes?: string; category?: string; supportStatus?: string; volunteerInterest?: string }) => ({
           firstName: c.firstName,
           lastName: c.lastName,
           phone: c.phone,
           city: c.city,
           address: c.address,
+          zip: c.zip,
           notes: c.notes,
           included: true,
           category: (CATEGORY_OPTIONS.some(opt => opt.value === c.category) ? c.category : 'who-did-we-miss') as RelationshipCategory,
@@ -147,7 +173,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
       setPanelState('idle')
     }
-  }, [onClose, router])
+  }, [onClose, router, petitionMode])
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -169,10 +195,12 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
         {/* Header */}
         <div className="shrink-0 z-10 glass-dark flex items-center justify-between px-4 py-4 border-b border-white/10 rounded-t-2xl safe-top">
           <div>
-            <h2 className="text-sm font-bold text-white">Scan Contact Sheet</h2>
+            <h2 className="text-sm font-bold text-white">
+              {petitionMode ? 'Scan Petition Sheet' : 'Scan Contact Sheet'}
+            </h2>
             <p className="text-[10px] text-white/40">
               {panelState === 'idle' && 'Take a photo or upload an image'}
-              {panelState === 'processing' && 'Reading handwriting...'}
+              {panelState === 'processing' && (petitionMode ? 'Reading petition signatures...' : 'Reading handwriting...')}
             </p>
           </div>
           {panelState === 'idle' && (
@@ -196,8 +224,37 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
           {/* ─── IDLE STATE ─── */}
           {panelState === 'idle' && (
             <div className="space-y-3 safe-bottom">
+              {/* Petition mode toggle — admin only */}
+              {isAdmin && (
+                <div className="flex items-center gap-2 p-2 rounded-lg glass-card border border-white/10">
+                  <button
+                    onClick={() => setPetitionMode(false)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs font-bold transition-all ${
+                      !petitionMode
+                        ? 'bg-vc-purple text-white shadow-glow'
+                        : 'text-white/50 hover:text-white/70'
+                    }`}
+                  >
+                    Contact Sheet
+                  </button>
+                  <button
+                    onClick={() => setPetitionMode(true)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded text-xs font-bold transition-all ${
+                      petitionMode
+                        ? 'bg-emerald-600 text-white'
+                        : 'text-white/50 hover:text-white/70'
+                    }`}
+                  >
+                    <FileSignature className="w-3.5 h-3.5" />
+                    Petition Sheet
+                  </button>
+                </div>
+              )}
+
               <p className="text-xs text-white/60 leading-relaxed">
-                Photograph a handwritten contact sheet and AI will extract the names and details for you.
+                {petitionMode
+                  ? 'Photograph a petition sheet and AI will extract signatures, addresses, and dates.'
+                  : 'Photograph a handwritten contact sheet and AI will extract the names and details for you.'}
               </p>
 
               <div className="grid grid-cols-2 gap-3">

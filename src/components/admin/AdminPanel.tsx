@@ -12,7 +12,8 @@ import DataPurge from './DataPurge'
 import TeamManagement from './TeamManagement'
 import AICampaignContext from './AICampaignContext'
 import VanIntegration from './VanIntegration'
-import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Sparkles, Link2 } from 'lucide-react'
+import PetitionDashboard from './PetitionDashboard'
+import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Sparkles, Link2, FileSignature } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
@@ -26,6 +27,7 @@ const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'purge', label: 'Purge', Icon: Trash2 },
   { id: 'ai-context', label: 'AI Coach', Icon: Sparkles },
   { id: 'van', label: 'VAN', Icon: Link2 },
+  { id: 'petitions', label: 'Petitions', Icon: FileSignature },
 ]
 
 export default function AdminPanel() {
@@ -64,6 +66,7 @@ export default function AdminPanel() {
         {activeTab === 'purge' && <DataPurge />}
         {activeTab === 'ai-context' && <AICampaignContext />}
         {activeTab === 'van' && <VanIntegration />}
+        {activeTab === 'petitions' && <PetitionDashboard />}
       </div>
     </div>
   )

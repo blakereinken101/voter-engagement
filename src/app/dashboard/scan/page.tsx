@@ -50,6 +50,7 @@ interface ExtractedContact {
   phone?: string
   city?: string
   address?: string
+  zip?: string
   notes?: string
   included: boolean
   category: RelationshipCategory
@@ -160,6 +161,7 @@ export default function ScanReviewPage() {
               phone: c.phone?.trim() || undefined,
               city: c.city?.trim() || undefined,
               address: c.address?.trim() || undefined,
+              zip: c.zip?.trim() || undefined,
               category: c.category,
               contactOutcome: c.contactOutcome || undefined,
               volunteerInterest: c.volunteerInterest || undefined,
@@ -193,6 +195,7 @@ export default function ScanReviewPage() {
             phone: c.phone?.trim() || undefined,
             city: c.city?.trim() || undefined,
             address: c.address?.trim() || undefined,
+            zip: c.zip?.trim() || undefined,
             category: c.category,
           },
           undefined,
@@ -378,25 +381,39 @@ export default function ScanReviewPage() {
 
               {/* Extra fields */}
               {contact.included && (
-                <div className="grid grid-cols-2 gap-2 pl-8">
+                <div className="grid grid-cols-6 gap-2 pl-8">
                   <input
                     type="text"
                     value={contact.phone || ''}
                     onChange={e => updateContact(idx, 'phone', e.target.value)}
                     placeholder="Phone"
-                    className="glass-input px-3 py-2 text-sm rounded"
+                    className="glass-input px-3 py-2 text-sm rounded col-span-2"
                   />
                   <input
                     type="text"
                     value={contact.city || ''}
                     onChange={e => updateContact(idx, 'city', e.target.value)}
                     placeholder="City"
-                    className="glass-input px-3 py-2 text-sm rounded"
+                    className="glass-input px-3 py-2 text-sm rounded col-span-2"
+                  />
+                  <input
+                    type="text"
+                    value={contact.zip || ''}
+                    onChange={e => updateContact(idx, 'zip', e.target.value)}
+                    placeholder="Zip"
+                    className="glass-input px-3 py-2 text-sm rounded col-span-2"
+                  />
+                  <input
+                    type="text"
+                    value={contact.address || ''}
+                    onChange={e => updateContact(idx, 'address', e.target.value)}
+                    placeholder="Street address"
+                    className="glass-input px-3 py-2 text-sm rounded col-span-6"
                   />
                   <select
                     value={contact.category}
                     onChange={e => updateContact(idx, 'category', e.target.value)}
-                    className="glass-input px-3 py-2 text-sm rounded col-span-2"
+                    className="glass-input px-3 py-2 text-sm rounded col-span-6"
                   >
                     {CATEGORY_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>
@@ -407,7 +424,7 @@ export default function ScanReviewPage() {
                   <select
                     value={contact.contactOutcome || ''}
                     onChange={e => updateContact(idx, 'contactOutcome', e.target.value || undefined as unknown as string)}
-                    className="glass-input px-3 py-2 text-sm rounded"
+                    className="glass-input px-3 py-2 text-sm rounded col-span-3"
                   >
                     {SUPPORT_STATUS_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>
@@ -418,7 +435,7 @@ export default function ScanReviewPage() {
                   <select
                     value={contact.volunteerInterest || ''}
                     onChange={e => updateContact(idx, 'volunteerInterest', e.target.value || undefined as unknown as string)}
-                    className="glass-input px-3 py-2 text-sm rounded"
+                    className="glass-input px-3 py-2 text-sm rounded col-span-3"
                   >
                     {VOLUNTEER_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>
@@ -427,7 +444,7 @@ export default function ScanReviewPage() {
                     ))}
                   </select>
                   {contact.notes && (
-                    <p className="text-[11px] text-white/40 col-span-2 italic">
+                    <p className="text-[11px] text-white/40 col-span-6 italic">
                       AI notes: {contact.notes}
                     </p>
                   )}

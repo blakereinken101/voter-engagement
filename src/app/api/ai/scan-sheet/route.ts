@@ -26,6 +26,7 @@ Return a JSON object with these top-level fields:
   - phone (string, optional)
   - city (string, optional)
   - address (string, optional)
+  - zip (string, optional — zip or postal code)
   - category (string, optional — relationship type. Must be one of: household, close-family, extended-family, best-friends, close-friends, neighbors, coworkers, faith-community, school-pta, sports-recreation, hobby-groups, community-regulars, recent-meals. Infer from clues like "neighbor", "coworker", "wife", "church friend", etc.)
   - supportStatus (string, optional — only if notes suggest a conversation occurred. Must be one of: supporter, undecided, opposed, left-message, no-answer. Look for clues like "supports", "on the fence", "not interested", "left VM", etc.)
   - volunteerInterest (string, optional — only if mentioned. Must be one of: yes, no, maybe. Look for clues like "wants to volunteer", "might help", "will canvass", etc.)
@@ -42,7 +43,7 @@ Rules:
 - If you cannot read any contacts, return {"contacts":[]}
 
 Example output:
-{"volunteerName":"JANE DOE","contacts":[{"firstName":"John","lastName":"Smith","phone":"919-555-1234","city":"Raleigh","category":"neighbors"},{"firstName":"Mary","lastName":"Jones","category":"coworkers","supportStatus":"supporter","volunteerInterest":"maybe","notes":"age 45"}]}`
+{"volunteerName":"JANE DOE","contacts":[{"firstName":"John","lastName":"Smith","phone":"919-555-1234","address":"123 Main St","city":"Raleigh","zip":"27601","category":"neighbors"},{"firstName":"Mary","lastName":"Jones","category":"coworkers","supportStatus":"supporter","volunteerInterest":"maybe","notes":"age 45"}]}`
 
 interface ExtractedContact {
   firstName: string
@@ -50,6 +51,7 @@ interface ExtractedContact {
   phone?: string
   city?: string
   address?: string
+  zip?: string
   category?: string
   supportStatus?: string
   volunteerInterest?: string
@@ -61,11 +63,119 @@ interface ScanSheetResult {
   contacts: ExtractedContact[]
 }
 
+const PETITION_EXTRACTION_PROMPT = `You are a data extraction assistant. Analyze this image of a petition sheet and extract all signature information you can read. Petition sheets typically have rows with columns for: line number, printed name, residential address, city, zip code, date signed, and signature.
+
+Return a JSON object with these top-level fields:
+- petitionerName (string, optional) — the name of the PETITIONER or CIRCULATOR who collected these signatures. Look for this at the VERY TOP or BOTTOM of the sheet. It is often:
+  - Labeled "Circulator:", "Petitioner:", "Collected by:", "Canvasser:", or similar
+  - Written in ALL CAPS or in a separate box/header area
+  - A signature or printed name in a "Circulator Certification" section at the bottom
+  - Do NOT confuse this with a regular signer. The petitioner/circulator is the person who collected the signatures.
+  - If you cannot clearly identify a circulator name, omit this field.
+- date (string, optional) — the date on the sheet header, or the most common date signed if no header date
+- signatures (array of objects, required) — each object represents one signature line:
+  - lineNumber (number, optional — the row/line number on the sheet)
+  - firstName (string, required)
+  - lastName (string, required)
+  - address (string, optional — full street address)
+  - city (string, optional)
+  - zip (string, optional — zip/postal code)
+  - dateSigned (string, optional — the date this person signed, e.g. "3/1/2026" or "March 1, 2026")
+
+Rules:
+- If a field is illegible or missing, omit it from that object
+- If you can read a full name but can't tell first from last, put the first word as firstName and the rest as lastName
+- Extract ALL rows that have at least a readable name, even if other fields are blank
+- Preserve date formats as written (don't normalize)
+- Return ONLY valid JSON — no markdown, no explanation, just the JSON object
+- If you cannot read any signatures, return {"signatures":[]}
+
+Example output:
+{"petitionerName":"JANE DOE","date":"3/1/2026","signatures":[{"lineNumber":1,"firstName":"John","lastName":"Smith","address":"123 Main St","city":"Raleigh","zip":"27601","dateSigned":"3/1/2026"},{"lineNumber":2,"firstName":"Mary","lastName":"Jones","address":"456 Oak Ave","city":"Durham","zip":"27701","dateSigned":"3/1/2026"}]}`
+
+interface PetitionSignature {
+  lineNumber?: number
+  firstName: string
+  lastName: string
+  address?: string
+  city?: string
+  zip?: string
+  dateSigned?: string
+}
+
+interface PetitionResult {
+  petitionerName?: string
+  date?: string
+  signatures: PetitionSignature[]
+}
+
+function parsePetitionResult(rawText: string): PetitionResult {
+  let text = rawText.trim()
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
+  }
+  if (!text.startsWith('[') && !text.startsWith('{')) {
+    const jsonStart = text.search(/[\[{]/)
+    if (jsonStart > 0) text = text.slice(jsonStart)
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    let fixed = text
+    const openBraces = (fixed.match(/{/g) || []).length
+    const openBrackets = (fixed.match(/\[/g) || []).length
+    const lastComplete = Math.max(fixed.lastIndexOf('},'), fixed.lastIndexOf('}]'))
+    if (lastComplete > 0) {
+      fixed = fixed.slice(0, lastComplete + 1)
+      for (let i = 0; i < openBrackets - (fixed.match(/]/g) || []).length; i++) fixed += ']'
+      for (let i = 0; i < openBraces - (fixed.match(/}/g) || []).length; i++) fixed += '}'
+      parsed = JSON.parse(fixed)
+    } else {
+      throw new Error(`AI response is not valid JSON (truncated at position ${text.length})`)
+    }
+  }
+
+  const obj = parsed as Record<string, unknown>
+  let petitionerName: string | undefined
+  let date: string | undefined
+
+  if (typeof obj.petitionerName === 'string' && obj.petitionerName.trim()) {
+    petitionerName = obj.petitionerName.trim().slice(0, 100)
+  }
+  if (typeof obj.date === 'string' && obj.date.trim()) {
+    date = obj.date.trim().slice(0, 20)
+  }
+
+  const sigArray = Array.isArray(obj.signatures) ? obj.signatures : (Array.isArray(parsed) ? parsed : [])
+
+  const signatures = (sigArray as Record<string, unknown>[])
+    .filter(s => typeof s.firstName === 'string' && typeof s.lastName === 'string' &&
+                 s.firstName.trim().length > 0 && s.lastName.trim().length > 0)
+    .map((s, idx) => {
+      const sig: PetitionSignature = {
+        firstName: String(s.firstName).trim().slice(0, 50),
+        lastName: String(s.lastName).trim().slice(0, 50),
+      }
+      if (typeof s.lineNumber === 'number') sig.lineNumber = s.lineNumber
+      else sig.lineNumber = idx + 1
+      if (typeof s.address === 'string' && s.address.trim()) sig.address = s.address.trim().slice(0, 200)
+      if (typeof s.city === 'string' && s.city.trim()) sig.city = s.city.trim().slice(0, 50)
+      if (typeof s.zip === 'string' && s.zip.trim()) sig.zip = s.zip.trim().replace(/[^0-9]/g, '').slice(0, 5)
+      if (typeof s.dateSigned === 'string' && s.dateSigned.trim()) sig.dateSigned = s.dateSigned.trim().slice(0, 20)
+      return sig
+    })
+
+  return { petitionerName, date, signatures }
+}
+
 async function extractWithAnthropic(
   base64: string,
   mimeType: string,
   model: string,
-): Promise<ScanSheetResult> {
+  prompt: string,
+): Promise<string> {
   const client = new Anthropic()
 
   const response = await client.messages.create({
@@ -85,7 +195,7 @@ async function extractWithAnthropic(
           },
           {
             type: 'text',
-            text: EXTRACTION_PROMPT,
+            text: prompt,
           },
         ],
       },
@@ -97,14 +207,15 @@ async function extractWithAnthropic(
     throw new Error('No text response from AI')
   }
 
-  return parseScanResult(textBlock.text)
+  return textBlock.text
 }
 
 async function extractWithGemini(
   base64: string,
   mimeType: string,
   model: string,
-): Promise<ScanSheetResult> {
+  prompt: string,
+): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY?.trim()
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
 
@@ -117,7 +228,7 @@ async function extractWithGemini(
         role: 'user',
         parts: [
           { inlineData: { data: base64, mimeType } },
-          { text: EXTRACTION_PROMPT },
+          { text: prompt },
         ],
       },
     ],
@@ -129,7 +240,7 @@ async function extractWithGemini(
   const text = response.text
   if (!text) throw new Error('No text response from Gemini')
 
-  return parseScanResult(text)
+  return text
 }
 
 const VALID_CATEGORIES = ['household', 'close-family', 'extended-family', 'best-friends', 'close-friends', 'neighbors', 'coworkers', 'faith-community', 'school-pta', 'sports-recreation', 'hobby-groups', 'community-regulars', 'recent-meals', 'who-did-we-miss']
@@ -214,6 +325,9 @@ function parseScanResult(rawText: string): ScanSheetResult {
       if (typeof c.address === 'string' && c.address.trim()) {
         contact.address = c.address.trim().slice(0, 200)
       }
+      if (typeof c.zip === 'string' && c.zip.trim()) {
+        contact.zip = c.zip.trim().replace(/[^0-9]/g, '').slice(0, 5)
+      }
       if (typeof c.category === 'string' && VALID_CATEGORIES.includes(c.category.trim())) {
         contact.category = c.category.trim()
       }
@@ -256,14 +370,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let body: { image: string; mimeType: string }
+    let body: { image: string; mimeType: string; mode?: string }
     try {
       body = await request.json()
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { image, mimeType } = body
+    const { image, mimeType, mode } = body
+    const isPetition = mode === 'petition'
 
     if (!image || typeof image !== 'string') {
       return NextResponse.json({ error: 'Image data is required' }, { status: 400 })
@@ -279,14 +394,15 @@ export async function POST(request: NextRequest) {
     }
 
     const aiSettings = await getAISettings()
+    const prompt = isPetition ? PETITION_EXTRACTION_PROMPT : EXTRACTION_PROMPT
 
-    let result: ScanSheetResult
+    let rawText: string
 
     try {
       if (aiSettings.provider === 'gemini') {
-        result = await extractWithGemini(image, mimeType, aiSettings.chatModel)
+        rawText = await extractWithGemini(image, mimeType, aiSettings.chatModel, prompt)
       } else {
-        result = await extractWithAnthropic(image, mimeType, aiSettings.chatModel)
+        rawText = await extractWithAnthropic(image, mimeType, aiSettings.chatModel, prompt)
       }
     } catch (err) {
       console.error('[scan-sheet] AI extraction error:', err)
@@ -300,12 +416,23 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: 'Failed to extract contacts from image. Please try again.' },
+        { error: `Failed to extract ${isPetition ? 'signatures' : 'contacts'} from image. Please try again.` },
         { status: 500 },
       )
     }
 
-    return NextResponse.json({ contacts: result.contacts, volunteerName: result.volunteerName || null })
+    if (isPetition) {
+      const petitionResult = parsePetitionResult(rawText)
+      return NextResponse.json({
+        mode: 'petition',
+        petitionerName: petitionResult.petitionerName || null,
+        date: petitionResult.date || null,
+        signatures: petitionResult.signatures,
+      })
+    } else {
+      const result = parseScanResult(rawText)
+      return NextResponse.json({ contacts: result.contacts, volunteerName: result.volunteerName || null })
+    }
   } catch (error) {
     if (error instanceof AuthError) {
       const { error: msg, status } = handleAuthError(error)

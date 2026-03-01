@@ -61,6 +61,7 @@ interface AdminContactInput {
   phone?: string
   city?: string
   address?: string
+  zip?: string
   category: string
   contactOutcome?: string
   volunteerInterest?: string
@@ -116,13 +117,15 @@ export async function POST(request: NextRequest) {
 
         const contactId = crypto.randomUUID()
 
+        const zipVal = typeof c.zip === 'string' ? c.zip.replace(/[^0-9]/g, '').slice(0, 5) || null : null
+
         await client.query(`
-          INSERT INTO contacts (id, user_id, campaign_id, first_name, last_name, phone, address, city, category)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          INSERT INTO contacts (id, user_id, campaign_id, first_name, last_name, phone, address, city, zip, category)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         `, [contactId, targetUserId, ctx.campaignId,
             sanitize(c.firstName, 50), sanitize(c.lastName, 50),
             sanitize(c.phone, 20) || null, sanitize(c.address, 200) || null,
-            sanitize(c.city, 50) || null, sanitize(c.category, 50)])
+            sanitize(c.city, 50) || null, zipVal, sanitize(c.category, 50)])
 
         await client.query(`
           INSERT INTO match_results (id, contact_id, status) VALUES ($1, $2, 'pending')
