@@ -48,7 +48,7 @@ COPY scripts/seed.mjs /app/scripts/seed.mjs
 
 # Install node-pg-migrate with its full dependency tree (yargs, glob, pg, etc.)
 # Copying only the folder leaves transitive deps behind; npm install is the safe approach.
-RUN npm install --no-save node-pg-migrate@8.0.4
+RUN npm install --no-save --legacy-peer-deps node-pg-migrate@8.0.4
 
 # Create data directory for voter file volume
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
