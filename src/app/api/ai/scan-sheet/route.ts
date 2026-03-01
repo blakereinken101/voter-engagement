@@ -181,10 +181,11 @@ function parseScanResult(rawText: string): ScanSheetResult {
 
   if (Array.isArray(parsed)) {
     contactsArray = parsed
-  } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.contacts)) {
-    contactsArray = parsed.contacts
-    if (typeof parsed.volunteerName === 'string' && parsed.volunteerName.trim()) {
-      volunteerName = parsed.volunteerName.trim().slice(0, 100)
+  } else if (parsed && typeof parsed === 'object' && Array.isArray((parsed as Record<string, unknown>).contacts)) {
+    const obj = parsed as Record<string, unknown>
+    contactsArray = obj.contacts as unknown[]
+    if (typeof obj.volunteerName === 'string' && obj.volunteerName.trim()) {
+      volunteerName = obj.volunteerName.trim().slice(0, 100)
     }
   } else {
     throw new Error('AI response is not a valid scan result')
