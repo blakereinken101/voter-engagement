@@ -69,7 +69,7 @@ export default function DashboardPage() {
           </div>
           {user && (
             <div className="flex items-center gap-3">
-              <div className="hidden sm:block text-right">
+              <div className="text-right">
                 <p className="text-sm font-bold text-white leading-tight">{user.name || 'Volunteer'}</p>
                 {memberships.length > 1 ? (
                   <select

@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         if (data.activeMembership) {
           setActiveMembership(data.activeMembership)
+          document.cookie = `vc-campaign=${data.activeMembership.campaignId}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}`
         } else if (data.memberships?.length === 1) {
           const m = data.memberships[0]
           setActiveMembership(m)

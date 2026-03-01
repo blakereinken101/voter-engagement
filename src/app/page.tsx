@@ -91,12 +91,12 @@ export default function LandingPage() {
                 <Link href="/sign-in" className="text-sm font-bold text-white/60 hover:text-white transition-colors">
                   Sign In
                 </Link>
-                <a
-                  href="#waitlist"
+                <Link
+                  href="/sign-in?product=relational"
                   className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
                 >
                   Relational
-                </a>
+                </Link>
               </>
             )}
           </div>
