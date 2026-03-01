@@ -76,7 +76,7 @@ export default function ChatMessageBubble({ message, isStreaming }: ChatMessageB
         )}
 
         {/* Message content */}
-        <div className="text-base leading-relaxed whitespace-pre-wrap">
+        <div className="text-lg leading-relaxed whitespace-pre-wrap">
           {message.content}
           {isStreaming && !message.content && (
             <span className="inline-flex gap-1 ml-1">

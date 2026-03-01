@@ -11,18 +11,25 @@ export const maxDuration = 60
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024 // 4MB base64
 
-const EXTRACTION_PROMPT = `You are a data extraction assistant. Analyze this image of a handwritten contact sheet and extract all contact information you can read.
+const EXTRACTION_PROMPT = `You are a data extraction assistant. Analyze this image of a handwritten contact sheet, sign-up sheet, or petition and extract all contact information you can read. The sheet may be a simple list of names, a petition with columns (name, address, signature, etc.), a sign-in sheet, or any format with people's information on it. Focus on extracting names and any associated contact details regardless of the sheet layout.
 
-Return a JSON array of objects. Each object represents one person and may have these fields:
-- firstName (string, required)
-- lastName (string, required)
-- phone (string, optional)
-- city (string, optional)
-- address (string, optional)
-- category (string, optional — relationship type. Must be one of: household, close-family, extended-family, best-friends, close-friends, neighbors, coworkers, faith-community, school-pta, sports-recreation, hobby-groups, community-regulars, recent-meals. Infer from clues like "neighbor", "coworker", "wife", "church friend", etc.)
-- supportStatus (string, optional — only if notes suggest a conversation occurred. Must be one of: supporter, undecided, opposed, left-message, no-answer. Look for clues like "supports", "on the fence", "not interested", "left VM", etc.)
-- volunteerInterest (string, optional — only if mentioned. Must be one of: yes, no, maybe. Look for clues like "wants to volunteer", "might help", "will canvass", etc.)
-- notes (string, optional — any other info like age, context, etc. that doesn't fit the above fields)
+Return a JSON object with these top-level fields:
+- volunteerName (string, optional) — the name of the VOLUNTEER or CANVASSER who filled out this sheet. Look for this at the VERY TOP of the page. It is often:
+  - Written in ALL CAPS
+  - Labeled with "Volunteer:", "Name:", "Canvasser:", "Vol:", "Organizer:", or similar
+  - The first name on the page, set apart from the contact list (bigger, underlined, or in a header area)
+  - Do NOT confuse this with the first contact in the list. The volunteer name is separate from the contacts.
+  - If you cannot clearly identify a volunteer name, omit this field.
+- contacts (array of objects, required) — each object represents one person on the list:
+  - firstName (string, required)
+  - lastName (string, required)
+  - phone (string, optional)
+  - city (string, optional)
+  - address (string, optional)
+  - category (string, optional — relationship type. Must be one of: household, close-family, extended-family, best-friends, close-friends, neighbors, coworkers, faith-community, school-pta, sports-recreation, hobby-groups, community-regulars, recent-meals. Infer from clues like "neighbor", "coworker", "wife", "church friend", etc.)
+  - supportStatus (string, optional — only if notes suggest a conversation occurred. Must be one of: supporter, undecided, opposed, left-message, no-answer. Look for clues like "supports", "on the fence", "not interested", "left VM", etc.)
+  - volunteerInterest (string, optional — only if mentioned. Must be one of: yes, no, maybe. Look for clues like "wants to volunteer", "might help", "will canvass", etc.)
+  - notes (string, optional — any other info like age, context, etc. that doesn't fit the above fields)
 
 Rules:
 - If a field is illegible or missing, omit it from that object
@@ -31,11 +38,11 @@ Rules:
 - Only set category if you have clear contextual evidence; otherwise omit it
 - Only set supportStatus if notes clearly indicate a conversation outcome; otherwise omit it
 - Only set volunteerInterest if explicitly mentioned; otherwise omit it
-- Return ONLY valid JSON — no markdown, no explanation, just the array
-- If you cannot read any contacts, return an empty array []
+- Return ONLY valid JSON — no markdown, no explanation, just the JSON object
+- If you cannot read any contacts, return {"contacts":[]}
 
 Example output:
-[{"firstName":"John","lastName":"Smith","phone":"919-555-1234","city":"Raleigh","category":"neighbors"},{"firstName":"Mary","lastName":"Jones","category":"coworkers","supportStatus":"supporter","volunteerInterest":"maybe","notes":"age 45"}]`
+{"volunteerName":"JANE DOE","contacts":[{"firstName":"John","lastName":"Smith","phone":"919-555-1234","city":"Raleigh","category":"neighbors"},{"firstName":"Mary","lastName":"Jones","category":"coworkers","supportStatus":"supporter","volunteerInterest":"maybe","notes":"age 45"}]}`
 
 interface ExtractedContact {
   firstName: string
@@ -49,16 +56,21 @@ interface ExtractedContact {
   notes?: string
 }
 
+interface ScanSheetResult {
+  volunteerName?: string
+  contacts: ExtractedContact[]
+}
+
 async function extractWithAnthropic(
   base64: string,
   mimeType: string,
   model: string,
-): Promise<ExtractedContact[]> {
+): Promise<ScanSheetResult> {
   const client = new Anthropic()
 
   const response = await client.messages.create({
     model,
-    max_tokens: 2048,
+    max_tokens: 4096,
     messages: [
       {
         role: 'user',
@@ -85,14 +97,14 @@ async function extractWithAnthropic(
     throw new Error('No text response from AI')
   }
 
-  return parseContacts(textBlock.text)
+  return parseScanResult(textBlock.text)
 }
 
 async function extractWithGemini(
   base64: string,
   mimeType: string,
   model: string,
-): Promise<ExtractedContact[]> {
+): Promise<ScanSheetResult> {
   const apiKey = process.env.GEMINI_API_KEY?.trim()
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
 
@@ -110,34 +122,76 @@ async function extractWithGemini(
       },
     ],
     config: {
-      maxOutputTokens: 2048,
+      maxOutputTokens: 4096,
     },
   })
 
   const text = response.text
   if (!text) throw new Error('No text response from Gemini')
 
-  return parseContacts(text)
+  return parseScanResult(text)
 }
 
 const VALID_CATEGORIES = ['household', 'close-family', 'extended-family', 'best-friends', 'close-friends', 'neighbors', 'coworkers', 'faith-community', 'school-pta', 'sports-recreation', 'hobby-groups', 'community-regulars', 'recent-meals', 'who-did-we-miss']
 const VALID_SUPPORT = ['supporter', 'undecided', 'opposed', 'left-message', 'no-answer']
 const VALID_VOLUNTEER = ['yes', 'no', 'maybe']
 
-function parseContacts(rawText: string): ExtractedContact[] {
+function parseScanResult(rawText: string): ScanSheetResult {
   // Strip markdown code fences if present
   let text = rawText.trim()
   if (text.startsWith('```')) {
     text = text.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
   }
 
-  const parsed = JSON.parse(text)
-  if (!Array.isArray(parsed)) {
-    throw new Error('AI response is not an array')
+  // Try to extract JSON from surrounding text (AI sometimes adds preamble)
+  if (!text.startsWith('[') && !text.startsWith('{')) {
+    const jsonStart = text.search(/[\[{]/)
+    if (jsonStart > 0) text = text.slice(jsonStart)
+  }
+
+  // If JSON is truncated, try to salvage what we can
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    // Try to fix truncated JSON by closing open structures
+    let fixed = text
+    // Count open/close braces and brackets
+    const openBraces = (fixed.match(/{/g) || []).length
+    const closeBraces = (fixed.match(/}/g) || []).length
+    const openBrackets = (fixed.match(/\[/g) || []).length
+    const closeBrackets = (fixed.match(/]/g) || []).length
+
+    // Truncate to last complete object (find last },)
+    const lastComplete = Math.max(fixed.lastIndexOf('},'), fixed.lastIndexOf('}]'))
+    if (lastComplete > 0) {
+      fixed = fixed.slice(0, lastComplete + 1)
+      // Close remaining open brackets/braces
+      for (let i = 0; i < openBrackets - (fixed.match(/]/g) || []).length; i++) fixed += ']'
+      for (let i = 0; i < openBraces - (fixed.match(/}/g) || []).length; i++) fixed += '}'
+      parsed = JSON.parse(fixed)
+    } else {
+      throw new Error(`AI response is not valid JSON (truncated at position ${text.length})`)
+    }
+  }
+
+  // Handle both formats: raw array (backward compat) and object with volunteerName
+  let volunteerName: string | undefined
+  let contactsArray: unknown[]
+
+  if (Array.isArray(parsed)) {
+    contactsArray = parsed
+  } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.contacts)) {
+    contactsArray = parsed.contacts
+    if (typeof parsed.volunteerName === 'string' && parsed.volunteerName.trim()) {
+      volunteerName = parsed.volunteerName.trim().slice(0, 100)
+    }
+  } else {
+    throw new Error('AI response is not a valid scan result')
   }
 
   // Validate and clean each contact
-  return parsed
+  const contacts = contactsArray
     .filter(
       (c: Record<string, unknown>) =>
         typeof c.firstName === 'string' &&
@@ -173,6 +227,8 @@ function parseContacts(rawText: string): ExtractedContact[] {
       }
       return contact
     })
+
+  return { volunteerName, contacts }
 }
 
 export async function POST(request: NextRequest) {
@@ -223,13 +279,13 @@ export async function POST(request: NextRequest) {
 
     const aiSettings = await getAISettings()
 
-    let contacts: ExtractedContact[]
+    let result: ScanSheetResult
 
     try {
       if (aiSettings.provider === 'gemini') {
-        contacts = await extractWithGemini(image, mimeType, aiSettings.chatModel)
+        result = await extractWithGemini(image, mimeType, aiSettings.chatModel)
       } else {
-        contacts = await extractWithAnthropic(image, mimeType, aiSettings.chatModel)
+        result = await extractWithAnthropic(image, mimeType, aiSettings.chatModel)
       }
     } catch (err) {
       console.error('[scan-sheet] AI extraction error:', err)
@@ -248,7 +304,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ contacts })
+    return NextResponse.json({ contacts: result.contacts, volunteerName: result.volunteerName || null })
   } catch (error) {
     if (error instanceof AuthError) {
       const { error: msg, status } = handleAuthError(error)

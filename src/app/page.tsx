@@ -207,34 +207,6 @@ export default function LandingPage() {
         <Image src="/hero-2.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" />
       </div>
 
-      {/* Why relational organizing */}
-      <section
-        ref={whyRef}
-        className={`text-white px-6 py-20 opacity-0 ${whyInView ? 'animate-slide-up' : ''}`}
-      >
-        <div className="max-w-3xl mx-auto">
-          <h2 className="font-display text-3xl md:text-4xl font-extrabold mb-4 text-center tracking-tight">
-            Why relational organizing wins
-          </h2>
-          <p className="text-white/50 text-center max-w-xl mx-auto mb-10">
-            Voters are far more likely to engage when asked by someone they know. Threshold gives every volunteer the tools and AI coaching to make that ask count.
-          </p>
-          <div className="grid md:grid-cols-2 gap-5 text-left">
-            {[
-              'A personal ask from someone you trust is 10x more effective than a mailer or digital ad \u2014 and AI helps your volunteers make that ask confidently.',
-              'Most people who skip elections aren\u2019t opposed to voting \u2014 they just need a nudge from someone they know. Your volunteers are that person.',
-              'Your volunteers already have the relationships. Threshold\u2019s AI gives them voter file data, tailored talking points, and step-by-step coaching to make every contact count.',
-              'Relational organizing scales with your people, not your ad spend. Every volunteer who joins multiplies your reach \u2014 and the AI makes each of them more effective.',
-            ].map((text, i) => (
-              <div key={i} className="flex gap-4 items-start glass-dark rounded-card p-5">
-                <CheckCircle className="w-5 h-5 text-vc-teal flex-shrink-0 mt-0.5" />
-                <p className="text-white/80 leading-relaxed">{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Comparison table */}
       <section
         ref={compareRef}
@@ -245,7 +217,7 @@ export default function LandingPage() {
             A campaign platform like no other
           </h2>
           <p className="text-white/50 text-center max-w-xl mx-auto mb-10">
-            Here&rsquo;s how Threshold works differently.
+            Here&rsquo;s how Threshold <span className="text-gradient font-semibold">thinks</span> differently.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -253,7 +225,7 @@ export default function LandingPage() {
                 <tr className="border-b border-white/10">
                   <th className="py-3 pr-4 text-white/40 font-bold uppercase tracking-wider text-xs w-1/4"></th>
                   <th className="py-3 px-4 text-vc-purple-light font-bold uppercase tracking-wider text-xs">Threshold</th>
-                  <th className="py-3 pl-4 text-white/40 font-bold uppercase tracking-wider text-xs">Traditional Tools</th>
+                  <th className="py-3 pl-4 text-vc-coral font-bold uppercase tracking-wider text-xs">Traditional Tools</th>
                 </tr>
               </thead>
               <tbody className="text-white/70">
@@ -283,11 +255,6 @@ export default function LandingPage() {
                     us: 'AI trained on your candidate\u2019s issues and strategy',
                     them: 'One-size-fits-all scripts',
                   },
-                  {
-                    label: 'Platform',
-                    us: 'Relational organizing + Events in one tool',
-                    them: 'Separate tools for each',
-                  },
                 ].map(({ label, us, them }, i) => (
                   <tr key={i} className="border-b border-white/5">
                     <td className="py-4 pr-4 font-semibold text-white/90">{label}</td>
@@ -297,6 +264,34 @@ export default function LandingPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      {/* Why relational organizing */}
+      <section
+        ref={whyRef}
+        className={`text-white px-6 py-20 opacity-0 ${whyInView ? 'animate-slide-up' : ''}`}
+      >
+        <div className="max-w-3xl mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl font-extrabold mb-4 text-center tracking-tight">
+            Why relational organizing wins
+          </h2>
+          <p className="text-white/50 text-center max-w-xl mx-auto mb-10">
+            Voters are far more likely to engage when asked by someone they know. Threshold gives every volunteer the tools and AI coaching to make that ask count.
+          </p>
+          <div className="grid md:grid-cols-2 gap-5 text-left">
+            {[
+              'A personal ask from someone you trust is 10x more effective than a mailer or digital ad \u2014 and AI helps your volunteers make that ask confidently.',
+              'Most people who skip elections aren\u2019t opposed to voting \u2014 they just need a nudge from someone they know. Your volunteers are that person.',
+              'Your volunteers already have the relationships. Threshold\u2019s AI gives them voter file data, tailored talking points, and step-by-step coaching to make every contact count.',
+              'Relational organizing scales with your people, not your ad spend. Every volunteer who joins multiplies your reach \u2014 and the AI makes each of them more effective.',
+            ].map((text, i) => (
+              <div key={i} className="flex gap-4 items-start glass-dark rounded-card p-5">
+                <CheckCircle className="w-5 h-5 text-vc-teal flex-shrink-0 mt-0.5" />
+                <p className="text-white/80 leading-relaxed">{text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

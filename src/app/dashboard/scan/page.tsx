@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAppContext } from '@/context/AppContext'
 import { useAuth } from '@/context/AuthContext'
-import { ArrowLeft, Trash2, Check, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Trash2, Check, RotateCcw, ShieldAlert } from 'lucide-react'
+import Fuse from 'fuse.js'
 import clsx from 'clsx'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -56,16 +57,28 @@ interface ExtractedContact {
   volunteerInterest?: 'yes' | 'no' | 'maybe'
 }
 
+interface VolunteerOption {
+  id: string
+  name: string
+  email: string
+}
+
 export default function ScanReviewPage() {
   const router = useRouter()
   const { addPerson } = useAppContext()
-  const { campaignConfig: authConfig } = useAuth()
+  const { campaignConfig: authConfig, isAdmin } = useAuth()
 
   const [contacts, setContacts] = useState<ExtractedContact[]>([])
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
   const [importedCount, setImportedCount] = useState(0)
   const [done, setDone] = useState(false)
   const [loaded, setLoaded] = useState(false)
+
+  // Admin data entry mode state
+  const [volunteers, setVolunteers] = useState<VolunteerOption[]>([])
+  const [selectedVolunteerId, setSelectedVolunteerId] = useState<string | null>(null)
+  const [detectedVolunteerName, setDetectedVolunteerName] = useState<string | null>(null)
+  const [adminImporting, setAdminImporting] = useState(false)
 
   // Load scanned contacts from sessionStorage
   useEffect(() => {
@@ -89,6 +102,35 @@ export default function ScanReviewPage() {
     }
   }, [router])
 
+  // Admin: fetch volunteers and fuzzy-match detected name
+  useEffect(() => {
+    if (!isAdmin) return
+
+    const detected = sessionStorage.getItem('scan-sheet-volunteer-name')
+    if (detected) setDetectedVolunteerName(detected)
+
+    fetch('/api/admin/volunteers')
+      .then(res => res.json())
+      .then(data => {
+        const vols: VolunteerOption[] = (data.volunteers || []).map((v: { id: string; name: string; email: string }) => ({
+          id: v.id,
+          name: v.name,
+          email: v.email,
+        }))
+        setVolunteers(vols)
+
+        // Fuzzy match detected volunteer name
+        if (detected && vols.length > 0) {
+          const fuse = new Fuse(vols, { keys: ['name'], threshold: 0.4 })
+          const results = fuse.search(detected)
+          if (results.length > 0 && results[0].score !== undefined && results[0].score < 0.4) {
+            setSelectedVolunteerId(results[0].item.id)
+          }
+        }
+      })
+      .catch(console.error)
+  }, [isAdmin])
+
   const updateContact = useCallback((index: number, field: string, value: string | boolean) => {
     setContacts(prev =>
       prev.map((c, i) => (i === index ? { ...c, [field]: value } : c)),
@@ -99,41 +141,80 @@ export default function ScanReviewPage() {
     setContacts(prev => prev.filter((_, i) => i !== index))
   }, [])
 
-  const handleImport = useCallback(() => {
+  const handleImport = useCallback(async () => {
     const toImport = contacts.filter(c => c.included && c.firstName.trim() && c.lastName.trim())
-    let count = 0
+    if (toImport.length === 0) return
 
-    for (const c of toImport) {
-      const initialActionData: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe' } = {}
-      if (c.contactOutcome) initialActionData.contactOutcome = c.contactOutcome
-      if (c.volunteerInterest) initialActionData.volunteerInterest = c.volunteerInterest
+    // Admin data entry mode: POST to admin endpoint
+    if (isAdmin && selectedVolunteerId) {
+      setAdminImporting(true)
+      try {
+        const res = await fetch('/api/admin/contacts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetUserId: selectedVolunteerId,
+            contacts: toImport.map(c => ({
+              firstName: c.firstName.trim(),
+              lastName: c.lastName.trim(),
+              phone: c.phone?.trim() || undefined,
+              city: c.city?.trim() || undefined,
+              address: c.address?.trim() || undefined,
+              category: c.category,
+              contactOutcome: c.contactOutcome || undefined,
+              volunteerInterest: c.volunteerInterest || undefined,
+            })),
+          }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || 'Failed to import contacts')
+        }
+        const data = await res.json()
+        setImportedCount(data.count || toImport.length)
+      } catch (err) {
+        console.error('[admin-import]', err)
+        return
+      } finally {
+        setAdminImporting(false)
+      }
+    } else {
+      // Normal volunteer flow (unchanged)
+      let count = 0
+      for (const c of toImport) {
+        const initialActionData: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe' } = {}
+        if (c.contactOutcome) initialActionData.contactOutcome = c.contactOutcome
+        if (c.volunteerInterest) initialActionData.volunteerInterest = c.volunteerInterest
 
-      addPerson(
-        {
-          firstName: c.firstName.trim(),
-          lastName: c.lastName.trim(),
-          phone: c.phone?.trim() || undefined,
-          city: c.city?.trim() || undefined,
-          address: c.address?.trim() || undefined,
-          category: c.category,
-        },
-        undefined,
-        Object.keys(initialActionData).length > 0 ? initialActionData : undefined,
-      )
-      count++
+        addPerson(
+          {
+            firstName: c.firstName.trim(),
+            lastName: c.lastName.trim(),
+            phone: c.phone?.trim() || undefined,
+            city: c.city?.trim() || undefined,
+            address: c.address?.trim() || undefined,
+            category: c.category,
+          },
+          undefined,
+          Object.keys(initialActionData).length > 0 ? initialActionData : undefined,
+        )
+        count++
+      }
+      setImportedCount(count)
     }
 
     // Clean up sessionStorage
     sessionStorage.removeItem('scan-sheet-contacts')
     sessionStorage.removeItem('scan-sheet-thumbnail')
+    sessionStorage.removeItem('scan-sheet-volunteer-name')
 
-    setImportedCount(count)
     setDone(true)
-  }, [contacts, addPerson])
+  }, [contacts, addPerson, isAdmin, selectedVolunteerId])
 
   const handleBack = useCallback(() => {
     sessionStorage.removeItem('scan-sheet-contacts')
     sessionStorage.removeItem('scan-sheet-thumbnail')
+    sessionStorage.removeItem('scan-sheet-volunteer-name')
     router.push('/dashboard')
   }, [router])
 
@@ -162,7 +243,9 @@ export default function ScanReviewPage() {
               {importedCount} {importedCount === 1 ? 'contact' : 'contacts'} imported!
             </p>
             <p className="text-sm text-white/40 mt-1">
-              They&apos;ve been added to your rolodex.
+              {isAdmin && selectedVolunteerId
+                ? `Assigned to ${volunteers.find(v => v.id === selectedVolunteerId)?.name || 'volunteer'}. They\u2019ll see these on their next login.`
+                : "They\u2019ve been added to your rolodex."}
             </p>
           </div>
           <div className="flex gap-3 mt-4">
@@ -217,6 +300,38 @@ export default function ScanReviewPage() {
           )}
         </div>
       </header>
+
+      {/* Admin: DATA ENTRY MODE banner */}
+      {isAdmin && (
+        <div className="bg-amber-500/10 border-b border-amber-500/30">
+          <div className="max-w-2xl mx-auto px-4 py-3 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Data Entry Mode</span>
+            </div>
+            <p className="text-[11px] text-white/50">
+              Contacts will be assigned to the selected volunteer&apos;s rolodex.
+            </p>
+            {detectedVolunteerName && (
+              <p className="text-[11px] text-vc-teal">
+                Detected from sheet: <span className="font-bold">{detectedVolunteerName}</span>
+              </p>
+            )}
+            <select
+              value={selectedVolunteerId || ''}
+              onChange={e => setSelectedVolunteerId(e.target.value || null)}
+              className="glass-input w-full px-3 py-2.5 text-sm rounded"
+            >
+              <option value="">Select a volunteer...</option>
+              {volunteers.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.name} ({v.email})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Contact list — full native scroll */}
       <main className="flex-1 overflow-y-auto">
@@ -331,15 +446,19 @@ export default function ScanReviewPage() {
           </p>
           <button
             onClick={handleImport}
-            disabled={includedCount === 0}
+            disabled={includedCount === 0 || (isAdmin && !selectedVolunteerId) || adminImporting}
             className={clsx(
               'px-6 py-2.5 rounded-btn text-sm font-bold transition-all',
-              includedCount > 0
+              includedCount > 0 && (!isAdmin || selectedVolunteerId) && !adminImporting
                 ? 'bg-vc-purple text-white hover:bg-vc-purple-light shadow-glow'
                 : 'bg-white/10 text-white/30 cursor-not-allowed',
             )}
           >
-            Import {includedCount} {includedCount === 1 ? 'Contact' : 'Contacts'}
+            {adminImporting
+              ? 'Importing...'
+              : isAdmin && selectedVolunteerId
+                ? `Import ${includedCount} for ${volunteers.find(v => v.id === selectedVolunteerId)?.name || 'volunteer'}`
+                : `Import ${includedCount} ${includedCount === 1 ? 'Contact' : 'Contacts'}`}
           </button>
         </div>
       </div>

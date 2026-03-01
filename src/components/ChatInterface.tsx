@@ -303,7 +303,7 @@ export default function ChatInterface() {
             placeholder="Type a message..."
             rows={1}
             disabled={isStreaming}
-            className="flex-1 glass-input rounded-2xl px-4 py-3 text-sm resize-none max-h-32 focus:ring-2 focus:ring-vc-purple/30 focus:border-vc-purple outline-none transition-all disabled:opacity-50"
+            className="flex-1 glass-input rounded-2xl px-4 py-3 text-base resize-none max-h-32 focus:ring-2 focus:ring-vc-purple/30 focus:border-vc-purple outline-none transition-all disabled:opacity-50"
             style={{ minHeight: '44px' }}
           />
           <button

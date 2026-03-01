@@ -108,6 +108,14 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
       }
 
       const data = await response.json()
+
+      // Stash volunteer name if OCR detected one (for admin data entry mode)
+      if (data.volunteerName) {
+        sessionStorage.setItem('scan-sheet-volunteer-name', data.volunteerName)
+      } else {
+        sessionStorage.removeItem('scan-sheet-volunteer-name')
+      }
+
       const extracted: ExtractedContact[] = (data.contacts || []).map(
         (c: { firstName: string; lastName: string; phone?: string; city?: string; address?: string; notes?: string; category?: string; supportStatus?: string; volunteerInterest?: string }) => ({
           firstName: c.firstName,
@@ -159,7 +167,7 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
       {/* Panel */}
       <div className="relative w-full max-w-lg md:h-auto max-h-[85dvh] flex flex-col overscroll-contain glass-card mx-0 md:mx-4 rounded-t-2xl md:rounded-b-2xl animate-slide-up">
         {/* Header */}
-        <div className="shrink-0 z-10 glass-dark flex items-center justify-between px-4 py-3 border-b border-white/10 rounded-t-2xl safe-top">
+        <div className="shrink-0 z-10 glass-dark flex items-center justify-between px-4 py-4 border-b border-white/10 rounded-t-2xl safe-top">
           <div>
             <h2 className="text-sm font-bold text-white">Scan Contact Sheet</h2>
             <p className="text-[10px] text-white/40">
