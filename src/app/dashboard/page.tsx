@@ -49,7 +49,7 @@ export default function DashboardPage() {
       {/* Header — glass bar */}
       <header className="glass-dark border-b border-white/10 sticky top-0 z-50">
         {/* Top bar */}
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 pb-2 md:pb-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 pb-3 md:pb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="hover:opacity-80 transition-opacity">
               <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-14 md:h-28 w-auto" priority />
