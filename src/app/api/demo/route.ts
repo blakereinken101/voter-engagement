@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendDemoLeadNotification } from '@/lib/email'
+import { sendDemoLeadNotification, sendDemoConfirmationToProspect } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
     }
 
-    await sendDemoLeadNotification({ name, email, organization, role, attendeeCount: attendeeCount || 'Just me', notes })
+    const leadData = { name, email, organization, role, attendeeCount: attendeeCount || 'Just me', notes }
+
+    // Send internal notification and confirmation to prospect in parallel
+    await Promise.all([
+      sendDemoLeadNotification(leadData),
+      sendDemoConfirmationToProspect(leadData),
+    ])
 
     return NextResponse.json({ submitted: true })
   } catch (error) {

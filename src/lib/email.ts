@@ -175,6 +175,51 @@ export async function sendDemoLeadNotification(data: DemoLeadData): Promise<void
   }
 }
 
+export async function sendDemoConfirmationToProspect(data: DemoLeadData): Promise<void> {
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const calLink = process.env.NEXT_PUBLIC_CAL_LINK
+  const appUrl = getAppUrl()
+  const demoUrl = calLink ? `https://cal.com/${calLink}` : `${appUrl}/demo`
+  const firstName = data.name.split(' ')[0]
+
+  const { error } = await getResend().emails.send({
+    from: `Blake from Threshold <${FROM_EMAIL}>`,
+    to: data.email,
+    cc: 'info@thresholdvote.com',
+    replyTo: 'info@thresholdvote.com',
+    subject: `Thanks for your interest in Threshold, ${firstName}!`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 40px 20px;">
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">Hi ${escapeHtml(firstName)},</p>
+
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">Thanks so much for reaching out about Threshold! I'd love to show you what we've built and how it can help ${data.organization ? escapeHtml(data.organization) : 'your campaign'}.</p>
+
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">If you haven't already, go ahead and grab a time that works for you:</p>
+
+        <div style="text-align: center; margin-bottom: 28px;">
+          <a href="${demoUrl}" style="display: inline-block; background: #7c3aed; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Book Your Demo</a>
+        </div>
+
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">The demo is about 30 minutes — I'll walk you through the platform and answer any questions you have. No pressure, just a conversation about what you're working on and whether Threshold is a good fit.</p>
+
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 4px;">Looking forward to it,</p>
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 0;">Blake</p>
+
+        <div style="border-top: 1px solid #eee; margin-top: 32px; padding-top: 16px;">
+          <p style="color: #999; font-size: 13px; margin: 0 0 2px; font-weight: 600;">Blake Reinken</p>
+          <p style="color: #999; font-size: 13px; margin: 0 0 2px;">Threshold</p>
+          <p style="color: #999; font-size: 13px; margin: 0;"><a href="mailto:info@thresholdvote.com" style="color: #7c3aed; text-decoration: none;">info@thresholdvote.com</a></p>
+        </div>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send demo confirmation to prospect:', error)
+    // Don't throw — the internal notification already succeeded, this is a nice-to-have
+  }
+}
+
 // ── Campaign Invitation Email ────────────────────────────────────
 
 interface InvitationEmailData {

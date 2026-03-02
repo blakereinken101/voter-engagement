@@ -184,7 +184,6 @@ export default function DemoPage() {
                 calLink={CAL_LINK}
                 config={{
                   theme: 'dark' as const,
-                  styles: { branding: { brandColor: '#6C3CE1' } },
                   name: formData.name,
                   email: formData.email,
                   notes: `Role: ${formData.role}\nOrganization: ${formData.organization || 'N/A'}\nAttendees: ${formData.attendeeCount}${formData.notes ? `\nNotes: ${formData.notes}` : ''}`,

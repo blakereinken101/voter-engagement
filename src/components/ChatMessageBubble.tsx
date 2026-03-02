@@ -26,6 +26,7 @@ function ToolResultChip({ name, result }: { name: string; result: Record<string,
     get_contact_details: 'Looked up contact',
     get_contacts_summary: 'Checked summary',
     update_match_status: result.status === 'confirmed' ? 'Voter file match confirmed' : 'Voter file match rejected',
+    set_workflow_mode: 'Set Workflow Mode',
   }
 
   // Different colors for different actions
