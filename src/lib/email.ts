@@ -181,6 +181,7 @@ export async function sendDemoConfirmationToProspect(data: DemoLeadData): Promis
   const demoUrl = `https://cal.com/${calLink}`
   const firstName = data.name.split(' ')[0]
 
+  const appUrl = getAppUrl()
   const { error } = await getResend().emails.send({
     from: `Blake from Threshold <${FROM_EMAIL}>`,
     to: data.email,
@@ -189,6 +190,8 @@ export async function sendDemoConfirmationToProspect(data: DemoLeadData): Promis
     subject: `Thanks for your interest in Threshold, ${firstName}!`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 40px 20px;">
+        ${buildEmailHeader()}
+
         <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">Hi ${escapeHtml(firstName)},</p>
 
         <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">Thanks so much for reaching out about Threshold! I'd love to show you what we've built and how it can help ${data.organization ? escapeHtml(data.organization) : 'your campaign'}.</p>
@@ -201,7 +204,7 @@ export async function sendDemoConfirmationToProspect(data: DemoLeadData): Promis
 
         <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">The demo is about 30 minutes — I'll walk you through the platform and answer any questions you have.</p>
 
-        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 4px;">Looking forward to it,</p>
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 4px;">Sincerely,</p>
         <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 0;">Blake</p>
 
         <div style="border-top: 1px solid #eee; margin-top: 32px; padding-top: 16px;">

@@ -9,10 +9,11 @@ import {
   BarChart3, Building2, Users, CreditCard, Loader2, Search,
   Plus, Check, X, Shield, ShieldOff, Database, Upload, Trash2,
   ChevronDown, ChevronRight, Link as LinkIcon, MessageSquare, Calendar, UserPlus,
-  Settings, RotateCcw, FileText, ExternalLink, Megaphone, Pencil,
+  Settings, RotateCcw, FileText, ExternalLink, Megaphone, Pencil, Mail,
 } from 'lucide-react'
+import DemoOutreach from '@/components/admin/DemoOutreach'
 
-type PlatformTab = 'overview' | 'organizations' | 'campaigns' | 'users' | 'subscriptions' | 'voter-data' | 'settings'
+type PlatformTab = 'overview' | 'organizations' | 'campaigns' | 'users' | 'subscriptions' | 'voter-data' | 'settings' | 'outreach'
 
 const TABS: { id: PlatformTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'overview', label: 'Overview', Icon: BarChart3 },
@@ -22,6 +23,7 @@ const TABS: { id: PlatformTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'subscriptions', label: 'Subscriptions', Icon: CreditCard },
   { id: 'voter-data', label: 'Voter Data', Icon: Database },
   { id: 'settings', label: 'Settings', Icon: Settings },
+  { id: 'outreach', label: 'Outreach', Icon: Mail },
 ]
 
 // ========== OVERVIEW ==========
@@ -2987,6 +2989,7 @@ export default function PlatformPage() {
         {activeTab === 'subscriptions' && <SubscriptionsTab />}
         {activeTab === 'voter-data' && <VoterDataTab />}
         {activeTab === 'settings' && <SettingsTab />}
+        {activeTab === 'outreach' && <DemoOutreach />}
       </div>
     </div>
   )

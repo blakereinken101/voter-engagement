@@ -13,8 +13,7 @@ import TeamManagement from './TeamManagement'
 import AICampaignContext from './AICampaignContext'
 import VanIntegration from './VanIntegration'
 import PetitionDashboard from './PetitionDashboard'
-import DemoOutreach from './DemoOutreach'
-import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Sparkles, Link2, FileSignature, Mail } from 'lucide-react'
+import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Sparkles, Link2, FileSignature } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
@@ -29,7 +28,6 @@ const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'ai-context', label: 'AI Coach', Icon: Sparkles },
   { id: 'van', label: 'VAN', Icon: Link2 },
   { id: 'petitions', label: 'Petitions', Icon: FileSignature },
-  { id: 'outreach', label: 'Outreach', Icon: Mail },
 ]
 
 export default function AdminPanel() {
@@ -69,7 +67,6 @@ export default function AdminPanel() {
         {activeTab === 'ai-context' && <AICampaignContext />}
         {activeTab === 'van' && <VanIntegration />}
         {activeTab === 'petitions' && <PetitionDashboard />}
-        {activeTab === 'outreach' && <DemoOutreach />}
       </div>
     </div>
   )

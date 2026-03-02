@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRequestContext, requireCampaignAdmin, handleAuthError } from '@/lib/auth'
+import { getRequestContext, handleAuthError, AuthError } from '@/lib/auth'
 import { sendDemoConfirmationToProspect } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
     const ctx = await getRequestContext()
-    requireCampaignAdmin(ctx)
+    if (!ctx.isPlatformAdmin) {
+      throw new AuthError('Platform admin access required', 403)
+    }
 
     const body = await request.json()
     const { name, email, organization } = body
