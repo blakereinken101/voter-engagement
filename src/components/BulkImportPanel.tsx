@@ -12,7 +12,7 @@ const PERSON_FIELDS = [
   { key: 'city', label: 'City' },
   { key: 'zip', label: 'Zip' },
   { key: 'phone', label: 'Phone' },
-  { key: 'age', label: 'Age' },
+  { key: 'age', label: 'Est. Age' },
   { key: 'address', label: 'Address' },
   { key: 'gender', label: 'Gender' },
 ] as const

@@ -400,8 +400,11 @@ export default function AICampaignContext() {
       {/* Custom Survey Questions */}
       <div>
         <label className={labelClass}>
-          Custom Survey Questions <span className={sublabelClass}>(asked during voter conversations)</span>
+          Custom Survey Questions
         </label>
+        <p className="text-xs text-white/40 mb-3 -mt-1">
+          Add questions for volunteers to ask during voter outreach. These appear in both AI chat mode and the manual rolodex. Responses are tracked per contact and included in data exports.
+        </p>
         <div className="space-y-3">
           {customSurveyQuestions.map(q => (
             <div key={q.id} className="flex items-start gap-2">

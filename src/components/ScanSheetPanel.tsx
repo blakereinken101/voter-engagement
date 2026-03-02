@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { compressImage } from '@/lib/image-compress'
 import { Camera, Upload, X, Loader2, FileSignature } from 'lucide-react'
@@ -57,6 +57,8 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
   const { isAdmin } = useAuth()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const uploadInputRef = useRef<HTMLInputElement>(null)
+
+  const isMobile = useMemo(() => typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent), [])
 
   const [panelState, setPanelState] = useState<PanelState>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -266,16 +268,18 @@ export default function ScanSheetPanel({ onClose }: ScanSheetPanelProps) {
                   : 'Photograph a handwritten contact sheet and AI will extract the names and details for you.'}
               </p>
 
-              <div className="grid grid-cols-2 gap-3">
-                {/* Camera button */}
-                <button
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="flex flex-col items-center gap-2 p-4 glass-card hover:border-vc-purple/40 transition-all group"
-                >
-                  <Camera className="w-8 h-8 text-vc-purple-light group-hover:scale-110 transition-transform" />
-                  <span className="text-xs font-bold text-white/70">Take Photo</span>
-                  <span className="text-[10px] text-white/40">Opens camera</span>
-                </button>
+              <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
+                {/* Camera button — only on mobile where capture="environment" opens the camera */}
+                {isMobile && (
+                  <button
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="flex flex-col items-center gap-2 p-4 glass-card hover:border-vc-purple/40 transition-all group"
+                  >
+                    <Camera className="w-8 h-8 text-vc-purple-light group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-bold text-white/70">Take Photo</span>
+                    <span className="text-[10px] text-white/40">Opens camera</span>
+                  </button>
+                )}
 
                 {/* Upload button */}
                 <button

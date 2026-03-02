@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { SpreadsheetRow, OutreachMethod, ContactOutcome, SafeVoterRecord } from '@/types'
 import { CATEGORIES } from '@/lib/wizard-config'
 import { generateSmsLinkForContact } from '@/lib/sms-templates'
@@ -43,6 +43,12 @@ export default function ContactCard({
   const { person, matchResult, actionItem } = row
   const { user, campaignConfig: authConfig } = useAuth()
   const campaignConfig = authConfig || defaultCampaignConfig
+  const allSurveyQuestions = useMemo(() => {
+    const custom = (campaignConfig.aiContext?.customSurveyQuestions || []).map(q => ({
+      id: q.id, label: q.question, type: q.type, options: q.options,
+    }))
+    return [...campaignConfig.surveyQuestions, ...custom]
+  }, [campaignConfig])
   const [localNotes, setLocalNotes] = useState(actionItem?.notes ?? '')
   const [showCandidates, setShowCandidates] = useState(false)
   const [regLinkSent, setRegLinkSent] = useState(false)
@@ -323,14 +329,14 @@ export default function ContactCard({
       )}
 
       {/* Survey questions — show after outcome is recorded */}
-      {contacted && outcomeValid && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && campaignConfig.surveyQuestions.length > 0 && (
+      {contacted && outcomeValid && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && allSurveyQuestions.length > 0 && (
         <div className="mb-3 space-y-2">
           <p className="text-[10px] font-bold text-white/60 uppercase tracking-wider flex items-center gap-1">
             <ClipboardList className="w-3 h-3" />
             Quick survey
           </p>
           <div className="flex flex-wrap gap-2">
-            {campaignConfig.surveyQuestions.map(q => (
+            {allSurveyQuestions.map(q => (
               <div key={q.id} className="flex-1 min-w-[120px]">
                 <label className="text-[10px] text-white/50 block mb-0.5">{q.label}</label>
                 {q.type === 'select' && q.options ? (

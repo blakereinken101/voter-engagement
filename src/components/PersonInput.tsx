@@ -178,7 +178,7 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
       <div className="grid grid-cols-5 gap-2">
         <input
           type="number"
-          placeholder="Age"
+          placeholder="Est. Age"
           value={age}
           onChange={e => setAge(e.target.value)}
           className="glass-input w-full p-2.5 rounded-btn text-sm focus:outline-none focus:ring-2 focus:ring-vc-purple/30"
@@ -223,7 +223,7 @@ export default function PersonInput({ category, mode, person }: PersonInputProps
 
       {mode === 'add' && (
         <p className="text-[11px] text-white/40 mt-2">
-          The more details you provide, the better we can match. Address and age help the most.
+          The more details you provide, the better we can match. Address and estimated age help the most.
         </p>
       )}
     </form>

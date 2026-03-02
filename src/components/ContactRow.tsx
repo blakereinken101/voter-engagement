@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { SpreadsheetRow, OutreachMethod, ContactOutcome, SafeVoterRecord } from '@/types'
 import { CATEGORIES } from '@/lib/wizard-config'
 import { getVoteHistoryDetail } from '@/lib/voter-segments'
@@ -78,6 +78,12 @@ export default function ContactRow({
   const { person, matchResult, actionItem } = row
   const { user, campaignConfig: authConfig } = useAuth()
   const campaignConfig = authConfig || defaultCampaignConfig
+  const allSurveyQuestions = useMemo(() => {
+    const custom = (campaignConfig.aiContext?.customSurveyQuestions || []).map(q => ({
+      id: q.id, label: q.question, type: q.type, options: q.options,
+    }))
+    return [...campaignConfig.surveyQuestions, ...custom]
+  }, [campaignConfig])
   const [expanded, setExpanded] = useState(false)
   const [showCandidates, setShowCandidates] = useState(false)
   const [localNotes, setLocalNotes] = useState(actionItem?.notes ?? '')
@@ -423,11 +429,11 @@ export default function ContactRow({
               )}
 
               {/* Survey questions */}
-              {contacted && outcomeValid && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && campaignConfig.surveyQuestions.length > 0 && (
+              {contacted && outcomeValid && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && allSurveyQuestions.length > 0 && (
                 <div>
                   <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Survey</p>
                   <div className="space-y-1.5">
-                    {campaignConfig.surveyQuestions.map(q => (
+                    {allSurveyQuestions.map(q => (
                       <div key={q.id}>
                         <label className="text-[10px] text-white/50 block mb-0.5">{q.label}</label>
                         {q.type === 'select' && q.options ? (

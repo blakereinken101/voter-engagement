@@ -121,7 +121,7 @@ export default function InlineAddRow() {
         />
         <input
           type="number"
-          placeholder="Age *"
+          placeholder="Est. Age *"
           value={age}
           onChange={e => { setAge(e.target.value); setErrors(prev => ({ ...prev, age: false })) }}
           className={clsx(
@@ -160,7 +160,7 @@ export default function InlineAddRow() {
           {errors.firstName && !errors.lastName && !errors.city && !errors.age ? 'First name is required' :
            !errors.firstName && errors.lastName && !errors.city && !errors.age ? 'Last name is required' :
            !errors.firstName && !errors.lastName && errors.city && !errors.age ? 'City is required' :
-           !errors.firstName && !errors.lastName && !errors.city && errors.age ? 'Age is required (18–120)' :
+           !errors.firstName && !errors.lastName && !errors.city && errors.age ? 'Est. age is required (18–120)' :
            'Please fill in all required fields: first name, last name, city, and age'}
         </p>
       )}

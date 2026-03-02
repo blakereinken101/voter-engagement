@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       SELECT c.*, u.name as volunteer_name,
              mr.status as match_status, mr.best_match_data, mr.vote_score, mr.segment,
              ai.contacted, ai.contacted_date, ai.outreach_method, ai.contact_outcome, ai.notes,
-             ai.is_volunteer_prospect, ai.volunteer_interest
+             ai.is_volunteer_prospect, ai.volunteer_interest, ai.survey_responses
       FROM contacts c
       JOIN users u ON u.id = c.user_id
       LEFT JOIN match_results mr ON mr.contact_id = c.id
@@ -41,13 +41,23 @@ export async function GET(request: NextRequest) {
       LIMIT 50000
     `, params)
 
-    const headers = ['Volunteer','First Name','Last Name','Phone','Category','City','Zip','Match Status','Party','Vote Score','Segment','Outreach Method','Outcome','Notes','Volunteer Prospect','Contact Date','Created']
+    const headers = ['Volunteer','First Name','Last Name','Phone','Category','City','Zip','Match Status','Party','Vote Score','Segment','Outreach Method','Outcome','Notes','Volunteer Prospect','Survey Responses','Contact Date','Created']
     const csvLines = [headers.join(',')]
 
     for (const r of rows) {
       let party = ''
       if (r.best_match_data) {
         try { party = JSON.parse(r.best_match_data as string).party_affiliation || '' } catch {}
+      }
+      let surveyText = ''
+      if (r.survey_responses) {
+        try {
+          const parsed = JSON.parse(r.survey_responses as string)
+          surveyText = Object.entries(parsed)
+            .filter(([, v]) => v)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join('; ')
+        } catch {}
       }
       csvLines.push([
         escapeCSV(r.volunteer_name as string),
@@ -65,6 +75,7 @@ export async function GET(request: NextRequest) {
         escapeCSV(r.contact_outcome as string),
         escapeCSV(r.notes as string),
         r.volunteer_interest === 'yes' ? 'Yes' : r.volunteer_interest === 'maybe' ? 'Maybe' : '',
+        escapeCSV(surveyText),
         escapeCSV(r.contacted_date as string),
         escapeCSV(r.created_at as string),
       ].join(','))

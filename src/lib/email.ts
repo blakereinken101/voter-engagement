@@ -148,7 +148,7 @@ export async function sendInvitationEmail(data: InvitationEmailData): Promise<vo
         <h2 style="color: #1a1a2e; margin: 0 0 16px; text-align: center;">You've been invited!</h2>
         <p style="color: #666; margin: 0 0 24px; font-size: 16px; line-height: 1.5;">
           <strong>${escapeHtml(data.inviterName)}</strong> has invited you to join the
-          <strong>${escapeHtml(data.campaignName)}</strong> campaign on Threshold as a ${escapeHtml(roleLabel)}.
+          <strong>${escapeHtml(data.campaignName)}</strong> on Threshold as a ${escapeHtml(roleLabel)}.
         </p>
 
         <div style="background: #f5f5ff; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
