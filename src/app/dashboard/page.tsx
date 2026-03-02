@@ -68,15 +68,16 @@ export default function DashboardPage() {
             )}
           </div>
           {user && (
-            <div className="flex items-center gap-3">
-              <div className="text-right max-w-[200px] sm:max-w-[280px]">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="min-w-0 text-right">
                 <p className="text-sm font-bold text-white leading-tight truncate">{user.name || 'Volunteer'}</p>
                 {memberships.length > 1 ? (
-                  <div className="relative inline-flex items-center max-w-full">
+                  <div className="relative">
                     <select
                       value={activeMembership?.campaignId || ''}
                       onChange={e => switchCampaign(e.target.value)}
-                      className="appearance-none text-xs text-vc-purple-light bg-transparent border-none p-0 pr-4 cursor-pointer leading-tight focus:outline-none focus:ring-0 max-w-full truncate"
+                      className="appearance-none text-xs text-vc-purple-light bg-transparent border-none p-0 pr-4 cursor-pointer leading-tight focus:outline-none focus:ring-0 w-full text-right"
+                      style={{ maxWidth: '100%' }}
                     >
                       {memberships.map(m => (
                         <option key={m.campaignId} value={m.campaignId} className="bg-vc-bg text-white">
@@ -84,18 +85,18 @@ export default function DashboardPage() {
                         </option>
                       ))}
                     </select>
-                    <ChevronsUpDown className="w-3 h-3 text-vc-purple-light/60 absolute right-0 pointer-events-none" />
+                    <ChevronsUpDown className="w-3 h-3 text-vc-purple-light/60 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
                   </div>
                 ) : (
                   <p className="text-xs text-vc-purple-light leading-tight truncate">{campaignConfig.name}</p>
                 )}
               </div>
-              <div className="w-9 h-9 rounded-full bg-vc-purple/30 ring-2 ring-vc-purple/50 flex items-center justify-center text-sm font-bold text-white">
+              <div className="w-9 h-9 flex-shrink-0 rounded-full bg-vc-purple/30 ring-2 ring-vc-purple/50 flex items-center justify-center text-sm font-bold text-white">
                 {userInitials}
               </div>
               <button
                 onClick={() => signOut()}
-                className="text-white/30 hover:text-white/60 transition-colors p-1.5"
+                className="flex-shrink-0 text-white/30 hover:text-white/60 transition-colors p-1.5"
                 title="Sign out"
               >
                 <LogOut className="w-4 h-4" />
