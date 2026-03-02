@@ -130,23 +130,45 @@ export async function POST(
           })))
         }
 
-        if (result.status === 'confirmed' || (result.bestMatch && result.candidates.length > 0 && result.candidates[0].score >= 0.70)) {
-          matchStatus = 'matched'
+        // Determine match status using algorithmic score + AI confidence
+        const topCandidate = result.candidates[0]
+        const score = topCandidate?.score || 0
+        const aiConf = topCandidate?.aiConfidence // undefined if AI didn't run
+
+        if (result.status === 'confirmed' || score >= 0.70) {
+          // High algorithmic confidence — AI can downgrade
+          if (aiConf === 'unlikely-match') {
+            matchStatus = 'ambiguous'
+          } else {
+            matchStatus = 'matched'
+          }
           matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
-          matchScore = result.candidates[0]?.score || null
+          matchScore = score || null
           matchedCount++
-        } else if (result.candidates.length > 0 && result.candidates[0].score >= 0.55) {
+        } else if (score >= 0.55) {
+          // Medium algorithmic confidence — AI can upgrade or downgrade
+          if (aiConf === 'likely-match') {
+            matchStatus = 'matched'
+          } else if (aiConf === 'unlikely-match') {
+            matchStatus = 'unmatched'
+          } else {
+            matchStatus = 'ambiguous'
+          }
+          matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
+          matchScore = score || null
+          if (matchStatus !== 'unmatched') matchedCount++
+        } else if (aiConf === 'likely-match') {
+          // Low algorithmic score but AI says likely — upgrade to ambiguous
           matchStatus = 'ambiguous'
           matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
-          matchScore = result.candidates[0]?.score || null
-          // Count ambiguous as partial match for validity
+          matchScore = score || null
           matchedCount++
         } else {
           matchStatus = 'unmatched'
           // Still store best match data for "best guess" display
           if (result.bestMatch) {
             matchData = JSON.stringify(result.bestMatch)
-            matchScore = result.candidates[0]?.score || null
+            matchScore = score || null
           }
         }
 
