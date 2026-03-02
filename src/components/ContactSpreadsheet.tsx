@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAppContext } from '@/context/AppContext'
 import { SpreadsheetRow, SortField, SortDirection, SegmentFilter, OutcomeFilter, IntakeMode } from '@/types'
 import InlineAddRow from './InlineAddRow'
@@ -82,6 +82,17 @@ export default function ContactSpreadsheet() {
   const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>('all')
   const [outcomeFilter, setOutcomeFilter] = useState<OutcomeFilter>('all')
   const [search, setSearch] = useState('')
+  const [eventRsvps, setEventRsvps] = useState<Record<string, Array<{ eventId: string; eventTitle: string; status: string; startTime: string }>>>({})
+
+  // Load event RSVPs (separate from AppContext to avoid modifying reducer)
+  useEffect(() => {
+    fetch('/api/contacts')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.eventRsvps) setEventRsvps(data.eventRsvps)
+      })
+      .catch(() => { /* non-fatal */ })
+  }, [state.personEntries.length])
 
   // Build unified rows
   const rows: SpreadsheetRow[] = useMemo(() => {
@@ -275,9 +286,6 @@ export default function ContactSpreadsheet() {
                 <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('matchStatus')}>
                   Match{sortIndicator('matchStatus')}
                 </th>
-                <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors text-center" onClick={() => handleSort('voteScore')}>
-                  Vote %{sortIndicator('voteScore')}
-                </th>
                 <th className="py-2 px-2">Outreach</th>
                 <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('outcome')}>
                   Outcome{sortIndicator('outcome')}
@@ -291,6 +299,7 @@ export default function ContactSpreadsheet() {
                   key={row.person.id}
                   row={row}
                   index={i}
+                  eventRsvps={eventRsvps[row.person.id]}
                   onToggleContacted={toggleContacted}
                   onOutcomeSelect={setContactOutcome}
                   onRecontact={clearContact}
@@ -314,6 +323,7 @@ export default function ContactSpreadsheet() {
             <ContactCard
               key={row.person.id}
               row={row}
+              eventRsvps={eventRsvps[row.person.id]}
               onToggleContacted={toggleContacted}
               onOutcomeSelect={setContactOutcome}
               onRecontact={clearContact}

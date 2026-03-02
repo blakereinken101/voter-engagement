@@ -75,7 +75,34 @@ export async function GET() {
         }
       })
 
-    return NextResponse.json({ personEntries, matchResults, actionPlanState })
+    // Batch-load upcoming event RSVPs for all contacts (separate query — no change to main query)
+    const contactIds = contacts.map(r => r.id)
+    const eventRsvps: Record<string, Array<{ eventId: string; eventTitle: string; status: string; startTime: string }>> = {}
+    if (contactIds.length > 0) {
+      try {
+        const { rows: rsvpRows } = await db.query(`
+          SELECT cer.contact_id, cer.event_id, cer.status, e.title, e.start_time
+          FROM contact_event_rsvps cer
+          JOIN events e ON e.id = cer.event_id
+          WHERE cer.contact_id = ANY($1) AND e.start_time > NOW()
+          ORDER BY e.start_time ASC
+        `, [contactIds])
+        for (const r of rsvpRows) {
+          if (!eventRsvps[r.contact_id]) eventRsvps[r.contact_id] = []
+          eventRsvps[r.contact_id].push({
+            eventId: r.event_id,
+            eventTitle: r.title,
+            status: r.status,
+            startTime: r.start_time,
+          })
+        }
+      } catch (err) {
+        // Non-fatal: event RSVP loading shouldn't break contacts
+        console.error('[contacts GET] Event RSVP load error (non-fatal):', err)
+      }
+    }
+
+    return NextResponse.json({ personEntries, matchResults, actionPlanState, eventRsvps })
   } catch (error) {
     if (error instanceof AuthError) {
       const { error: msg, status } = handleAuthError(error)

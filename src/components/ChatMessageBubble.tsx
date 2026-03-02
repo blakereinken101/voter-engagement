@@ -1,6 +1,6 @@
 'use client'
 
-import { UserPlus, Search, MessageCircle, CheckCircle, ShieldCheck, ShieldX } from 'lucide-react'
+import { UserPlus, Search, MessageCircle, CheckCircle, ShieldCheck, ShieldX, CalendarCheck, Calendar } from 'lucide-react'
 import type { ChatMessage } from '@/types'
 
 function ToolResultChip({ name, result }: { name: string; result: Record<string, unknown> }) {
@@ -12,6 +12,8 @@ function ToolResultChip({ name, result }: { name: string; result: Record<string,
     update_match_status: result.status === 'confirmed'
       ? <ShieldCheck className="w-3 h-3" />
       : <ShieldX className="w-3 h-3" />,
+    record_event_rsvp: <CalendarCheck className="w-3 h-3" />,
+    get_upcoming_events: <Calendar className="w-3 h-3" />,
   }
 
   const labels: Record<string, string> = {
@@ -27,6 +29,10 @@ function ToolResultChip({ name, result }: { name: string; result: Record<string,
     get_contacts_summary: 'Checked summary',
     update_match_status: result.status === 'confirmed' ? 'Voter file match confirmed' : 'Voter file match rejected',
     set_workflow_mode: 'Set Workflow Mode',
+    record_event_rsvp: result.eventTitle
+      ? `${result.status === 'yes' ? 'Yes' : result.status === 'maybe' ? 'Maybe' : 'No'} for ${result.eventTitle}`
+      : 'Recorded event RSVP',
+    get_upcoming_events: 'Checked events',
   }
 
   // Different colors for different actions
@@ -40,6 +46,12 @@ function ToolResultChip({ name, result }: { name: string; result: Record<string,
     update_match_status: result.status === 'confirmed'
       ? 'bg-green-500/20 text-green-300'
       : 'bg-red-500/20 text-red-300',
+    record_event_rsvp: result.status === 'yes'
+      ? 'bg-vc-teal/20 text-vc-teal'
+      : result.status === 'maybe'
+      ? 'bg-amber-500/20 text-amber-300'
+      : 'bg-white/10 text-white/60',
+    get_upcoming_events: 'bg-white/10 text-white/60',
   }
 
   return (

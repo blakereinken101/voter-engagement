@@ -25,6 +25,7 @@ const OUTCOME_CONFIG: Record<ContactOutcome, { label: string; Icon: typeof Thumb
 
 interface Props {
   row: SpreadsheetRow
+  eventRsvps?: Array<{ eventId: string; eventTitle: string; status: string; startTime: string }>
   onToggleContacted: (personId: string, method: OutreachMethod) => void
   onOutcomeSelect: (personId: string, outcome: ContactOutcome) => void
   onRecontact: (personId: string) => void
@@ -37,7 +38,7 @@ interface Props {
 }
 
 export default function ContactCard({
-  row, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
+  row, eventRsvps, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
   onRemove, onConfirmMatch, onRejectMatch, onVolunteerInterest, onSurveyChange,
 }: Props) {
   const { person, matchResult, actionItem } = row
@@ -368,6 +369,25 @@ export default function ContactCard({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Event RSVPs */}
+      {eventRsvps && eventRsvps.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {eventRsvps.map(r => {
+            const date = new Date(r.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            const statusColor = r.status === 'yes'
+              ? 'bg-vc-teal/20 text-vc-teal'
+              : r.status === 'maybe'
+              ? 'bg-amber-500/20 text-amber-300'
+              : 'bg-white/10 text-white/40'
+            return (
+              <span key={r.eventId} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColor}`}>
+                {r.eventTitle} {date}: {r.status.toUpperCase()}
+              </span>
+            )
+          })}
         </div>
       )}
 

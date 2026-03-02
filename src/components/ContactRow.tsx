@@ -60,6 +60,7 @@ const OUTCOME_CONFIG: Record<ContactOutcome, { label: string; Icon: typeof Messa
 interface Props {
   row: SpreadsheetRow
   index: number
+  eventRsvps?: Array<{ eventId: string; eventTitle: string; status: string; startTime: string }>
   onToggleContacted: (personId: string, method: OutreachMethod) => void
   onOutcomeSelect: (personId: string, outcome: ContactOutcome) => void
   onRecontact: (personId: string) => void
@@ -72,7 +73,7 @@ interface Props {
 }
 
 export default function ContactRow({
-  row, index, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
+  row, index, eventRsvps, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
   onRemove, onConfirmMatch, onRejectMatch, onVolunteerInterest, onSurveyChange,
 }: Props) {
   const { person, matchResult, actionItem } = row
@@ -233,17 +234,6 @@ export default function ContactRow({
           )}
         </td>
 
-        {/* Vote Score */}
-        <td className="py-2.5 px-2 text-center">
-          {voteScore !== undefined ? (
-            <span className={clsx('font-display font-bold text-sm', segmentColor)}>
-              {Math.round(voteScore * 100)}%
-            </span>
-          ) : (
-            <span className="text-xs text-white/40">—</span>
-          )}
-        </td>
-
         {/* Outreach */}
         <td className="py-2.5 px-2">
           {!contacted ? (
@@ -372,7 +362,7 @@ export default function ContactRow({
       {/* Expanded details */}
       {expanded && (
         <tr className="border-b border-white/15 glass transition-all duration-200">
-          <td colSpan={8} className="px-3 py-3">
+          <td colSpan={7} className="px-3 py-3">
             <div className="flex flex-wrap gap-6 text-xs animate-fade-in">
               {/* Person details */}
               <div className="space-y-1">
@@ -464,6 +454,28 @@ export default function ContactRow({
                         )}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Event RSVPs */}
+              {eventRsvps && eventRsvps.length > 0 && (
+                <div>
+                  <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Event RSVPs</p>
+                  <div className="flex flex-wrap gap-1">
+                    {eventRsvps.map(r => {
+                      const date = new Date(r.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      const statusColor = r.status === 'yes'
+                        ? 'bg-vc-teal/20 text-vc-teal'
+                        : r.status === 'maybe'
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-white/10 text-white/40'
+                      return (
+                        <span key={r.eventId} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColor}`}>
+                          {r.eventTitle} {date}: {r.status.toUpperCase()}
+                        </span>
+                      )
+                    })}
                   </div>
                 </div>
               )}

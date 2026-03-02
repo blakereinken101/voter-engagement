@@ -150,6 +150,7 @@ export function buildSystemPrompt(
   volunteerWorkflowMode?: string | null,
   activeFundraiserTypeId?: string | null,
   upcomingFundraiserEvents?: { title: string; typeId: string; typeName: string }[],
+  upcomingEvents?: { id: string; title: string; eventType: string; startTime: string }[],
 ): string {
   const parts: string[] = []
 
@@ -305,6 +306,18 @@ Use this to:
 2. Know which categories they've already covered vs which are empty
 3. Ask about gaps: if they have household but no coworkers, ask about coworkers
 4. Reference specific people when coaching conversations: "What about reaching out to [name]?"`)
+  }
+
+  // Upcoming events — so AI can suggest inviting contacts and record RSVPs
+  if (upcomingEvents && upcomingEvents.length > 0) {
+    const eventList = upcomingEvents.map(e => {
+      const date = new Date(e.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      return `- "${e.title}" (${e.eventType}, ${date}) — ID: ${e.id}`
+    }).join('\n')
+    parts.push(`
+## Upcoming Events
+The campaign has these upcoming events. When the volunteer mentions inviting someone to an event, or says someone is coming or not coming, use the record_event_rsvp tool to track their response (yes/no/maybe). Use get_upcoming_events to look up events if needed.
+${eventList}`)
   }
 
   // Fundraising workflow branching
@@ -509,6 +522,37 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       required: ['mode'],
     },
   },
+  {
+    name: 'record_event_rsvp',
+    description: 'Record whether a contact said yes, no, or maybe to attending an event. Use this when the volunteer says someone can or cannot make it to an event.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contactId: { type: 'string', description: 'The ID of the contact' },
+        eventId: { type: 'string', description: 'The ID of the event' },
+        status: {
+          type: 'string',
+          enum: ['yes', 'no', 'maybe'],
+          description: 'Whether the contact said yes, no, or maybe',
+        },
+        notes: { type: 'string', description: 'Optional notes about their response' },
+      },
+      required: ['contactId', 'eventId', 'status'],
+    },
+  },
+  {
+    name: 'get_upcoming_events',
+    description: 'Get upcoming events for this campaign\'s organization. Use this to find events to invite contacts to or check event RSVPs.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        includeContactRsvps: {
+          type: 'boolean',
+          description: 'If true, also return the volunteer\'s contact RSVP counts per event',
+        },
+      },
+    },
+  },
 ]
 
 // =============================================
@@ -542,6 +586,10 @@ export async function executeTool(
       return executeUpdateMatchStatus(input, ctx)
     case 'set_workflow_mode':
       return executeSetWorkflowMode(input, ctx)
+    case 'record_event_rsvp':
+      return executeRecordEventRsvp(input, ctx)
+    case 'get_upcoming_events':
+      return executeGetUpcomingEvents(input, ctx)
     default:
       return { error: `Unknown tool: ${name}` }
   }
@@ -877,6 +925,22 @@ async function executeGetContactDetails(
     return { error: `No contact found matching "${input.contactName}"` }
   }
 
+  // Batch-load event RSVPs for matched contacts
+  const contactIds = rows.map(r => r.id)
+  const { rows: rsvpRows } = await db.query(`
+    SELECT cer.contact_id, cer.status, e.title, e.start_time
+    FROM contact_event_rsvps cer
+    JOIN events e ON e.id = cer.event_id
+    WHERE cer.contact_id = ANY($1)
+    ORDER BY e.start_time ASC
+  `, [contactIds])
+
+  const rsvpsByContact = new Map<string, Array<{ eventTitle: string; status: string; startTime: string }>>()
+  for (const r of rsvpRows) {
+    if (!rsvpsByContact.has(r.contact_id)) rsvpsByContact.set(r.contact_id, [])
+    rsvpsByContact.get(r.contact_id)!.push({ eventTitle: r.title, status: r.status, startTime: r.start_time })
+  }
+
   const contacts = rows.map(row => ({
     contactId: row.id,
     name: `${row.first_name} ${row.last_name}`,
@@ -891,6 +955,7 @@ async function executeGetContactDetails(
     method: row.outreach_method || null,
     notes: row.notes || null,
     surveyResponses: row.survey_responses ? JSON.parse(row.survey_responses) : null,
+    eventRsvps: rsvpsByContact.get(row.id) || [],
   }))
 
   return contacts.length === 1 ? contacts[0] : { matches: contacts }
@@ -999,6 +1064,110 @@ async function executeSetWorkflowMode(
   return { success: true, mode, fundraiserTypeId: input.fundraiserTypeId || null }
 }
 
+async function executeRecordEventRsvp(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<Record<string, unknown>> {
+  const db = await getDb()
+  const contactId = input.contactId as string
+  const eventId = input.eventId as string
+  const status = input.status as string
+  const notes = typeof input.notes === 'string' ? input.notes.replace(/<[^>]*>/g, '').slice(0, 500) : null
+
+  if (!contactId || !eventId || !['yes', 'no', 'maybe'].includes(status)) {
+    return { error: 'contactId, eventId, and valid status (yes/no/maybe) are required' }
+  }
+
+  // Verify contact ownership
+  const { rows: contactRows } = await db.query(
+    'SELECT id FROM contacts WHERE id = $1 AND user_id = $2 AND campaign_id = $3',
+    [contactId, ctx.userId, ctx.campaignId],
+  )
+  if (!contactRows[0]) return { error: 'Contact not found' }
+
+  // Verify event belongs to same org as contact's campaign
+  const { rows: eventRows } = await db.query(`
+    SELECT e.id, e.title FROM events e
+    JOIN campaigns c ON c.org_id = e.organization_id
+    WHERE e.id = $1 AND c.id = $2
+  `, [eventId, ctx.campaignId])
+  if (!eventRows[0]) return { error: 'Event not found for this campaign' }
+
+  const id = crypto.randomUUID()
+  await db.query(`
+    INSERT INTO contact_event_rsvps (id, contact_id, event_id, status, notes, recorded_by)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (contact_id, event_id) DO UPDATE SET
+      status = EXCLUDED.status, notes = EXCLUDED.notes, updated_at = NOW()
+  `, [id, contactId, eventId, status, notes, ctx.userId])
+
+  await logActivity(ctx.userId, 'record_event_rsvp', { contactId, eventId, status, source: 'ai_chat' }, ctx.campaignId)
+
+  return {
+    success: true,
+    contactId,
+    eventId,
+    eventTitle: eventRows[0].title,
+    status,
+  }
+}
+
+async function executeGetUpcomingEvents(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<Record<string, unknown>> {
+  const db = await getDb()
+  const includeRsvps = !!input.includeContactRsvps
+
+  const { rows: events } = await db.query(`
+    SELECT e.id, e.title, e.event_type, e.start_time, e.location_name,
+           e.location_city, e.is_virtual
+    FROM events e
+    JOIN campaigns c ON c.org_id = e.organization_id
+    WHERE c.id = $1 AND e.status = 'published' AND e.start_time > NOW()
+    ORDER BY e.start_time ASC
+    LIMIT 10
+  `, [ctx.campaignId])
+
+  if (events.length === 0) {
+    return { events: [], message: 'No upcoming events found.' }
+  }
+
+  let result = events.map((e: Record<string, unknown>) => ({
+    eventId: e.id,
+    title: e.title,
+    type: e.event_type,
+    startTime: e.start_time,
+    location: e.is_virtual ? 'Virtual' : ((e.location_city || e.location_name || 'TBD') as string),
+  }))
+
+  if (includeRsvps) {
+    const eventIds = events.map((e: Record<string, unknown>) => e.id)
+    const { rows: rsvpCounts } = await db.query(`
+      SELECT cer.event_id,
+             COUNT(*) FILTER (WHERE cer.status = 'yes') as yes_count,
+             COUNT(*) FILTER (WHERE cer.status = 'no') as no_count,
+             COUNT(*) FILTER (WHERE cer.status = 'maybe') as maybe_count
+      FROM contact_event_rsvps cer
+      JOIN contacts c ON c.id = cer.contact_id
+      WHERE c.user_id = $1 AND c.campaign_id = $2
+        AND cer.event_id = ANY($3)
+      GROUP BY cer.event_id
+    `, [ctx.userId, ctx.campaignId, eventIds])
+
+    const countsMap = new Map(rsvpCounts.map((r: Record<string, unknown>) => [r.event_id, {
+      yes: parseInt(r.yes_count as string), no: parseInt(r.no_count as string), maybe: parseInt(r.maybe_count as string),
+    }]))
+
+    result = result.map(e => ({
+      ...e,
+      contactRsvps: countsMap.get(e.eventId) || { yes: 0, no: 0, maybe: 0 },
+    }))
+  }
+
+  return { events: result }
+}
+
 // =============================================
 // STREAMING CHAT
 // =============================================
@@ -1012,6 +1181,7 @@ export interface ChatStreamOptions {
   volunteerWorkflowMode?: string | null
   activeFundraiserTypeId?: string | null
   upcomingFundraiserEvents?: { title: string; typeId: string; typeName: string }[]
+  upcomingEvents?: { id: string; title: string; eventType: string; startTime: string }[]
 }
 
 export async function* streamChat(
@@ -1036,7 +1206,7 @@ export async function* streamChat(
     if (s.id !== 'event_suggest') promptTemplates[s.id] = s.content
   }
 
-  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts, promptTemplates, options.volunteerWorkflowMode, options.activeFundraiserTypeId, options.upcomingFundraiserEvents)
+  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts, promptTemplates, options.volunteerWorkflowMode, options.activeFundraiserTypeId, options.upcomingFundraiserEvents, options.upcomingEvents)
 
   // Delegate to Gemini provider if configured
   if (aiSettings.provider === 'gemini') {

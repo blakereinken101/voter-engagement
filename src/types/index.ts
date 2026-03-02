@@ -472,3 +472,19 @@ export interface AICampaignContext {
 }
 
 export type DashboardView = 'chat' | 'contacts'
+
+// =============================================
+// CONTACT EVENT RSVP TYPES
+// =============================================
+
+export type ContactEventRsvpStatus = 'yes' | 'no' | 'maybe'
+
+export interface ContactEventRsvp {
+  id: string
+  contactId: string
+  eventId: string
+  status: ContactEventRsvpStatus
+  notes?: string
+  eventTitle?: string
+  eventStartTime?: string
+}

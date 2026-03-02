@@ -101,6 +101,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Load upcoming events for the campaign's org (for contact event RSVP tracking)
+    let upcomingEvents: { id: string; title: string; eventType: string; startTime: string }[] = []
+    try {
+      const { rows: eventRows } = await db.query(`
+        SELECT e.id, e.title, e.event_type, e.start_time
+        FROM events e
+        JOIN campaigns c ON c.org_id = e.organization_id
+        WHERE c.id = $1 AND e.status = 'published' AND e.start_time > NOW()
+        ORDER BY e.start_time ASC
+        LIMIT 5
+      `, [ctx.campaignId])
+      upcomingEvents = eventRows.map(r => ({
+        id: r.id,
+        title: r.title,
+        eventType: r.event_type,
+        startTime: r.start_time,
+      }))
+    } catch (err) {
+      console.error('[ai-chat] Upcoming events load error (non-fatal):', err)
+    }
+
     let message: string
     if (!isInit) {
       message = rawMessage
@@ -227,6 +248,7 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
             volunteerWorkflowMode: workflowMode,
             activeFundraiserTypeId,
             upcomingFundraiserEvents,
+            upcomingEvents,
           })) {
             if (event.type === 'text') {
               fullAssistantText += event.text as string
