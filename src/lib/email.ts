@@ -196,7 +196,7 @@ export async function sendDemoConfirmationToProspect(data: DemoLeadData): Promis
 
         <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">Thanks so much for reaching out about Threshold! I'd love to show you what we've built and how it can help ${data.organization ? escapeHtml(data.organization) : 'your campaign'}.</p>
 
-        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">If you haven't already, go ahead and grab a time that works for you:</p>
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 24px;">Go ahead and grab a time that works for you:</p>
 
         <div style="text-align: center; margin-bottom: 28px;">
           <a href="${demoUrl}" style="display: inline-block; background: #7c3aed; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Book Your Demo</a>
@@ -297,7 +297,7 @@ function getAppUrl(): string {
 function buildEmailHeader(logoUrl?: string | null): string {
   const appUrl = getAppUrl()
   const src = logoUrl || `${appUrl}/logo.png`
-  return `<div style="text-align: center; margin-bottom: 24px;"><img src="${src}" alt="Logo" style="height: 40px; max-width: 200px;" /></div>`
+  return `<div style="text-align: center; margin-bottom: 32px;"><img src="${src}" alt="Threshold" style="height: 80px; max-width: 400px;" /></div>`
 }
 
 // ── Event Published Confirmation ─────────────────────────────────
