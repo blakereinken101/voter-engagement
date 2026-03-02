@@ -177,9 +177,8 @@ export async function sendDemoLeadNotification(data: DemoLeadData): Promise<void
 
 export async function sendDemoConfirmationToProspect(data: DemoLeadData): Promise<void> {
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
-  const calLink = process.env.NEXT_PUBLIC_CAL_LINK
-  const appUrl = getAppUrl()
-  const demoUrl = calLink ? `https://cal.com/${calLink}` : `${appUrl}/demo`
+  const calLink = process.env.NEXT_PUBLIC_CAL_LINK || 'thresholdvote/demo'
+  const demoUrl = `https://cal.com/${calLink}`
   const firstName = data.name.split(' ')[0]
 
   const { error } = await getResend().emails.send({
@@ -200,7 +199,7 @@ export async function sendDemoConfirmationToProspect(data: DemoLeadData): Promis
           <a href="${demoUrl}" style="display: inline-block; background: #7c3aed; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Book Your Demo</a>
         </div>
 
-        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">The demo is about 30 minutes — I'll walk you through the platform and answer any questions you have. No pressure, just a conversation about what you're working on and whether Threshold is a good fit.</p>
+        <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 16px;">The demo is about 30 minutes — I'll walk you through the platform and answer any questions you have.</p>
 
         <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 4px;">Looking forward to it,</p>
         <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 0;">Blake</p>
