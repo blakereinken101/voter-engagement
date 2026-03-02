@@ -21,7 +21,7 @@ import { CONVERSATION_SCRIPTS, getRelationshipTip } from './scripts'
 import { getAISettings } from './ai-settings'
 import { streamGeminiChat } from './gemini-provider'
 import { getAllPromptSections, interpolateTemplate, type PromptSectionId, type CampaignType } from './ai-prompts'
-import type { AICampaignContext, FundraisingConfig, PersonEntry, MatchResult, ActionPlanItem } from '@/types'
+import type { AICampaignContext, FundraisingConfig, FundraiserTypeConfig, PersonEntry, MatchResult, ActionPlanItem } from '@/types'
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
 
@@ -148,6 +148,8 @@ export function buildSystemPrompt(
   existingContacts?: ExistingContact[],
   promptTemplates?: Record<string, string>,
   volunteerWorkflowMode?: string | null,
+  activeFundraiserTypeId?: string | null,
+  upcomingFundraiserEvents?: { title: string; typeId: string; typeName: string }[],
 ): string {
   const parts: string[] = []
 
@@ -182,6 +184,12 @@ ${script.introduction}
 
   const fundraisingGuidance = aiContext?.fundraisingConfig?.fundraisingGuidance || ''
 
+  // Resolve active fundraiser type
+  const fundraiserTypes = aiContext?.fundraisingConfig?.fundraiserTypes || []
+  const activeType = activeFundraiserTypeId
+    ? fundraiserTypes.find(ft => ft.id === activeFundraiserTypeId)
+    : undefined
+
   const vars: Record<string, string> = {
     campaignName: config.name,
     areaLabel,
@@ -192,6 +200,8 @@ ${script.introduction}
     surveyQuestions,
     contributionLimits,
     fundraisingGuidance,
+    fundraiserTypeName: activeType?.name || '',
+    fundraiserTypeGuidance: activeType?.guidance || '',
   }
 
   /** Resolve a section: use DB-backed template if available, otherwise use the raw template */
@@ -317,16 +327,37 @@ Wait for their answer. Based on their response:
     }
 
 You MUST call set_workflow_mode before proceeding with either workflow. Ask this question ONCE — never re-ask it.`)
+
+    // If fundraiser types are defined, tell the AI about them
+    if (fundraiserTypes.length > 0) {
+      parts.push(`
+### Available Fundraiser Types
+When the volunteer chooses fundraising, ask which type they're working on:
+${fundraiserTypes.map(ft => `- "${ft.name}" (fundraiserTypeId: "${ft.id}")`).join('\n')}
+Then call set_workflow_mode with mode "fundraising" and include the chosen fundraiserTypeId.`)
+    }
+
+    // If the volunteer has upcoming fundraiser event RSVPs, mention them
+    if (upcomingFundraiserEvents && upcomingFundraiserEvents.length > 0) {
+      parts.push(`
+### Volunteer's Upcoming Fundraiser Events
+This volunteer has RSVP'd to upcoming fundraiser events:
+${upcomingFundraiserEvents.map(e => `- "${e.title}" (${e.typeName})`).join('\n')}
+When they choose fundraising, ask if they're working on one of these events and use the corresponding type.`)
+    }
   }
 
   if (volunteerWorkflowMode === 'fundraising') {
     parts.push(`
-## Active Mode: FUNDRAISING
+## Active Mode: FUNDRAISING${activeType ? ` — ${activeType.name}` : ''}
 This volunteer has chosen the fundraising workflow. Do NOT ask the branching question again. Do NOT do rolodex list-building or voter contact coaching. Focus entirely on fundraising coaching.${
       !aiContext?.fundraisingConfig?.requireResidency
         ? ' Do NOT ask about residency — it is not required for fundraising in this campaign.'
         : ''
-    }`)
+    }${activeType?.guidance ? `
+
+### Specific Guidance for "${activeType.name}":
+${activeType.guidance}` : ''}`)
   }
 
   if (volunteerWorkflowMode === 'voter-contact') {
@@ -461,7 +492,7 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
   },
   {
     name: 'set_workflow_mode',
-    description: 'Set the volunteer workflow mode after they choose between voter contact and fundraising. Call this exactly once after the volunteer answers the branching question.',
+    description: 'Set the volunteer workflow mode after they choose between voter contact and fundraising. For fundraising, optionally include the fundraiser type ID. Call this exactly once after the volunteer answers the branching question.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -469,6 +500,10 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
           type: 'string',
           enum: ['voter-contact', 'fundraising'],
           description: 'The workflow mode the volunteer chose',
+        },
+        fundraiserTypeId: {
+          type: 'string',
+          description: 'The ID of the fundraiser type (optional, for fundraising mode only)',
         },
       },
       required: ['mode'],
@@ -946,17 +981,22 @@ async function executeSetWorkflowMode(
     return { error: 'Invalid mode. Must be "voter-contact" or "fundraising".' }
   }
 
+  const payload: Record<string, unknown> = { workflowMode: mode }
+  if (mode === 'fundraising' && input.fundraiserTypeId) {
+    payload.activeFundraiserTypeId = input.fundraiserTypeId as string
+  }
+
   const db = await getDb()
   await db.query(
     `UPDATE memberships
      SET settings = COALESCE(settings, '{}'::jsonb) || $1::jsonb
      WHERE user_id = $2 AND campaign_id = $3`,
-    [JSON.stringify({ workflowMode: mode }), ctx.userId, ctx.campaignId],
+    [JSON.stringify(payload), ctx.userId, ctx.campaignId],
   )
 
-  await logActivity(ctx.userId, 'set_workflow_mode', { mode, source: 'ai_chat' }, ctx.campaignId)
+  await logActivity(ctx.userId, 'set_workflow_mode', { mode, fundraiserTypeId: input.fundraiserTypeId || null, source: 'ai_chat' }, ctx.campaignId)
 
-  return { success: true, mode }
+  return { success: true, mode, fundraiserTypeId: input.fundraiserTypeId || null }
 }
 
 // =============================================
@@ -970,6 +1010,8 @@ export interface ChatStreamOptions {
   history: Array<{ role: 'user' | 'assistant'; content: string | Array<Record<string, unknown>> }>
   existingContacts?: ExistingContact[]
   volunteerWorkflowMode?: string | null
+  activeFundraiserTypeId?: string | null
+  upcomingFundraiserEvents?: { title: string; typeId: string; typeName: string }[]
 }
 
 export async function* streamChat(
@@ -994,7 +1036,7 @@ export async function* streamChat(
     if (s.id !== 'event_suggest') promptTemplates[s.id] = s.content
   }
 
-  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts, promptTemplates, options.volunteerWorkflowMode)
+  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts, promptTemplates, options.volunteerWorkflowMode, options.activeFundraiserTypeId, options.upcomingFundraiserEvents)
 
   // Delegate to Gemini provider if configured
   if (aiSettings.provider === 'gemini') {

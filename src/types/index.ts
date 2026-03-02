@@ -444,10 +444,17 @@ export interface CustomSurveyQuestion {
   options?: string[]
 }
 
+export interface FundraiserTypeConfig {
+  id: string        // UUID
+  name: string      // Admin-defined, e.g. "Grassroots", "Max Out"
+  guidance: string   // Per-type AI coaching text
+}
+
 export interface FundraisingConfig {
   requireResidency?: boolean
   contributionLimits?: string
   fundraisingGuidance?: string
+  fundraiserTypes?: FundraiserTypeConfig[]
 }
 
 export interface AICampaignContext {

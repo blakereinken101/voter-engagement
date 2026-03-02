@@ -63,10 +63,43 @@ export async function POST(request: NextRequest) {
     )
     const membershipSettings = (membershipRows[0]?.settings || {}) as Record<string, unknown>
     const workflowMode = (membershipSettings.workflowMode as string) || null
+    const activeFundraiserTypeId = (membershipSettings.activeFundraiserTypeId as string) || null
 
     // Check if fundraising branching is enabled for this campaign
     const campaignConfig = await getCampaignConfig(ctx.campaignId)
     const fundraisingEnabled = isFundraisingEnabled(campaignConfig.aiContext)
+    const fundraiserTypes = campaignConfig.aiContext?.fundraisingConfig?.fundraiserTypes || []
+
+    // Detect upcoming fundraiser events this volunteer has RSVP'd to
+    let upcomingFundraiserEvents: { title: string; typeId: string; typeName: string }[] = []
+    if (fundraisingEnabled && !activeFundraiserTypeId && fundraiserTypes.length > 0) {
+      try {
+        const { rows: rsvpEvents } = await db.query(`
+          SELECT e.title, e.fundraiser_type
+          FROM event_rsvps er
+          JOIN events e ON e.id = er.event_id
+          JOIN campaigns c ON c.org_id = e.organization_id
+          WHERE er.user_id = $1
+            AND c.id = $2
+            AND e.event_type = 'fundraiser'
+            AND e.fundraiser_type IS NOT NULL
+            AND e.start_time > NOW()
+            AND er.status = 'going'
+          ORDER BY e.start_time ASC
+          LIMIT 5
+        `, [ctx.userId, ctx.campaignId])
+
+        upcomingFundraiserEvents = rsvpEvents
+          .map(r => {
+            const ft = fundraiserTypes.find(t => t.id === r.fundraiser_type)
+            return ft ? { title: r.title, typeId: r.fundraiser_type, typeName: ft.name } : null
+          })
+          .filter((e): e is { title: string; typeId: string; typeName: string } => e !== null)
+      } catch (err) {
+        // Non-fatal: RSVP detection failing shouldn't break chat
+        console.error('[ai-chat] RSVP detection error (non-fatal):', err)
+      }
+    }
 
     let message: string
     if (!isInit) {
@@ -192,6 +225,8 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
             history,
             existingContacts,
             volunteerWorkflowMode: workflowMode,
+            activeFundraiserTypeId,
+            upcomingFundraiserEvents,
           })) {
             if (event.type === 'text') {
               fullAssistantText += event.text as string

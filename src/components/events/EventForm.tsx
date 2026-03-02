@@ -14,6 +14,7 @@ interface Props {
   eventId?: string  // If editing
   mode: 'create' | 'edit'
   plan?: string  // user's subscription plan (free, grassroots, growth, scale)
+  fundraiserTypes?: { id: string; name: string }[]
 }
 
 const TIMEZONES = [
@@ -58,7 +59,7 @@ function joinDateTime(date: string, time: string): string {
   return `${date}T${time || '12:00'}`
 }
 
-export default function EventForm({ initialData, eventId, mode, plan }: Props) {
+export default function EventForm({ initialData, eventId, mode, plan, fundraiserTypes }: Props) {
   const canCustomSlug = plan === 'growth' || plan === 'scale'
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -71,6 +72,7 @@ export default function EventForm({ initialData, eventId, mode, plan }: Props) {
     title: initialData?.title || '',
     description: initialData?.description || '',
     eventType: initialData?.eventType || 'community',
+    fundraiserType: initialData?.fundraiserType || '',
     startTime: initialData?.startTime || '',
     endTime: initialData?.endTime || '',
     timezone: initialData?.timezone || 'America/New_York',
@@ -242,7 +244,7 @@ export default function EventForm({ initialData, eventId, mode, plan }: Props) {
               <button
                 key={key}
                 type="button"
-                onClick={() => updateForm({ eventType: key })}
+                onClick={() => updateForm({ eventType: key, ...(key !== 'fundraiser' ? { fundraiserType: '' } : {}) })}
                 className={`flex items-center gap-2 px-3 py-2.5 rounded-btn text-sm font-medium border transition-all ${
                   form.eventType === key
                     ? `${config.bgClass} border-current`
@@ -254,6 +256,23 @@ export default function EventForm({ initialData, eventId, mode, plan }: Props) {
               </button>
             ))}
           </div>
+
+          {/* Fundraiser Type dropdown — only when event type is fundraiser and types are defined */}
+          {form.eventType === 'fundraiser' && fundraiserTypes && fundraiserTypes.length > 0 && (
+            <div className="mt-3">
+              <label className="block text-sm text-white/60 mb-1.5">Fundraiser Type</label>
+              <select
+                value={form.fundraiserType}
+                onChange={e => updateForm({ fundraiserType: e.target.value })}
+                className="glass-input w-full rounded-btn px-4 py-3 text-sm text-white focus:ring-2 focus:ring-vc-purple/30 focus:border-vc-purple outline-none transition-all"
+              >
+                <option value="">Select fundraiser type...</option>
+                {fundraiserTypes.map(ft => (
+                  <option key={ft.id} value={ft.id}>{ft.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </section>
 

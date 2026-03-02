@@ -445,6 +445,8 @@ Help the volunteer track their fundraising progress:
 
 {{fundraisingGuidance}}
 
+{{fundraiserTypeGuidance}}
+
 ### Tone for Fundraising
 - Asking for money is uncomfortable for most people. Normalize it: "Everyone feels weird about this at first. But people WANT to help — they just need to be asked."
 - Frame giving as an act of shared values, not obligation

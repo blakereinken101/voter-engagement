@@ -10,7 +10,7 @@ const useSSL = dbUrl.includes('.railway.internal') ? false
 const pool = new Pool({
   connectionString: dbUrl || undefined,
   ssl: useSSL,
-  max: 25,
+  max: 100,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000, // fail fast if pool is exhausted
 })

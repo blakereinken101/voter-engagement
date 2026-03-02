@@ -7,8 +7,9 @@ import { ArrowLeft, Lock, Sparkles, ArrowRight } from 'lucide-react'
 import { FREE_EVENT_LIMIT } from '@/types/events'
 
 export default function CreateEventPage() {
-  const { user, isLoading, hasEventsSubscription, freeEventsUsed, freeEventsRemaining, productSubscriptions } = useAuth()
+  const { user, isLoading, hasEventsSubscription, freeEventsUsed, freeEventsRemaining, productSubscriptions, campaignConfig } = useAuth()
   const eventsPlan = productSubscriptions.find(s => s.product === 'events' && (s.status === 'active' || s.status === 'trialing'))?.plan || 'free'
+  const fundraiserTypes = campaignConfig?.aiContext?.fundraisingConfig?.fundraiserTypes?.map(ft => ({ id: ft.id, name: ft.name })) || []
 
   if (isLoading) {
     return (
@@ -78,7 +79,7 @@ export default function CreateEventPage() {
         </div>
       )}
 
-      <EventForm mode="create" plan={eventsPlan} />
+      <EventForm mode="create" plan={eventsPlan} fundraiserTypes={fundraiserTypes} />
     </div>
   )
 }

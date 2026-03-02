@@ -28,6 +28,7 @@ export interface Event {
   title: string
   description: string | null
   eventType: EventType
+  fundraiserType?: string | null  // references FundraiserTypeConfig.id when eventType === 'fundraiser'
 
   // When & where
   startTime: string
@@ -185,6 +186,7 @@ export interface EventFormData {
   title: string
   description: string
   eventType: EventType
+  fundraiserType: string
   startTime: string
   endTime: string
   timezone: string

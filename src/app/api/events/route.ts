@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     const {
-      title, description, eventType, startTime, endTime, timezone,
+      title, description, eventType, fundraiserType, startTime, endTime, timezone,
       locationName, locationAddress, locationCity, locationState, locationZip,
       isVirtual, virtualUrl, coverImageUrl, emoji, themeColor,
       visibility, maxAttendees, rsvpEnabled, status,
@@ -182,22 +182,23 @@ export async function POST(request: NextRequest) {
 
     await db.query(`
       INSERT INTO events (
-        id, organization_id, created_by, title, description, event_type,
+        id, organization_id, created_by, title, description, event_type, fundraiser_type,
         start_time, end_time, timezone,
         location_name, location_address, location_city, location_state, location_zip,
         is_virtual, virtual_url,
         cover_image_url, emoji, theme_color,
         visibility, max_attendees, rsvp_enabled, status, slug
       ) VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7::timestamp AT TIME ZONE $9, $8::timestamp AT TIME ZONE $9, $9,
-        $10, $11, $12, $13, $14,
-        $15, $16,
-        $17, $18, $19,
-        $20, $21, $22, $23, $24
+        $1, $2, $3, $4, $5, $6, $7,
+        $8::timestamp AT TIME ZONE $10, $9::timestamp AT TIME ZONE $10, $10,
+        $11, $12, $13, $14, $15,
+        $16, $17,
+        $18, $19, $20,
+        $21, $22, $23, $24, $25
       )
     `, [
       id, ctx.organizationId, ctx.userId, title.trim(), description || null, eventType,
+      eventType === 'fundraiser' ? (fundraiserType || null) : null,
       startTime, endTime || null, tz,
       locationName || null, locationAddress || null, locationCity || null, locationState || null, locationZip || null,
       isVirtual || false, virtualUrl || null,

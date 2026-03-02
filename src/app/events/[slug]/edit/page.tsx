@@ -11,8 +11,9 @@ import type { EventFormData } from '@/types/events'
 export default function EditEventPage() {
   const params = useParams()
   const router = useRouter()
-  const { user, isLoading: authLoading, productSubscriptions } = useAuth()
+  const { user, isLoading: authLoading, productSubscriptions, campaignConfig } = useAuth()
   const eventsPlan = productSubscriptions.find(s => s.product === 'events' && (s.status === 'active' || s.status === 'trialing'))?.plan || 'free'
+  const fundraiserTypes = campaignConfig?.aiContext?.fundraisingConfig?.fundraiserTypes?.map(ft => ({ id: ft.id, name: ft.name })) || []
   const slug = params.slug as string
 
   const [event, setEvent] = useState<{ id: string; data: Partial<EventFormData> } | null>(null)
@@ -37,6 +38,7 @@ export default function EditEventPage() {
                 title: e.title,
                 description: e.description || '',
                 eventType: e.eventType,
+                fundraiserType: e.fundraiserType || '',
                 startTime: e.startTime ? new Date(e.startTime).toISOString().slice(0, 16) : '',
                 endTime: e.endTime ? new Date(e.endTime).toISOString().slice(0, 16) : '',
                 timezone: e.timezone,
@@ -106,7 +108,7 @@ export default function EditEventPage() {
         <h1 className="font-display text-3xl font-bold text-white">Edit Event</h1>
       </div>
 
-      <EventForm mode="edit" eventId={event.id} initialData={event.data} plan={eventsPlan} />
+      <EventForm mode="edit" eventId={event.id} initialData={event.data} plan={eventsPlan} fundraiserTypes={fundraiserTypes} />
     </div>
   )
 }

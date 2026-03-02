@@ -311,6 +311,7 @@ export function mapEventRow(row: any) {
     title: row.title,
     description: row.description,
     eventType: row.event_type,
+    fundraiserType: row.fundraiser_type || null,
     startTime: row.start_time,
     endTime: row.end_time,
     timezone: row.timezone,

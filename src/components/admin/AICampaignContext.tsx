@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Save, CheckCircle, AlertCircle, Sparkles, Plus, Trash2 } from 'lucide-react'
+import { Save, CheckCircle, AlertCircle, Sparkles, Plus, Trash2, Shield, ChevronDown, ChevronRight } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 import type {
   AICampaignContext as AICampaignContextType,
   CampaignType,
@@ -11,6 +12,7 @@ import type {
   PartyStrategies,
   CustomSurveyQuestion,
   FundraisingConfig,
+  FundraiserTypeConfig,
 } from '@/types'
 
 const US_STATES = [
@@ -28,6 +30,9 @@ const GOAL_OPTIONS: { value: GoalPriority; label: string }[] = [
 ]
 
 export default function AICampaignContext() {
+  const { user } = useAuth()
+  const isPlatformAdmin = !!user?.isPlatformAdmin
+
   // Existing fields
   const [goals, setGoals] = useState('')
   const [keyIssues, setKeyIssues] = useState('')
@@ -42,6 +47,10 @@ export default function AICampaignContext() {
   const [partyStrategies, setPartyStrategies] = useState<PartyStrategies>({})
   const [customSurveyQuestions, setCustomSurveyQuestions] = useState<CustomSurveyQuestion[]>([])
   const [fundraisingConfig, setFundraisingConfig] = useState<FundraisingConfig>({})
+
+  // Platform overrides (platform admin only)
+  const [platformOverrides, setPlatformOverrides] = useState<Partial<AICampaignContextType>>({})
+  const [overridesExpanded, setOverridesExpanded] = useState(false)
 
   // UI state
   const [saving, setSaving] = useState(false)
@@ -68,6 +77,9 @@ export default function AICampaignContext() {
           setCustomSurveyQuestions(ctx.customSurveyQuestions || [])
           setFundraisingConfig(ctx.fundraisingConfig || {})
         }
+        if (data.platformOverrides) {
+          setPlatformOverrides(data.platformOverrides)
+        }
       })
       .catch(() => setError('Failed to load AI context'))
       .finally(() => setLoading(false))
@@ -79,6 +91,7 @@ export default function AICampaignContext() {
     )
   }
 
+  // Survey question helpers
   const addSurveyQuestion = () => {
     setCustomSurveyQuestions(prev => [
       ...prev,
@@ -94,6 +107,69 @@ export default function AICampaignContext() {
 
   const removeSurveyQuestion = (id: string) => {
     setCustomSurveyQuestions(prev => prev.filter(q => q.id !== id))
+  }
+
+  // Fundraiser type helpers
+  const addFundraiserType = () => {
+    setFundraisingConfig(prev => ({
+      ...prev,
+      fundraiserTypes: [
+        ...(prev.fundraiserTypes || []),
+        { id: crypto.randomUUID(), name: '', guidance: '' },
+      ],
+    }))
+  }
+
+  const updateFundraiserType = (id: string, field: keyof FundraiserTypeConfig, value: string) => {
+    setFundraisingConfig(prev => ({
+      ...prev,
+      fundraiserTypes: (prev.fundraiserTypes || []).map(ft =>
+        ft.id === id ? { ...ft, [field]: value } : ft
+      ),
+    }))
+  }
+
+  const removeFundraiserType = (id: string) => {
+    setFundraisingConfig(prev => ({
+      ...prev,
+      fundraiserTypes: (prev.fundraiserTypes || []).filter(ft => ft.id !== id),
+    }))
+  }
+
+  // Platform override fundraiser type helpers
+  const addOverrideFundraiserType = () => {
+    setPlatformOverrides(prev => ({
+      ...prev,
+      fundraisingConfig: {
+        ...prev.fundraisingConfig,
+        fundraiserTypes: [
+          ...(prev.fundraisingConfig?.fundraiserTypes || []),
+          { id: crypto.randomUUID(), name: '', guidance: '' },
+        ],
+      },
+    }))
+  }
+
+  const updateOverrideFundraiserType = (id: string, field: keyof FundraiserTypeConfig, value: string) => {
+    setPlatformOverrides(prev => ({
+      ...prev,
+      fundraisingConfig: {
+        ...prev.fundraisingConfig,
+        fundraiserTypes: (prev.fundraisingConfig?.fundraiserTypes || []).map(ft =>
+          ft.id === id ? { ...ft, [field]: value } : ft
+        ),
+      },
+    }))
+  }
+
+  const removeOverrideFundraiserType = (id: string) => {
+    setPlatformOverrides(prev => ({
+      ...prev,
+      fundraisingConfig: {
+        ...prev.fundraisingConfig,
+        fundraiserTypes: (prev.fundraisingConfig?.fundraiserTypes || []).filter(ft => ft.id !== id),
+      },
+    }))
   }
 
   const handleSave = async () => {
@@ -125,15 +201,22 @@ export default function AICampaignContext() {
         customSurveyQuestions: customSurveyQuestions.filter(q => q.question.trim()).length > 0
           ? customSurveyQuestions.filter(q => q.question.trim())
           : undefined,
-        fundraisingConfig: (fundraisingConfig.requireResidency || fundraisingConfig.contributionLimits || fundraisingConfig.fundraisingGuidance)
+        fundraisingConfig: (fundraisingConfig.requireResidency || fundraisingConfig.contributionLimits || fundraisingConfig.fundraisingGuidance || (fundraisingConfig.fundraiserTypes && fundraisingConfig.fundraiserTypes.length > 0))
           ? fundraisingConfig
           : undefined,
+      }
+
+      const payload: Record<string, unknown> = { aiContext }
+
+      // Include platform overrides if platform admin
+      if (isPlatformAdmin) {
+        payload.platformOverrides = platformOverrides
       }
 
       const res = await fetch('/api/campaign/ai-context', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ aiContext }),
+        body: JSON.stringify(payload),
       })
 
       if (!res.ok) {
@@ -186,6 +269,138 @@ export default function AICampaignContext() {
         <div className="flex items-center gap-2 bg-vc-teal/20 text-vc-teal text-sm px-4 py-3 rounded-lg border border-vc-teal/30">
           <CheckCircle className="w-4 h-4 flex-shrink-0" />
           AI context saved successfully
+        </div>
+      )}
+
+      {/* Platform Admin Overrides */}
+      {isPlatformAdmin && (
+        <div className="glass-card p-5 space-y-4 border border-amber-500/30 bg-amber-500/5">
+          <button
+            onClick={() => setOverridesExpanded(!overridesExpanded)}
+            className="flex items-center gap-2 w-full text-left"
+          >
+            <Shield className="w-4 h-4 text-amber-400" />
+            <span className="text-sm font-bold text-amber-300">Platform Admin Overrides</span>
+            <span className="text-xs text-amber-400/50 ml-1">Values here override campaign admin settings</span>
+            {overridesExpanded ? (
+              <ChevronDown className="w-4 h-4 text-amber-400/50 ml-auto" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-amber-400/50 ml-auto" />
+            )}
+          </button>
+
+          {overridesExpanded && (
+            <div className="space-y-4 pt-2 border-t border-amber-500/20">
+              <p className="text-xs text-amber-400/40">
+                Any field set here will take priority over the campaign admin's values. Leave blank to use campaign admin's settings.
+              </p>
+
+              <div>
+                <label className="block text-xs text-amber-400/60 mb-1">Goals Override</label>
+                <textarea
+                  value={platformOverrides.goals || ''}
+                  onChange={e => setPlatformOverrides(prev => ({ ...prev, goals: e.target.value || undefined }))}
+                  placeholder="Override campaign goals..."
+                  rows={2}
+                  className={`${inputClass} resize-none border-amber-500/20`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-amber-400/60 mb-1">Messaging Guidance Override</label>
+                <textarea
+                  value={platformOverrides.messagingGuidance || ''}
+                  onChange={e => setPlatformOverrides(prev => ({ ...prev, messagingGuidance: e.target.value || undefined }))}
+                  placeholder="Override messaging guidance..."
+                  rows={2}
+                  className={`${inputClass} resize-none border-amber-500/20`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-amber-400/60 mb-1">Talking Points Override (one per line)</label>
+                <textarea
+                  value={platformOverrides.talkingPoints?.join('\n') || ''}
+                  onChange={e => setPlatformOverrides(prev => ({
+                    ...prev,
+                    talkingPoints: e.target.value.trim() ? e.target.value.split('\n').map(s => s.trim()).filter(Boolean) : undefined,
+                  }))}
+                  placeholder="Override talking points..."
+                  rows={3}
+                  className={`${inputClass} resize-none border-amber-500/20`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-amber-400/60 mb-1">Contribution Limits Override</label>
+                <input
+                  type="text"
+                  value={platformOverrides.fundraisingConfig?.contributionLimits || ''}
+                  onChange={e => setPlatformOverrides(prev => ({
+                    ...prev,
+                    fundraisingConfig: { ...prev.fundraisingConfig, contributionLimits: e.target.value || undefined },
+                  }))}
+                  placeholder="Override contribution limits..."
+                  className={`${inputClass} border-amber-500/20`}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs text-amber-400/60 mb-1">Fundraising Guidance Override</label>
+                <textarea
+                  value={platformOverrides.fundraisingConfig?.fundraisingGuidance || ''}
+                  onChange={e => setPlatformOverrides(prev => ({
+                    ...prev,
+                    fundraisingConfig: { ...prev.fundraisingConfig, fundraisingGuidance: e.target.value || undefined },
+                  }))}
+                  placeholder="Override fundraising guidance..."
+                  rows={3}
+                  className={`${inputClass} resize-none border-amber-500/20`}
+                />
+              </div>
+
+              {/* Override Fundraiser Types */}
+              <div>
+                <label className="block text-xs text-amber-400/60 mb-1">Fundraiser Types Override</label>
+                <p className="text-xs text-amber-400/30 mb-2">Define fundraiser types that override campaign admin's types</p>
+                <div className="space-y-3">
+                  {(platformOverrides.fundraisingConfig?.fundraiserTypes || []).map(ft => (
+                    <div key={ft.id} className="flex items-start gap-2">
+                      <div className="flex-1 space-y-2">
+                        <input
+                          type="text"
+                          value={ft.name}
+                          onChange={e => updateOverrideFundraiserType(ft.id, 'name', e.target.value)}
+                          placeholder="e.g., Grassroots, Max Out Event"
+                          className={`${inputClass} border-amber-500/20`}
+                        />
+                        <textarea
+                          value={ft.guidance}
+                          onChange={e => updateOverrideFundraiserType(ft.id, 'guidance', e.target.value)}
+                          placeholder="AI coaching guidance for this fundraiser type..."
+                          rows={2}
+                          className={`${inputClass} resize-none border-amber-500/20`}
+                        />
+                      </div>
+                      <button
+                        onClick={() => removeOverrideFundraiserType(ft.id)}
+                        className="text-white/20 hover:text-red-400 transition-colors p-2 mt-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addOverrideFundraiserType}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-bold text-amber-400/50 hover:text-amber-300 hover:border-amber-500/30 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add fundraiser type override
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -346,6 +561,49 @@ export default function AICampaignContext() {
               rows={3}
               className={`${inputClass} resize-none`}
             />
+          </div>
+
+          {/* Fundraiser Types */}
+          <div>
+            <label className="block text-xs text-white/40 mb-1">Fundraiser Types</label>
+            <p className="text-xs text-white/30 mb-2">
+              Define different types of fundraisers (e.g., Grassroots, Max Out). Each type gets its own AI coaching guidance. Volunteers will be asked which type they're working on.
+            </p>
+            <div className="space-y-3">
+              {(fundraisingConfig.fundraiserTypes || []).map(ft => (
+                <div key={ft.id} className="flex items-start gap-2">
+                  <div className="flex-1 space-y-2">
+                    <input
+                      type="text"
+                      value={ft.name}
+                      onChange={e => updateFundraiserType(ft.id, 'name', e.target.value)}
+                      placeholder="e.g., Grassroots, Max Out Event, House Party"
+                      className={inputClass}
+                    />
+                    <textarea
+                      value={ft.guidance}
+                      onChange={e => updateFundraiserType(ft.id, 'guidance', e.target.value)}
+                      placeholder="AI coaching guidance specific to this fundraiser type..."
+                      rows={2}
+                      className={`${inputClass} resize-none`}
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeFundraiserType(ft.id)}
+                    className="text-white/20 hover:text-red-400 transition-colors p-2 mt-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addFundraiserType}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-bold text-white/50 hover:text-white hover:border-white/30 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add fundraiser type
+              </button>
+            </div>
           </div>
         </div>
       )}

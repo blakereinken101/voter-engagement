@@ -6,6 +6,9 @@ import type { AICampaignContext } from '@/types'
  * Load campaign config from the database by campaign ID.
  * Server-only — imports pg which requires Node.js modules.
  * Falls back to the env-var-based default if the campaign is not found.
+ *
+ * Platform admin overrides (stored in campaigns.settings.platformOverrides)
+ * are merged on top of aiContext so they take precedence.
  */
 export async function getCampaignConfig(campaignId: string): Promise<CampaignConfig> {
   const pool = getPool()
@@ -26,6 +29,32 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
   const row = rows[0]
   const settings = (row.settings || {}) as Record<string, unknown>
 
+  const aiContext = (settings.aiContext as AICampaignContext) || undefined
+  const platformOverrides = (settings.platformOverrides as Partial<AICampaignContext>) || undefined
+
+  // Merge platform admin overrides on top of campaign admin's aiContext
+  let mergedAiContext = aiContext
+  if (platformOverrides && aiContext) {
+    // Shallow merge: non-empty override fields replace base fields
+    const overrideEntries = Object.entries(platformOverrides)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    if (overrideEntries.length > 0) {
+      mergedAiContext = { ...aiContext, ...Object.fromEntries(overrideEntries) } as AICampaignContext
+
+      // Deep merge fundraisingConfig (one level deeper)
+      if (platformOverrides.fundraisingConfig && mergedAiContext) {
+        const overrideFc = Object.entries(platformOverrides.fundraisingConfig)
+          .filter(([, v]) => v !== undefined && v !== null)
+        if (overrideFc.length > 0) {
+          mergedAiContext.fundraisingConfig = {
+            ...aiContext.fundraisingConfig,
+            ...Object.fromEntries(overrideFc),
+          }
+        }
+      }
+    }
+  }
+
   return {
     id: row.id as string,
     name: row.name as string,
@@ -36,6 +65,6 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
     privacyText: (settings.privacyText as string) || campaignConfig.privacyText,
     voterFile: (settings.voterFile as string) || undefined,
     surveyQuestions: (settings.surveyQuestions as SurveyQuestionConfig[]) || campaignConfig.surveyQuestions,
-    aiContext: (settings.aiContext as AICampaignContext) || undefined,
+    aiContext: mergedAiContext,
   }
 }
