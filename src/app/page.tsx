@@ -82,22 +82,22 @@ export default function LandingPage() {
                 Relational
               </Link>
             ) : user ? (
-              <a
-                href="#waitlist"
+              <Link
+                href="/demo"
                 className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
               >
                 Relational
-              </a>
+              </Link>
             ) : (
               <>
                 <Link href="/sign-in" className="text-sm font-bold text-white/60 hover:text-white transition-colors">
                   Sign In
                 </Link>
                 <Link
-                  href="/sign-in?product=relational"
+                  href="/demo"
                   className="text-sm font-bold text-white bg-vc-purple px-5 py-2 rounded-btn hover:bg-vc-purple-light transition-colors"
                 >
-                  Relational
+                  Book a Demo
                 </Link>
               </>
             )}
@@ -123,16 +123,16 @@ export default function LandingPage() {
             An artificial intelligence organizing platform that reimagines how volunteers interact with campaign tools. Rather than forcing volunteers into rigid workflows, Threshold meets them where they are &mdash; through conversational AI that handles the busywork of data entry and provides personalized coaching based on your campaign&rsquo;s strategy.
           </p>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed">
-            Our <span className="text-gradient font-semibold">relational organizing tool</span> is in limited access: an AI coach customized to your campaign that helps volunteers work through their networks, match contacts to the voter file, and know who to call, what to say, and when to follow up.
+            Our <span className="text-gradient font-semibold">relational organizing tool</span> is an AI coach customized to your campaign that helps volunteers work through their networks, match contacts to the voter file, and know who to call, what to say, and when to follow up.
           </p>
           <div className="flex flex-wrap gap-4">
-            <a
-              href="#waitlist"
+            <Link
+              href="/demo"
               className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
             >
-              Join the Waitlist
+              Book a Demo
               <ArrowRight className="w-5 h-5" />
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -321,103 +321,117 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Waitlist + Contact */}
+      {/* Book a Demo + Contact */}
       <section
-        id="waitlist"
+        id="contact"
         ref={contactRef}
         className={`px-6 pt-10 pb-20 opacity-0 ${contactInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-10">
+          {/* Demo CTA */}
+          <div className="text-center mb-12">
             <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
-              Join the waitlist for our relational organizing tool
+              Ready to see it in action?
             </h2>
-            <p className="text-white/50 max-w-xl mx-auto mb-4 leading-relaxed">
-              This is a separate tool from our events platform and is currently in limited access. It helps your organizers and volunteers work through their networks, match contacts to the voter file, and prep for every conversation &mdash; with an AI model customized to your campaign&rsquo;s priorities. If they can text, they can use Threshold.
+            <p className="text-white/50 max-w-xl mx-auto mb-6 leading-relaxed">
+              Book a personalized demo and we&rsquo;ll walk through how Threshold&rsquo;s AI-powered relational organizing tool can help your campaign. The Events Platform is open to all Democrats &mdash; no demo required.
             </p>
-            <p className="text-white/40 max-w-lg mx-auto leading-relaxed text-sm">
-              We&rsquo;ll reach out to set up a workspace trained on your race, your district, and your issues. The Events Platform is open to all Democrats &mdash; no waitlist required. We built this for people like us.
-            </p>
+            <Link
+              href="/demo"
+              className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
+            >
+              Book a Demo
+              <ArrowRight className="w-5 h-5" />
+            </Link>
           </div>
 
-          {formStatus === 'sent' ? (
-            <div className="glass-card p-8 text-center">
-              <CheckCircle className="w-12 h-12 text-vc-teal mx-auto mb-4" />
-              <h3 className="font-display text-xl font-bold text-white mb-2">You&rsquo;re on the list!</h3>
-              <p className="text-white/60">We&rsquo;ll be in touch soon to get your campaign set up.</p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="glass-card p-8 space-y-5">
-              <div className="grid md:grid-cols-2 gap-5">
+          {/* Contact Inquiry Form */}
+          <div className="border-t border-white/10 pt-10">
+            <h3 className="font-display text-xl font-bold text-white mb-2 text-center">Have a question?</h3>
+            <p className="text-white/40 text-sm text-center mb-6">
+              Send us a message and we&rsquo;ll get back to you.
+            </p>
+
+            {formStatus === 'sent' ? (
+              <div className="glass-card p-8 text-center">
+                <CheckCircle className="w-12 h-12 text-vc-teal mx-auto mb-4" />
+                <h3 className="font-display text-xl font-bold text-white mb-2">Message sent!</h3>
+                <p className="text-white/60">We&rsquo;ll get back to you soon.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="glass-card p-8 space-y-5">
+                <div className="grid md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-white/60 text-xs font-bold uppercase tracking-wider mb-1.5">Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="glass-input w-full px-4 py-2.5 rounded-btn text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-vc-purple/50"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-white/60 text-xs font-bold uppercase tracking-wider mb-1.5">Email</label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className="glass-input w-full px-4 py-2.5 rounded-btn text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-vc-purple/50"
+                      placeholder="you@campaign.com"
+                    />
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-white/60 text-xs font-bold uppercase tracking-wider mb-1.5">Name</label>
+                  <label className="block text-white/60 text-xs font-bold uppercase tracking-wider mb-1.5">Organization / Campaign</label>
                   <input
                     type="text"
-                    required
-                    value={formData.name}
-                    onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    value={formData.organization}
+                    onChange={e => setFormData(prev => ({ ...prev, organization: e.target.value }))}
                     className="glass-input w-full px-4 py-2.5 rounded-btn text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-vc-purple/50"
-                    placeholder="Your name"
+                    placeholder="Campaign or organization name (optional)"
                   />
                 </div>
                 <div>
-                  <label className="block text-white/60 text-xs font-bold uppercase tracking-wider mb-1.5">Email</label>
-                  <input
-                    type="email"
+                  <label className="block text-white/60 text-xs font-bold uppercase tracking-wider mb-1.5">Message</label>
+                  <textarea
+                    rows={3}
                     required
-                    value={formData.email}
-                    onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className="glass-input w-full px-4 py-2.5 rounded-btn text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-vc-purple/50"
-                    placeholder="you@campaign.com"
+                    value={formData.message}
+                    onChange={e => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                    className="glass-input w-full px-4 py-2.5 rounded-btn text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-vc-purple/50 resize-none"
+                    placeholder="Tell us about your campaign — what office, what state, and how we can help..."
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-white/60 text-xs font-bold uppercase tracking-wider mb-1.5">Organization / Campaign</label>
-                <input
-                  type="text"
-                  value={formData.organization}
-                  onChange={e => setFormData(prev => ({ ...prev, organization: e.target.value }))}
-                  className="glass-input w-full px-4 py-2.5 rounded-btn text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-vc-purple/50"
-                  placeholder="Campaign or organization name (optional)"
-                />
-              </div>
-              <div>
-                <label className="block text-white/60 text-xs font-bold uppercase tracking-wider mb-1.5">Message (optional)</label>
-                <textarea
-                  rows={3}
-                  value={formData.message}
-                  onChange={e => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                  className="glass-input w-full px-4 py-2.5 rounded-btn text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-vc-purple/50 resize-none"
-                  placeholder="Tell us about your campaign — what office, what state, and how we can help..."
-                />
-              </div>
-              {formStatus === 'error' && (
-                <p className="text-vc-coral text-sm">Something went wrong. Please try again or email us directly at <a href="mailto:info@thresholdvote.com" className="underline">info@thresholdvote.com</a>.</p>
-              )}
-              <button
-                type="submit"
-                disabled={formStatus === 'sending'}
-                className="w-full bg-vc-purple text-white font-bold font-display text-base px-8 py-3 rounded-btn transition-all hover:bg-vc-purple-light hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {formStatus === 'sending' ? (
-                  'Sending...'
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    Join the Waitlist
-                  </>
+                {formStatus === 'error' && (
+                  <p className="text-vc-coral text-sm">Something went wrong. Please try again or email us directly at <a href="mailto:info@thresholdvote.com" className="underline">info@thresholdvote.com</a>.</p>
                 )}
-              </button>
-            </form>
-          )}
+                <button
+                  type="submit"
+                  disabled={formStatus === 'sending'}
+                  className="w-full bg-vc-purple text-white font-bold font-display text-base px-8 py-3 rounded-btn transition-all hover:bg-vc-purple-light hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {formStatus === 'sending' ? (
+                    'Sending...'
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      Send Message
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
 
-          <p className="text-white/30 text-sm text-center mt-6">
-            Or email us directly at{' '}
-            <a href="mailto:info@thresholdvote.com" className="text-vc-purple-light hover:underline">
-              info@thresholdvote.com
-            </a>
-          </p>
+            <p className="text-white/30 text-sm text-center mt-6">
+              Or email us directly at{' '}
+              <a href="mailto:info@thresholdvote.com" className="text-vc-purple-light hover:underline">
+                info@thresholdvote.com
+              </a>
+            </p>
+          </div>
         </div>
       </section>
 

@@ -41,6 +41,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname === '/' ||
     pathname === '/about' ||
+    pathname === '/demo' ||
     pathname === '/privacy' ||
     pathname === '/terms' ||
     pathname.startsWith('/_next') ||

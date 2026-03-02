@@ -112,6 +112,69 @@ export async function sendContactFormEmail(data: ContactFormData): Promise<void>
   }
 }
 
+// ── Demo Lead Notification ───────────────────────────────────────
+
+interface DemoLeadData {
+  name: string
+  email: string
+  organization?: string
+  role: string
+  attendeeCount: string
+  notes?: string
+}
+
+export async function sendDemoLeadNotification(data: DemoLeadData): Promise<void> {
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const TO_EMAIL = 'info@thresholdvote.com'
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold Demo Request <${FROM_EMAIL}>`,
+    to: TO_EMAIL,
+    replyTo: data.email,
+    subject: `New demo request from ${data.name}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="color: #1a1a2e; margin: 0 0 20px;">New Demo Booking Request</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top; width: 120px;">Name</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px;">${escapeHtml(data.name)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top;">Email</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px;"><a href="mailto:${escapeHtml(data.email)}" style="color: #7c3aed;">${escapeHtml(data.email)}</a></td>
+          </tr>
+          ${data.organization ? `
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top;">Organization</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px;">${escapeHtml(data.organization)}</td>
+          </tr>
+          ` : ''}
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top;">Role</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px;">${escapeHtml(data.role)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top;">Attendees</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px;">${escapeHtml(data.attendeeCount)}</td>
+          </tr>
+          ${data.notes ? `
+          <tr>
+            <td style="padding: 8px 12px; color: #666; font-size: 13px; font-weight: bold; vertical-align: top;">Notes</td>
+            <td style="padding: 8px 12px; color: #1a1a2e; font-size: 15px; white-space: pre-wrap;">${escapeHtml(data.notes)}</td>
+          </tr>
+          ` : ''}
+        </table>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send demo lead notification:', error)
+    throw new Error('Failed to send demo lead notification')
+  }
+}
+
 // ── Campaign Invitation Email ────────────────────────────────────
 
 interface InvitationEmailData {
