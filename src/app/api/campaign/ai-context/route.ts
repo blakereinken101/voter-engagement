@@ -107,6 +107,13 @@ export async function PUT(request: NextRequest) {
               : undefined,
           }))
         : undefined,
+      fundraisingConfig: bc.fundraisingConfig && typeof bc.fundraisingConfig === 'object'
+        ? {
+            requireResidency: (bc.fundraisingConfig as Record<string, unknown>).requireResidency === true,
+            contributionLimits: sanitize((bc.fundraisingConfig as Record<string, unknown>).contributionLimits, 1000),
+            fundraisingGuidance: sanitize((bc.fundraisingConfig as Record<string, unknown>).fundraisingGuidance, 5000),
+          }
+        : undefined,
     }
 
     const db = await getDb()

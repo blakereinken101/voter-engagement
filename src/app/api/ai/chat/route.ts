@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { isAIEnabled, streamChat, loadExistingContacts } from '@/lib/ai-chat'
+import { isAIEnabled, isFundraisingEnabled, streamChat, loadExistingContacts } from '@/lib/ai-chat'
 import { getAISettings } from '@/lib/ai-settings'
+import { getCampaignConfig } from '@/lib/campaign-config.server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -55,6 +56,18 @@ export async function POST(request: NextRequest) {
     const existingContacts = await loadExistingContacts(ctx.userId, ctx.campaignId)
     const isReturningUser = existingContacts.length > 0
 
+    // Load volunteer's workflow mode (voter-contact vs fundraising)
+    const { rows: membershipRows } = await db.query(
+      `SELECT settings FROM memberships WHERE user_id = $1 AND campaign_id = $2 LIMIT 1`,
+      [ctx.userId, ctx.campaignId],
+    )
+    const membershipSettings = (membershipRows[0]?.settings || {}) as Record<string, unknown>
+    const workflowMode = (membershipSettings.workflowMode as string) || null
+
+    // Check if fundraising branching is enabled for this campaign
+    const campaignConfig = await getCampaignConfig(ctx.campaignId)
+    const fundraisingEnabled = isFundraisingEnabled(campaignConfig.aiContext)
+
     let message: string
     if (!isInit) {
       message = rawMessage
@@ -67,7 +80,22 @@ export async function POST(request: NextRequest) {
       const coveredCategories = new Set(existingContacts.map(c => c.category))
       const allCatIds = ['household', 'close-family', 'close-friends', 'neighbors', 'coworkers', 'faith-community', 'school-parents', 'social-clubs', 'local-business', 'political', 'online-friends', 'service-providers', 'former-connections', 'who-did-we-miss']
       const uncoveredCategories = allCatIds.filter(id => !coveredCategories.has(id))
-      message = `[System: The volunteer is returning — they already have ${existingContacts.length} people on their list. ${contacted > 0 ? `They've had ${contacted} conversations so far.` : ''} ${unmatched > 0 ? `${unmatched} contacts still need matching.` : ''} ${uncontacted > 0 ? `${uncontacted} people haven't been contacted yet.` : ''}
+
+      if (fundraisingEnabled && !workflowMode) {
+        // Returning user, fundraising enabled, but they never chose a mode
+        message = `[System: The volunteer is returning — they already have ${existingContacts.length} people on their list but haven't chosen a workflow yet.
+
+Welcome them back by name. Be brief — just one sentence of welcome.
+
+Then ask the BRANCHING QUESTION: are they here to have conversations with voters, or are they working on fundraising (like hosting a get-together or asking people to pitch in)? Wait for their answer before proceeding. Do NOT use markdown formatting. Do NOT describe your process.]`
+      } else if (workflowMode === 'fundraising') {
+        // Returning user in fundraising mode
+        message = `[System: The volunteer is returning in FUNDRAISING mode. Welcome them back by name. Be brief — just one sentence of welcome.
+
+Then get right back to fundraising coaching. Ask them what they've been working on — have they made any asks? Hosted or planned any events? Help them pick up where they left off. Do NOT use markdown formatting. Do NOT describe your process.]`
+      } else {
+        // Returning user in voter-contact mode (or no fundraising enabled — existing behavior)
+        message = `[System: The volunteer is returning — they already have ${existingContacts.length} people on their list. ${contacted > 0 ? `They've had ${contacted} conversations so far.` : ''} ${unmatched > 0 ? `${unmatched} contacts still need matching.` : ''} ${uncontacted > 0 ? `${uncontacted} people haven't been contacted yet.` : ''}
 
 Welcome them back by name. Be brief — just one sentence of welcome.
 
@@ -78,8 +106,12 @@ ${uncontacted > 0 && existingContacts.length >= 15 ? `- ${uncontacted} people ha
 ${contacted > 0 && existingContacts.length >= 25 ? '- They have momentum. Suggest their next conversation or ask them to add more people from an uncovered category.' : ''}
 
 Ask ONE specific question to get them going immediately. Don't recap everything — they know what this is. Do NOT use markdown formatting. Do NOT describe your process.]`
+      }
+    } else if (fundraisingEnabled) {
+      // Brand new user, fundraising-enabled campaign — ask branching question instead of residency
+      message = '[System: The volunteer just opened the chat for the first time. Greet them by name. In 1-2 sentences: mention the campaign name and that you\'re here to help. Then ask the BRANCHING QUESTION: are they here to have conversations with voters, or are they working on fundraising — like hosting a get-together or asking people to pitch in? Keep it natural and conversational. Do NOT ask about residency yet — wait until they answer the branching question. Do NOT use markdown formatting (no ** or * or headers). Do NOT describe your own process or tone. Just do it.]'
     } else {
-      // Brand new user — first time
+      // Brand new user, normal campaign — first time (existing behavior)
       message = '[System: The volunteer just opened the chat for the first time. Greet them by name. In 2-3 sentences: mention the campaign name, tell them you\'re going to help them build a list of people they know who live in the state/district, match them to the voter file, and coach conversations. Say the state or district name explicitly. Then ask your FIRST question: whether the volunteer themselves lives in the state/district. This is critical — you need to know before you start list-building. Do NOT jump straight to "who do you live with?" Vary your opening naturally. Do NOT use markdown formatting (no ** or * or headers). Do NOT describe your own process or tone. Do NOT say "let\'s move fast" or "I\'ll keep this quick." Just do it.]'
     }
 
@@ -159,6 +191,7 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
             message,
             history,
             existingContacts,
+            volunteerWorkflowMode: workflowMode,
           })) {
             if (event.type === 'text') {
               fullAssistantText += event.text as string

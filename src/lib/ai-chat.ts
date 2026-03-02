@@ -21,7 +21,7 @@ import { CONVERSATION_SCRIPTS, getRelationshipTip } from './scripts'
 import { getAISettings } from './ai-settings'
 import { streamGeminiChat } from './gemini-provider'
 import { getAllPromptSections, interpolateTemplate, type PromptSectionId, type CampaignType } from './ai-prompts'
-import type { AICampaignContext, PersonEntry, MatchResult, ActionPlanItem } from '@/types'
+import type { AICampaignContext, FundraisingConfig, PersonEntry, MatchResult, ActionPlanItem } from '@/types'
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
 
@@ -133,6 +133,13 @@ export async function loadExistingContacts(userId: string, campaignId: string): 
 // SYSTEM PROMPT
 // =============================================
 
+/** Returns true if fundraising is the #1 or #2 goal priority for this campaign */
+export function isFundraisingEnabled(aiContext: AICampaignContext | undefined): boolean {
+  const priorities = aiContext?.goalPriorities || []
+  const idx = priorities.indexOf('fundraising')
+  return idx === 0 || idx === 1
+}
+
 export function buildSystemPrompt(
   config: CampaignConfig,
   aiContext: AICampaignContext | undefined,
@@ -140,6 +147,7 @@ export function buildSystemPrompt(
   volunteerName?: string,
   existingContacts?: ExistingContact[],
   promptTemplates?: Record<string, string>,
+  volunteerWorkflowMode?: string | null,
 ): string {
   const parts: string[] = []
 
@@ -168,6 +176,12 @@ ${script.introduction}
     ? `   - Survey questions:\n${config.surveyQuestions.map(q => `     - ${q.label}${q.options ? ` (${q.options.join(', ')})` : ''}`).join('\n')}`
     : ''
 
+  const contributionLimits = aiContext?.fundraisingConfig?.contributionLimits
+    ? `The contribution limits for this race are: ${aiContext.fundraisingConfig.contributionLimits}. Volunteers should know these limits when making asks.`
+    : 'No specific contribution limits have been configured for this campaign. If asked, remind the volunteer to check with the campaign for applicable federal, state, and local campaign finance rules.'
+
+  const fundraisingGuidance = aiContext?.fundraisingConfig?.fundraisingGuidance || ''
+
   const vars: Record<string, string> = {
     campaignName: config.name,
     areaLabel,
@@ -176,6 +190,8 @@ ${script.introduction}
     scriptSummaries,
     relationshipTips,
     surveyQuestions,
+    contributionLimits,
+    fundraisingGuidance,
   }
 
   /** Resolve a section: use DB-backed template if available, otherwise use the raw template */
@@ -281,27 +297,58 @@ Use this to:
 4. Reference specific people when coaching conversations: "What about reaching out to [name]?"`)
   }
 
-  // Rolodex instructions (from DB-backed template)
-  parts.push(`\n${t('rolodex')}`)
+  // Fundraising workflow branching
+  const fundraisingEnabled = isFundraisingEnabled(aiContext)
 
+  if (fundraisingEnabled && !volunteerWorkflowMode) {
+    // Volunteer hasn't chosen a mode yet — add branching instructions
+    parts.push(`
+## Workflow Branching (OVERRIDES RESIDENCY QUESTION)
+This campaign has fundraising as a high priority. After your initial greeting, BEFORE asking about residency or starting list-building, ask the volunteer what kind of work they're doing today. Use natural language like:
 
-  // Match confirmation flow (from DB-backed template)
-  parts.push(`\n${t('match_confirmation')}`)
+"Are you looking to have conversations with voters, or are you working on fundraising — like hosting a get-together or asking people to pitch in?"
 
+Wait for their answer. Based on their response:
+- If they say voter contact / talking to voters / canvassing / conversations / etc.: Call the set_workflow_mode tool with mode "voter-contact", then proceed with the normal residency question and list-building flow.
+- If they say fundraising / donations / raising money / house party / event / etc.: Call the set_workflow_mode tool with mode "fundraising", then ${
+      aiContext?.fundraisingConfig?.requireResidency
+        ? 'ask the standard residency question before proceeding with fundraising coaching.'
+        : 'skip the residency question entirely and go directly into fundraising coaching. Do NOT ask if they live in the area.'
+    }
 
+You MUST call set_workflow_mode before proceeding with either workflow. Ask this question ONCE — never re-ask it.`)
+  }
 
-  // Transition logic (from DB-backed template)
-  parts.push(`\n${t('transition')}`)
+  if (volunteerWorkflowMode === 'fundraising') {
+    parts.push(`
+## Active Mode: FUNDRAISING
+This volunteer has chosen the fundraising workflow. Do NOT ask the branching question again. Do NOT do rolodex list-building or voter contact coaching. Focus entirely on fundraising coaching.${
+      !aiContext?.fundraisingConfig?.requireResidency
+        ? ' Do NOT ask about residency — it is not required for fundraising in this campaign.'
+        : ''
+    }`)
+  }
 
+  if (volunteerWorkflowMode === 'voter-contact') {
+    parts.push(`
+## Active Mode: VOTER CONTACT
+This volunteer has chosen the voter contact workflow. Do NOT ask the branching question again. Proceed with normal list-building and conversation coaching.`)
+  }
 
-  // Coaching instructions (from DB-backed template)
-  parts.push(`\n${t('coaching')}`)
+  // Conditional section inclusion based on workflow mode
+  if (volunteerWorkflowMode !== 'fundraising') {
+    // Normal voter-contact flow (or mode not yet chosen)
+    parts.push(`\n${t('rolodex')}`)
+    parts.push(`\n${t('match_confirmation')}`)
+    parts.push(`\n${t('transition')}`)
+    parts.push(`\n${t('coaching')}`)
+    parts.push(`\n${t('debrief')}`)
+  } else {
+    // Fundraising flow
+    parts.push(`\n${t('fundraising')}`)
+  }
 
-
-  // Outcome collection (from DB-backed template)
-  parts.push(`\n${t('debrief')}`)
-
-  // Tool usage instructions (from DB-backed template)
+  // Tool usage instructions (always included)
   parts.push(`\n${t('tool_usage')}`)
 
   return parts.join('\n')
@@ -412,6 +459,21 @@ export const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       required: ['contactId', 'status'],
     },
   },
+  {
+    name: 'set_workflow_mode',
+    description: 'Set the volunteer workflow mode after they choose between voter contact and fundraising. Call this exactly once after the volunteer answers the branching question.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        mode: {
+          type: 'string',
+          enum: ['voter-contact', 'fundraising'],
+          description: 'The workflow mode the volunteer chose',
+        },
+      },
+      required: ['mode'],
+    },
+  },
 ]
 
 // =============================================
@@ -443,6 +505,8 @@ export async function executeTool(
       return executeGetContactsSummary(ctx)
     case 'update_match_status':
       return executeUpdateMatchStatus(input, ctx)
+    case 'set_workflow_mode':
+      return executeSetWorkflowMode(input, ctx)
     default:
       return { error: `Unknown tool: ${name}` }
   }
@@ -873,6 +937,28 @@ async function executeUpdateMatchStatus(
   return { success: true, contactId, status }
 }
 
+async function executeSetWorkflowMode(
+  input: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<Record<string, unknown>> {
+  const mode = input.mode as string
+  if (!['voter-contact', 'fundraising'].includes(mode)) {
+    return { error: 'Invalid mode. Must be "voter-contact" or "fundraising".' }
+  }
+
+  const db = await getDb()
+  await db.query(
+    `UPDATE memberships
+     SET settings = COALESCE(settings, '{}'::jsonb) || $1::jsonb
+     WHERE user_id = $2 AND campaign_id = $3`,
+    [JSON.stringify({ workflowMode: mode }), ctx.userId, ctx.campaignId],
+  )
+
+  await logActivity(ctx.userId, 'set_workflow_mode', { mode, source: 'ai_chat' }, ctx.campaignId)
+
+  return { success: true, mode }
+}
+
 // =============================================
 // STREAMING CHAT
 // =============================================
@@ -883,6 +969,7 @@ export interface ChatStreamOptions {
   message: string
   history: Array<{ role: 'user' | 'assistant'; content: string | Array<Record<string, unknown>> }>
   existingContacts?: ExistingContact[]
+  volunteerWorkflowMode?: string | null
 }
 
 export async function* streamChat(
@@ -907,7 +994,7 @@ export async function* streamChat(
     if (s.id !== 'event_suggest') promptTemplates[s.id] = s.content
   }
 
-  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts, promptTemplates)
+  const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts, promptTemplates, options.volunteerWorkflowMode)
 
   // Delegate to Gemini provider if configured
   if (aiSettings.provider === 'gemini') {

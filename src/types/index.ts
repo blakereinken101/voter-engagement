@@ -444,6 +444,12 @@ export interface CustomSurveyQuestion {
   options?: string[]
 }
 
+export interface FundraisingConfig {
+  requireResidency?: boolean
+  contributionLimits?: string
+  fundraisingGuidance?: string
+}
+
 export interface AICampaignContext {
   goals?: string
   keyIssues?: string[]
@@ -455,6 +461,7 @@ export interface AICampaignContext {
   electionInfo?: ElectionInfo
   partyStrategies?: PartyStrategies
   customSurveyQuestions?: CustomSurveyQuestion[]
+  fundraisingConfig?: FundraisingConfig
 }
 
 export type DashboardView = 'chat' | 'contacts'

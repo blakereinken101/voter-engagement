@@ -10,6 +10,7 @@ import type {
   ElectionInfo,
   PartyStrategies,
   CustomSurveyQuestion,
+  FundraisingConfig,
 } from '@/types'
 
 const US_STATES = [
@@ -40,6 +41,7 @@ export default function AICampaignContext() {
   const [goalPriorities, setGoalPriorities] = useState<GoalPriority[]>([])
   const [partyStrategies, setPartyStrategies] = useState<PartyStrategies>({})
   const [customSurveyQuestions, setCustomSurveyQuestions] = useState<CustomSurveyQuestion[]>([])
+  const [fundraisingConfig, setFundraisingConfig] = useState<FundraisingConfig>({})
 
   // UI state
   const [saving, setSaving] = useState(false)
@@ -64,6 +66,7 @@ export default function AICampaignContext() {
           setGoalPriorities(ctx.goalPriorities || [])
           setPartyStrategies(ctx.partyStrategies || {})
           setCustomSurveyQuestions(ctx.customSurveyQuestions || [])
+          setFundraisingConfig(ctx.fundraisingConfig || {})
         }
       })
       .catch(() => setError('Failed to load AI context'))
@@ -121,6 +124,9 @@ export default function AICampaignContext() {
           : undefined,
         customSurveyQuestions: customSurveyQuestions.filter(q => q.question.trim()).length > 0
           ? customSurveyQuestions.filter(q => q.question.trim())
+          : undefined,
+        fundraisingConfig: (fundraisingConfig.requireResidency || fundraisingConfig.contributionLimits || fundraisingConfig.fundraisingGuidance)
+          ? fundraisingConfig
           : undefined,
       }
 
@@ -295,6 +301,54 @@ export default function AICampaignContext() {
           </p>
         )}
       </div>
+
+      {/* Fundraising Settings — only shown when fundraising is a goal priority */}
+      {goalPriorities.includes('fundraising') && (
+        <div className="glass-card p-5 space-y-4 border border-vc-purple/20">
+          <label className={labelClass}>
+            Fundraising Settings <span className={sublabelClass}>(shown because fundraising is a goal priority)</span>
+          </label>
+          <p className="text-xs text-white/40 -mt-1">
+            When fundraising is your #1 or #2 priority, the AI will ask volunteers whether they're doing voter contact or fundraising, then coach accordingly.
+          </p>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="requireResidency"
+              checked={fundraisingConfig.requireResidency || false}
+              onChange={e => setFundraisingConfig(prev => ({ ...prev, requireResidency: e.target.checked }))}
+              className="w-4 h-4 rounded border-white/20 bg-white/5 text-vc-purple focus:ring-vc-purple/30"
+            />
+            <label htmlFor="requireResidency" className="text-sm text-white/70">
+              Require residency check for fundraising volunteers
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-xs text-white/40 mb-1">Contribution Limits</label>
+            <input
+              type="text"
+              value={fundraisingConfig.contributionLimits || ''}
+              onChange={e => setFundraisingConfig(prev => ({ ...prev, contributionLimits: e.target.value }))}
+              placeholder="e.g., $3,300 per individual per election, $5,000 PAC limit"
+              className={inputClass}
+            />
+            <p className="text-xs text-white/30 mt-1">The AI will share these limits with volunteers when relevant</p>
+          </div>
+
+          <div>
+            <label className="block text-xs text-white/40 mb-1">Additional Fundraising Guidance</label>
+            <textarea
+              value={fundraisingConfig.fundraisingGuidance || ''}
+              onChange={e => setFundraisingConfig(prev => ({ ...prev, fundraisingGuidance: e.target.value }))}
+              placeholder="Any campaign-specific fundraising coaching guidance for the AI..."
+              rows={3}
+              className={`${inputClass} resize-none`}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Party-Based Strategy */}
       <div>
