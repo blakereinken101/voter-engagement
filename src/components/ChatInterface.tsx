@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppContext } from '@/context/AppContext'
 import { Send, Trash2, Sparkles } from 'lucide-react'
+import Link from 'next/link'
 import ChatMessageBubble from './ChatMessageBubble'
 import ChatQuickActions from './ChatQuickActions'
 import type { ChatMessage, PersonEntry, MatchResult, ContactOutcome, OutreachMethod } from '@/types'
@@ -317,7 +318,13 @@ export default function ChatInterface() {
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] text-white/30 text-center mt-2 mb-1">Powered by our AI organizing platform — responses can make mistakes.</p>
+        <p className="text-[10px] text-white/30 text-center mt-2 mb-1">
+          Powered by our AI organizing platform — responses can make mistakes.
+          <span className="mx-1">&middot;</span>
+          <Link href="/privacy" className="hover:text-white/50 transition-colors underline">Privacy</Link>
+          <span className="mx-0.5">&middot;</span>
+          <Link href="/terms" className="hover:text-white/50 transition-colors underline">Terms</Link>
+        </p>
       </div>
     </div>
   )

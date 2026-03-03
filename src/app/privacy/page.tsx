@@ -140,7 +140,7 @@ export default function PrivacyPolicyPage() {
       </article>
 
       {/* Footer */}
-      <footer className="text-center py-6 border-t border-white/5">
+      <footer className="text-center py-12 md:py-20 border-t border-white/5">
         <p className="text-white/30 text-xs">
           &copy; {new Date().getFullYear()} Vote Threshold LLC. All Rights Reserved.
         </p>
