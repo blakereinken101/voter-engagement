@@ -112,6 +112,9 @@ function getGeminiErrorMessage(err: unknown): string {
   if (lower.includes('rate') || lower.includes('quota') || lower.includes('429') || lower.includes('resource_exhausted')) {
     return 'Gemini rate limit reached. Please wait a moment and try again.'
   }
+  if (lower.includes('503') || lower.includes('unavailable') || lower.includes('high demand') || lower.includes('overloaded')) {
+    return 'Gemini is temporarily unavailable due to high demand. Please try again in a moment.'
+  }
   if (lower.includes('thought_signature')) {
     return 'Gemini thought signature error. Please report this bug.'
   }
@@ -153,18 +156,38 @@ export async function* streamGeminiChat(
 
   let contents = convertHistoryToGemini(options.history, options.message)
   let continueLoop = true
+  const MAX_RETRIES = 2
+  const RETRY_DELAY_MS = 2000
 
   while (continueLoop) {
+    let retries = 0
+    let response
+    while (true) {
+      try {
+        response = await client.models.generateContentStream({
+          model: options.model,
+          contents,
+          config: {
+            systemInstruction: options.systemPrompt,
+            maxOutputTokens: options.maxTokens,
+            tools: [{ functionDeclarations }],
+          },
+        })
+        break // success
+      } catch (retryErr: unknown) {
+        const msg = retryErr instanceof Error ? retryErr.message : String(retryErr)
+        const is503 = msg.includes('503') || msg.toLowerCase().includes('unavailable') || msg.toLowerCase().includes('high demand')
+        if (is503 && retries < MAX_RETRIES) {
+          retries++
+          console.warn(`[gemini] 503 on attempt ${retries}, retrying in ${RETRY_DELAY_MS}ms...`)
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS * retries))
+          continue
+        }
+        throw retryErr
+      }
+    }
+
     try {
-      const response = await client.models.generateContentStream({
-        model: options.model,
-        contents,
-        config: {
-          systemInstruction: options.systemPrompt,
-          maxOutputTokens: options.maxTokens,
-          tools: [{ functionDeclarations }],
-        },
-      })
 
       let fullText = ''
       const functionCalls: Array<{ name: string; args: Record<string, unknown>; id: string }> = []

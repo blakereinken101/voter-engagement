@@ -236,6 +236,19 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
 
     const stream = new ReadableStream({
       async start(controller) {
+        let closed = false
+        const safeEnqueue = (chunk: Uint8Array) => {
+          if (!closed) {
+            try { controller.enqueue(chunk) } catch { closed = true }
+          }
+        }
+        const safeClose = () => {
+          if (!closed) {
+            try { controller.close() } catch { /* already closed */ }
+            closed = true
+          }
+        }
+
         try {
           for await (const event of streamChat({
             userId: ctx.userId,
@@ -251,15 +264,15 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
           })) {
             if (event.type === 'text') {
               fullAssistantText += event.text as string
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
             } else if (event.type === 'tool_result') {
               allToolCalls.push({ id: event.id as string, name: event.name as string, input: event.input as Record<string, unknown> })
               allToolResults.push({ id: event.id as string, name: event.name as string, result: event.result as Record<string, unknown> })
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
             } else if (event.type === 'error') {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+              safeEnqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
             } else if (event.type === 'done') {
-              controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+              safeEnqueue(encoder.encode('data: [DONE]\n\n'))
             }
           }
 
@@ -280,11 +293,11 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
           }
         } catch (err) {
           console.error('[ai/chat] Stream error:', err)
-          controller.enqueue(encoder.encode(
+          safeEnqueue(encoder.encode(
             `data: ${JSON.stringify({ type: 'error', message: 'An error occurred. Please try again.' })}\n\n`,
           ))
         } finally {
-          controller.close()
+          safeClose()
         }
       },
     })

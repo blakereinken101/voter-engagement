@@ -221,26 +221,46 @@ async function extractWithGemini(
 
   const client = new GoogleGenAI({ apiKey })
 
-  const response = await client.models.generateContent({
-    model,
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          { inlineData: { data: base64, mimeType } },
-          { text: prompt },
+  const MAX_RETRIES = 2
+  const RETRY_DELAY_MS = 2000
+  let lastErr: unknown
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await client.models.generateContent({
+        model,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { inlineData: { data: base64, mimeType } },
+              { text: prompt },
+            ],
+          },
         ],
-      },
-    ],
-    config: {
-      maxOutputTokens: 4096,
-    },
-  })
+        config: {
+          maxOutputTokens: 4096,
+        },
+      })
 
-  const text = response.text
-  if (!text) throw new Error('No text response from Gemini')
+      const text = response.text
+      if (!text) throw new Error('No text response from Gemini')
 
-  return text
+      return text
+    } catch (err: unknown) {
+      lastErr = err
+      const msg = err instanceof Error ? err.message : String(err)
+      const is503 = msg.includes('503') || msg.toLowerCase().includes('unavailable') || msg.toLowerCase().includes('high demand')
+      if (is503 && attempt < MAX_RETRIES) {
+        console.warn(`[scan-sheet] Gemini 503 on attempt ${attempt + 1}, retrying in ${RETRY_DELAY_MS * (attempt + 1)}ms...`)
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (attempt + 1)))
+        continue
+      }
+      throw err
+    }
+  }
+
+  throw lastErr
 }
 
 const VALID_CATEGORIES = ['household', 'close-family', 'extended-family', 'best-friends', 'close-friends', 'neighbors', 'coworkers', 'faith-community', 'school-pta', 'sports-recreation', 'hobby-groups', 'community-regulars', 'recent-meals', 'who-did-we-miss']
