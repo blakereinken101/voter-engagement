@@ -81,12 +81,24 @@ export async function aiRerankMatches(
 
   // Batch into chunks of 20 to stay within token limits
   const BATCH_SIZE = 20
-  const allResults: AiAssessment[] = []
+  const batches: AiRerankInput[][] = []
 
   for (let i = 0; i < inputs.length; i += BATCH_SIZE) {
-    const batch = inputs.slice(i, i + BATCH_SIZE)
-    const batchResults = await rerankBatch(batch, provider, model)
-    allResults.push(...batchResults)
+    batches.push(inputs.slice(i, i + BATCH_SIZE))
+  }
+
+  // Run up to 3 batches concurrently to avoid rate limits while still being fast
+  const MAX_CONCURRENT = 3
+  const allResults: AiAssessment[] = []
+
+  for (let i = 0; i < batches.length; i += MAX_CONCURRENT) {
+    const concurrentBatches = batches.slice(i, i + MAX_CONCURRENT)
+    const batchResults = await Promise.all(
+      concurrentBatches.map(batch => rerankBatch(batch, provider, model))
+    )
+    for (const results of batchResults) {
+      allResults.push(...results)
+    }
   }
 
   return allResults
