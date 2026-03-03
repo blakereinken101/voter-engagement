@@ -63,6 +63,7 @@ export default function ContactCard({
   const contactOutcome = actionItem?.contactOutcome
   const outcomeValid = contactOutcome && contactOutcome in OUTCOME_CONFIG
   const isRecontact = contactOutcome === 'left-message' || contactOutcome === 'no-answer'
+  const isDimmed = contacted && !!contactOutcome && !isRecontact
 
   const catConfig = CATEGORIES.find(c => c.id === person.category)
 
@@ -79,7 +80,6 @@ export default function ContactCard({
   return (
     <div className={clsx(
       'glass-card p-5',
-      contacted && contactOutcome && !isRecontact && 'opacity-75',
       isNew && 'ring-2 ring-vc-teal/30 animate-fade-in'
     )}>
       {/* Header */}
@@ -87,7 +87,7 @@ export default function ContactCard({
         <div>
           <div className="flex items-center gap-2">
             <div className={clsx('w-2 h-2 rounded-full', segmentDot)} />
-            <h3 className="font-bold text-white text-base md:text-lg">
+            <h3 className={clsx('font-bold text-base md:text-lg', isDimmed ? 'text-white/50' : 'text-white')}>
               {person.firstName} {person.lastName}
             </h3>
             {isNew && (

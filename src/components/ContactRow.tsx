@@ -109,11 +109,14 @@ export default function ContactRow({
     segment === 'sometimes-voter' ? 'text-vc-gold' :
     segment === 'rarely-voter' ? 'text-vc-coral' : 'text-white/40'
 
+  // Dim completed contacts (contacted + outcome, not recontact) without using opacity on the row
+  const isDimmed = contacted && !!contactOutcome && !isRecontact
+
   return (
     <>
       <tr className={clsx(
         'glass-row transition-all duration-200',
-        contacted && contactOutcome && !isRecontact && 'opacity-75',
+        isDimmed && 'bg-white/[0.02]',
         isNew && 'bg-vc-teal/[0.06] animate-fade-in'
       )}>
         {/* Name */}
@@ -123,7 +126,7 @@ export default function ContactRow({
               onClick={() => setExpanded(!expanded)}
               className="text-left"
             >
-              <span className="font-bold text-white text-lg">
+              <span className={clsx('font-bold text-lg', isDimmed ? 'text-white/50' : 'text-white')}>
                 {person.firstName} {person.lastName}
               </span>
             </button>
@@ -202,7 +205,7 @@ export default function ContactRow({
                 Pick ▾
               </button>
               {showCandidates && matchResult?.candidates && (
-                <div className="absolute z-20 top-full mt-1 left-0 bg-vc-surface rounded-lg shadow-lg border border-white/15 p-2 min-w-[280px] backdrop-blur-xl">
+                <div className="absolute z-50 top-full mt-1 left-0 glass-card bg-vc-surface/95 backdrop-blur-xl p-2 min-w-[280px] shadow-xl border border-white/20">
                   {matchResult.candidates.map((c, i) => {
                     const age = c.voterRecord.birth_year ? new Date().getFullYear() - parseInt(c.voterRecord.birth_year) : null
                     return (
@@ -359,6 +362,50 @@ export default function ContactRow({
         </td>
       </tr>
 
+      {/* Survey questions — auto-appear after outcome is selected */}
+      {contacted && outcomeValid && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && allSurveyQuestions.length > 0 && (
+        <tr className="border-b border-white/[0.06]">
+          <td colSpan={7} className="px-3 py-2">
+            <div className="flex items-center gap-3 text-xs animate-fade-in">
+              <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider whitespace-nowrap">Survey</span>
+              <div className="flex flex-wrap gap-2 flex-1">
+                {allSurveyQuestions.map(q => (
+                  <div key={q.id} className="flex items-center gap-1.5 min-w-[140px]">
+                    <label className="text-[10px] text-white/40 whitespace-nowrap">{q.label}</label>
+                    {q.type === 'select' && q.options ? (
+                      <select
+                        value={actionItem?.surveyResponses?.[q.id] ?? ''}
+                        onChange={e => {
+                          const updated = { ...(actionItem?.surveyResponses || {}), [q.id]: e.target.value }
+                          onSurveyChange(person.id, updated)
+                        }}
+                        className="glass-input px-2 py-1 rounded text-[10px] min-w-[100px]"
+                      >
+                        <option value="">—</option>
+                        {q.options.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={actionItem?.surveyResponses?.[q.id] ?? ''}
+                        onChange={e => {
+                          const updated = { ...(actionItem?.surveyResponses || {}), [q.id]: e.target.value }
+                          onSurveyChange(person.id, updated)
+                        }}
+                        className="glass-input px-2 py-1 rounded text-[10px] min-w-[100px]"
+                        placeholder={q.label}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </td>
+        </tr>
+      )}
+
       {/* Expanded details */}
       {expanded && (
         <tr className="border-b border-white/15 glass transition-all duration-200">
@@ -415,46 +462,6 @@ export default function ContactRow({
                   <p className="text-white/60">{bestMatch.city}, {bestMatch.state} {bestMatch.zip}</p>
                   {bestMatch.birth_year && <p className="text-white/60">Born {bestMatch.birth_year}</p>}
                   <p className="text-white/60">Party: {bestMatch.party_affiliation}</p>
-                </div>
-              )}
-
-              {/* Survey questions */}
-              {contacted && outcomeValid && contactOutcome !== 'no-answer' && contactOutcome !== 'left-message' && allSurveyQuestions.length > 0 && (
-                <div>
-                  <p className="font-bold text-vc-purple-light text-[10px] uppercase tracking-wider mb-1">Survey</p>
-                  <div className="space-y-1.5">
-                    {allSurveyQuestions.map(q => (
-                      <div key={q.id}>
-                        <label className="text-[10px] text-white/50 block mb-0.5">{q.label}</label>
-                        {q.type === 'select' && q.options ? (
-                          <select
-                            value={actionItem?.surveyResponses?.[q.id] ?? ''}
-                            onChange={e => {
-                              const updated = { ...(actionItem?.surveyResponses || {}), [q.id]: e.target.value }
-                              onSurveyChange(person.id, updated)
-                            }}
-                            className="glass-input w-full px-2 py-1 rounded text-[10px]"
-                          >
-                            <option value="">—</option>
-                            {q.options.map(opt => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            value={actionItem?.surveyResponses?.[q.id] ?? ''}
-                            onChange={e => {
-                              const updated = { ...(actionItem?.surveyResponses || {}), [q.id]: e.target.value }
-                              onSurveyChange(person.id, updated)
-                            }}
-                            className="glass-input w-full px-2 py-1 rounded text-[10px]"
-                            placeholder={q.label}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
 
