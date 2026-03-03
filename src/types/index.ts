@@ -481,6 +481,10 @@ export interface AICampaignContext {
   customSurveyQuestions?: CustomSurveyQuestion[]
   fundraisingConfig?: FundraisingConfig
   targetUniverse?: TargetUniverseConfig
+  /** Per-campaign prompt overrides. Keys are PromptSectionId values (e.g. 'identity', 'rolodex').
+   *  When set, these take highest priority — overriding platform defaults, base overrides,
+   *  and campaign-type overrides. Only applied to chat (not event_suggest or petition matching). */
+  promptOverrides?: Record<string, string>
 }
 
 export type DashboardView = 'chat' | 'contacts'

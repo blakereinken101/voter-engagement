@@ -584,7 +584,8 @@ function buildMatchResult(
 
   // Never auto-confirm — all matches require volunteer confirmation.
   // Mark as 'ambiguous' (needs review) so the AI presents them for approval.
-  if (best.score >= opts.mediumConfidenceThreshold) {
+  // Use lowCutoff as the threshold: anything above it is worth reviewing.
+  if (best.score >= opts.lowCutoff) {
     status = 'ambiguous'
   } else {
     status = 'unmatched'
@@ -688,7 +689,9 @@ async function matchSinglePersonDb(
   }
 
   // PASS 2: Fuzzy search via trigram similarity in DB
-  const candidatePool = await queryVotersFuzzy(datasetId, normalLast, person.zip, filters)
+  // Use a lower trigram threshold when matching options indicate looser matching (e.g., petition OCR)
+  const trigramThreshold = opts.lowCutoff < 0.55 ? 0.2 : 0.3
+  const candidatePool = await queryVotersFuzzy(datasetId, normalLast, person.zip, filters, trigramThreshold)
 
   if (candidatePool.length === 0) {
     return { personEntry: person, status: 'unmatched', candidates: [] }

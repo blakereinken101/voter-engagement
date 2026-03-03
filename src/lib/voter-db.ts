@@ -207,26 +207,30 @@ export async function queryVotersByMetaphone(
  * Pass 2: Fuzzy trigram matching on last name + optional zip fallback.
  * Uses pg_trgm similarity operator (%).
  * Returns up to 5000 candidates for Fuse.js scoring.
+ *
+ * @param trigramThreshold - Minimum trigram similarity (default 0.3).
+ *   For OCR'd handwritten text (petitions), use a lower value like 0.2.
  */
 export async function queryVotersFuzzy(
   datasetId: string,
   lastName: string,
   zip?: string,
-  filters?: GeoFilters
+  filters?: GeoFilters,
+  trigramThreshold = 0.3,
 ): Promise<VoterRecord[]> {
   const pool = getPool()
   const results = new Map<string, VoterRecord>()
 
   // Trigram similarity on last name
-  const geo1 = buildGeoWhere(filters, 3)
+  const geo1 = buildGeoWhere(filters, 4)
   const { rows: trigramRows } = await pool.query(
     `SELECT ${VOTER_SELECT} FROM voters
      WHERE dataset_id = $1
-       AND similarity(last_name_normalized, $2) > 0.3
+       AND similarity(last_name_normalized, $2) > $3
        ${geo1.clause}
      ORDER BY similarity(last_name_normalized, $2) DESC
      LIMIT 3000`,
-    [datasetId, lastName, ...geo1.params]
+    [datasetId, lastName, trigramThreshold, ...geo1.params]
   )
   for (const row of trigramRows) {
     const vr = rowToVoterRecord(row)

@@ -12,6 +12,13 @@ import { getAISettings } from '@/lib/ai-settings'
 import type { PersonEntry, MatchResult } from '@/types'
 import type { AiRerankInput } from '@/lib/ai-rerank'
 
+// Petition matching uses lower thresholds than the chat flow because
+// OCR'd handwritten signatures are noisier than volunteer-typed names.
+const PETITION_MATCH_OPTIONS = {
+  lowCutoff: 0.40,
+  mediumConfidenceThreshold: 0.60,
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { sheetId: string } },
@@ -51,17 +58,27 @@ export async function POST(
       category: 'who-did-we-miss' as const,
     }))
 
-    // Run algorithmic matching
+    // Run algorithmic matching with petition-specific lower thresholds
     const assignment = await getDatasetForCampaign(ctx.campaignId)
     let results: MatchResult[]
     if (assignment) {
-      results = await matchPeopleToVoterDb(people, assignment.datasetId, {}, assignment.filters)
+      results = await matchPeopleToVoterDb(people, assignment.datasetId, PETITION_MATCH_OPTIONS, assignment.filters)
     } else {
       const campaignConfig = await getCampaignConfig(ctx.campaignId)
       const state = campaignConfig.state || 'NC'
       const voterFile = await getVoterFile(state, campaignConfig.voterFile)
-      results = await matchPeopleToVoterFile(people, voterFile)
+      results = await matchPeopleToVoterFile(people, voterFile, PETITION_MATCH_OPTIONS)
     }
+
+    // Diagnostic logging — understand what matching actually returned
+    const withCandidates = results.filter(r => r.candidates.length > 0).length
+    const zeroCandidates = results.length - withCandidates
+    const scores = results.map(r => r.candidates[0]?.score || 0).filter(s => s > 0)
+    const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(3) : 'N/A'
+    const above70 = scores.filter(s => s >= 0.70).length
+    const above55 = scores.filter(s => s >= 0.55).length
+    const above40 = scores.filter(s => s >= 0.40).length
+    console.log(`[petition-match] Sheet ${sheetId}: ${results.length} sigs, ${withCandidates} with candidates, ${zeroCandidates} with zero candidates. Scores: avg=${avgScore}, >=0.70: ${above70}, >=0.55: ${above55}, >=0.40: ${above40}`)
 
     // AI re-ranking: send candidates to LLM for holistic evaluation
     if (isAIEnabled()) {
@@ -98,106 +115,71 @@ export async function POST(
             aiSettings.suggestModel,
           )
           applyAiReranking(results, aiResults)
+          console.log(`[petition-match] AI re-ranking: ${aiResults.length} assessments returned for ${rerankInputs.length} inputs`)
         }
       } catch (err) {
         console.error('[petition-match] AI re-ranking failed (falling back to algorithmic):', err)
       }
     }
 
-    // Compute match results for all signatures, then batch-update in one query
-    let matchedCount = 0
-    const ids: string[] = []
-    const statuses: string[] = []
-    const matchDatas: (string | null)[] = []
-    const matchScores: (number | null)[] = []
-    const candidatesDatas: (string | null)[] = []
-
-    for (const result of results) {
-      const sigId = result.personEntry.id
-      let matchStatus: string
-      let matchData: string | null = null
-      let matchScore: number | null = null
-      let candidatesData: string | null = null
-
-      // Store all candidates for side-by-side comparison (including AI fields)
-      if (result.candidates.length > 0) {
-        candidatesData = JSON.stringify(result.candidates.map(c => ({
-          voterRecord: c.voterRecord,
-          score: c.score,
-          confidenceLevel: c.confidenceLevel,
-          matchedOn: c.matchedOn,
-          ...(c.aiConfidence ? { aiConfidence: c.aiConfidence } : {}),
-          ...(c.aiReasoning ? { aiReasoning: c.aiReasoning } : {}),
-        })))
-      }
-
-      // Determine match status using algorithmic score + AI confidence
-      const topCandidate = result.candidates[0]
-      const score = topCandidate?.score || 0
-      const aiConf = topCandidate?.aiConfidence // undefined if AI didn't run
-
-      if (result.status === 'confirmed' || score >= 0.70) {
-        if (aiConf === 'unlikely-match') {
-          matchStatus = 'ambiguous'
-        } else {
-          matchStatus = 'matched'
-        }
-        matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
-        matchScore = score || null
-        matchedCount++
-      } else if (score >= 0.55) {
-        if (aiConf === 'likely-match') {
-          matchStatus = 'matched'
-        } else if (aiConf === 'unlikely-match') {
-          matchStatus = 'unmatched'
-        } else {
-          matchStatus = 'ambiguous'
-        }
-        matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
-        matchScore = score || null
-        if (matchStatus !== 'unmatched') matchedCount++
-      } else if (aiConf === 'likely-match') {
-        matchStatus = 'ambiguous'
-        matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
-        matchScore = score || null
-        matchedCount++
-      } else {
-        matchStatus = 'unmatched'
-        if (result.bestMatch) {
-          matchData = JSON.stringify(result.bestMatch)
-          matchScore = score || null
-        }
-      }
-
-      ids.push(sigId)
-      statuses.push(matchStatus)
-      matchDatas.push(matchData)
-      matchScores.push(matchScore)
-      candidatesDatas.push(candidatesData)
-    }
-
-    // Batch update all signatures + sheet stats in a single transaction (2 queries instead of N+1)
+    // Update each signature with match results.
+    // Uses per-row updates for reliability (batch unnest had null-handling issues).
     const client = await db.connect()
+    let matchedCount = 0
+
     try {
       await client.query('BEGIN')
 
-      if (ids.length > 0) {
+      for (const result of results) {
+        const sigId = result.personEntry.id
+        let matchStatus: string
+        let matchData: string | null = null
+        let matchScore: number | null = null
+        let candidatesData: string | null = null
+
+        // Store all candidates for side-by-side comparison (including AI fields)
+        if (result.candidates.length > 0) {
+          candidatesData = JSON.stringify(result.candidates.map(c => ({
+            voterRecord: c.voterRecord,
+            score: c.score,
+            confidenceLevel: c.confidenceLevel,
+            matchedOn: c.matchedOn,
+            ...(c.aiConfidence ? { aiConfidence: c.aiConfidence } : {}),
+            ...(c.aiReasoning ? { aiReasoning: c.aiReasoning } : {}),
+          })))
+        }
+
+        // Determine match status.
+        // For petitions, AI confidence informs the admin but does NOT veto.
+        // Anything with score >= 0.40 (petition lowCutoff) gets surfaced for review.
+        const topCandidate = result.candidates[0]
+        const score = topCandidate?.score || 0
+
+        if (result.status === 'confirmed' || score >= 0.70) {
+          matchStatus = 'matched'
+          matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
+          matchScore = score || null
+          matchedCount++
+        } else if (score >= 0.40) {
+          matchStatus = 'ambiguous'
+          matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
+          matchScore = score || null
+          // Count ambiguous as partial match for validity
+          matchedCount++
+        } else {
+          matchStatus = 'unmatched'
+          // Still store best match data for "best guess" display
+          if (result.bestMatch) {
+            matchData = JSON.stringify(result.bestMatch)
+            matchScore = score || null
+          }
+        }
+
         await client.query(`
-          UPDATE petition_signatures AS ps SET
-            match_status = bulk.match_status,
-            match_data = bulk.match_data::jsonb,
-            match_score = bulk.match_score,
-            candidates_data = bulk.candidates_data::jsonb
-          FROM (
-            SELECT
-              unnest($1::uuid[]) AS id,
-              unnest($2::text[]) AS match_status,
-              unnest($3::text[]) AS match_data,
-              unnest($4::double precision[]) AS match_score,
-              unnest($5::text[]) AS candidates_data
-          ) AS bulk
-          WHERE ps.id = bulk.id
-        `, [ids, statuses, matchDatas, matchScores, candidatesDatas])
+          UPDATE petition_signatures
+          SET match_status = $1, match_data = $2, match_score = $3, candidates_data = $4
+          WHERE id = $5
+        `, [matchStatus, matchData, matchScore, candidatesData, sigId])
       }
 
       const validityRate = signatures.length > 0
@@ -211,6 +193,8 @@ export async function POST(
       `, [matchedCount, validityRate, sheetId])
 
       await client.query('COMMIT')
+
+      console.log(`[petition-match] Sheet ${sheetId}: matchedCount=${matchedCount}, validityRate=${validityRate}%`)
     } catch (e) {
       await client.query('ROLLBACK')
       throw e

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { invalidateConfigCache } from '@/lib/campaign-config.server'
+import { PROMPT_SECTIONS } from '@/lib/ai-prompts'
 import type { AICampaignContext, CampaignType, GoalPriority } from '@/types'
 
 // Sanitize a string value: strip HTML tags, trim, and limit length
@@ -92,6 +93,19 @@ function sanitizeAIContext(raw: Record<string, unknown>): AICampaignContext {
             if (typeof tu[field] === 'string' && validValues.includes(tu[field] as string)) {
               result[field] = tu[field] as string
             }
+          }
+          return Object.keys(result).length > 0 ? result : undefined
+        })()
+      : undefined,
+    // Per-campaign prompt overrides — only valid chat section IDs, not event_suggest
+    promptOverrides: raw.promptOverrides && typeof raw.promptOverrides === 'object'
+      ? (() => {
+          const po = raw.promptOverrides as Record<string, unknown>
+          const chatSections = PROMPT_SECTIONS.filter(s => s !== 'event_suggest')
+          const result: Record<string, string> = {}
+          for (const key of chatSections) {
+            const val = sanitize(po[key], 10000)
+            if (val) result[key] = val
           }
           return Object.keys(result).length > 0 ? result : undefined
         })()

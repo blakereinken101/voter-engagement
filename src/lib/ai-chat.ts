@@ -1222,6 +1222,18 @@ export async function* streamChat(
     if (s.id !== 'event_suggest') promptTemplates[s.id] = s.content
   }
 
+  // Per-campaign prompt overrides take highest priority — override everything
+  // (platform defaults, base overrides, campaign-type overrides).
+  // Only for chat sections, not event_suggest.
+  const campaignOverrides = config.aiContext?.promptOverrides
+  if (campaignOverrides) {
+    for (const [sectionId, content] of Object.entries(campaignOverrides)) {
+      if (sectionId !== 'event_suggest' && content) {
+        promptTemplates[sectionId] = content
+      }
+    }
+  }
+
   const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts, promptTemplates, options.volunteerWorkflowMode, options.activeFundraiserTypeId, options.upcomingFundraiserEvents, options.upcomingEvents)
 
   // Delegate to Gemini provider if configured
