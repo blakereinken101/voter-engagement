@@ -53,12 +53,12 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
 
   // Merge platform admin overrides on top of campaign admin's aiContext
   let mergedAiContext = aiContext
-  if (platformOverrides && aiContext) {
+  if (platformOverrides) {
     // Shallow merge: non-empty override fields replace base fields
     const overrideEntries = Object.entries(platformOverrides)
       .filter(([, v]) => v !== undefined && v !== null && v !== '')
     if (overrideEntries.length > 0) {
-      mergedAiContext = { ...aiContext, ...Object.fromEntries(overrideEntries) } as AICampaignContext
+      mergedAiContext = { ...(aiContext || {}), ...Object.fromEntries(overrideEntries) } as AICampaignContext
 
       // Deep merge fundraisingConfig (one level deeper)
       if (platformOverrides.fundraisingConfig && mergedAiContext) {
@@ -66,7 +66,7 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
           .filter(([, v]) => v !== undefined && v !== null)
         if (overrideFc.length > 0) {
           mergedAiContext.fundraisingConfig = {
-            ...aiContext.fundraisingConfig,
+            ...(aiContext?.fundraisingConfig || {}),
             ...Object.fromEntries(overrideFc),
           }
         }
