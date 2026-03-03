@@ -457,6 +457,17 @@ export interface FundraisingConfig {
   fundraiserTypes?: FundraiserTypeConfig[]
 }
 
+export type TargetElectionCondition = 'voted' | 'did-not-vote'
+
+export interface TargetUniverseConfig {
+  VH2024G?: TargetElectionCondition
+  VH2022G?: TargetElectionCondition
+  VH2020G?: TargetElectionCondition
+  VH2024P?: TargetElectionCondition
+  VH2022P?: TargetElectionCondition
+  VH2020P?: TargetElectionCondition
+}
+
 export interface AICampaignContext {
   goals?: string
   keyIssues?: string[]
@@ -469,6 +480,7 @@ export interface AICampaignContext {
   partyStrategies?: PartyStrategies
   customSurveyQuestions?: CustomSurveyQuestion[]
   fundraisingConfig?: FundraisingConfig
+  targetUniverse?: TargetUniverseConfig
 }
 
 export type DashboardView = 'chat' | 'contacts'

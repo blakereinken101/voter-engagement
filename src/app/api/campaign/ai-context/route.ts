@@ -81,6 +81,20 @@ function sanitizeAIContext(raw: Record<string, unknown>): AICampaignContext {
             : undefined,
         }
       : undefined,
+    targetUniverse: raw.targetUniverse && typeof raw.targetUniverse === 'object'
+      ? (() => {
+          const tu = raw.targetUniverse as Record<string, unknown>
+          const validFields = ['VH2024G', 'VH2022G', 'VH2020G', 'VH2024P', 'VH2022P', 'VH2020P']
+          const validValues = ['voted', 'did-not-vote']
+          const result: Record<string, string> = {}
+          for (const field of validFields) {
+            if (typeof tu[field] === 'string' && validValues.includes(tu[field] as string)) {
+              result[field] = tu[field] as string
+            }
+          }
+          return Object.keys(result).length > 0 ? result : undefined
+        })()
+      : undefined,
   }
 }
 

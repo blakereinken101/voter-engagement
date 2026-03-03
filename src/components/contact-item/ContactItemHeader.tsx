@@ -3,7 +3,10 @@ import { useState } from 'react'
 import { PersonEntry, MatchResult } from '@/types'
 import { CATEGORIES } from '@/lib/wizard-config'
 import { CATEGORY_ICONS, getSegmentColors } from '@/lib/contact-config'
-import { X, ChevronDown } from 'lucide-react'
+import { X, ChevronDown, Star } from 'lucide-react'
+import { isInTargetUniverse } from '@/lib/voter-segments'
+import { useAuth } from '@/context/AuthContext'
+import defaultCampaignConfig from '@/lib/campaign-config'
 import clsx from 'clsx'
 
 interface Props {
@@ -20,12 +23,17 @@ export default function ContactItemHeader({
   person, matchResult, isNew, isDimmed, expanded, onToggleExpand, onRemove,
 }: Props) {
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const { campaignConfig: authConfig } = useAuth()
+  const campaignConfig = authConfig || defaultCampaignConfig
 
   const bestMatch = matchResult?.bestMatch
   const segment = matchResult?.segment
-  const voteScore = matchResult?.voteScore
   const catConfig = CATEGORIES.find(c => c.id === person.category)
-  const { textColor, dotColor } = getSegmentColors(segment)
+  const { dotColor } = getSegmentColors(segment)
+
+  const targetUniverse = campaignConfig.aiContext?.targetUniverse
+  const hasTargetConfig = targetUniverse && Object.values(targetUniverse).some(v => v)
+  const inTarget = bestMatch && hasTargetConfig ? isInTargetUniverse(bestMatch, targetUniverse) : undefined
 
   const CatIcon = catConfig?.icon ? CATEGORY_ICONS[catConfig.icon] : null
 
@@ -65,10 +73,12 @@ export default function ContactItemHeader({
 
       {/* Right: vote score + chevron + delete */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        {voteScore !== undefined && (
-          <span className={clsx('font-display font-bold text-lg tabular-nums', textColor)}>
-            {Math.round(voteScore * 100)}%
-          </span>
+        {inTarget !== undefined && (
+          inTarget ? (
+            <Star className="w-5 h-5 text-vc-gold fill-vc-gold" />
+          ) : (
+            <Star className="w-5 h-5 text-white/15" />
+          )
         )}
         <ChevronDown className={clsx(
           'w-4 h-4 text-white/30 transition-transform duration-200',

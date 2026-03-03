@@ -1,10 +1,10 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { Smartphone } from 'lucide-react'
+import { Smartphone, Star } from 'lucide-react'
 import { ActionPlanItem, OutreachMethod, ContactOutcome } from '@/types'
 import { useAppContext } from '@/context/AppContext'
 import { CONVERSATION_SCRIPTS } from '@/lib/scripts'
-import { getVoteHistoryDetail } from '@/lib/voter-segments'
+import { getVoteHistoryDetail, isInTargetUniverse } from '@/lib/voter-segments'
 import { getRelationshipTip } from '@/lib/scripts'
 import { generateSmsLinkForContact, getSmsTemplate, fillTemplate } from '@/lib/sms-templates'
 import defaultCampaignConfig from '@/lib/campaign-config'
@@ -74,6 +74,9 @@ export default function RolodexCard() {
   const totalDone = sortedItems.filter(i => i.contacted && i.contactOutcome && !isRecontactOutcome(i.contactOutcome)).length
 
   const { textColor: segmentColor, dotColor: segmentDot } = getSegmentColors(segment)
+  const targetUniverseCfg = campaignConfig.aiContext?.targetUniverse
+  const hasTargetConfig = targetUniverseCfg && Object.values(targetUniverseCfg).some(v => v)
+  const inTarget = bestMatch && hasTargetConfig ? isInTargetUniverse(bestMatch, targetUniverseCfg) : undefined
 
   function handleMethodSelect(method: OutreachMethod) {
     setSelectedMethod(method)
@@ -179,12 +182,19 @@ export default function RolodexCard() {
               <span className="text-xs font-display text-amber-400/70">Awaiting match</span>
             )}
           </div>
-          {voteScore !== undefined && (
-            <div className="mt-2 ml-5">
-              <span className={clsx('text-2xl font-bold font-display', segmentColor)}>
-                {Math.round(voteScore * 100)}%
-              </span>
-              <span className="text-xs text-white/40 ml-2">vote rate</span>
+          {inTarget !== undefined && (
+            <div className="mt-2 ml-5 flex items-center gap-2">
+              {inTarget ? (
+                <>
+                  <Star className="w-5 h-5 text-vc-gold fill-vc-gold" />
+                  <span className="text-sm font-bold text-vc-gold">Target Voter</span>
+                </>
+              ) : (
+                <span className="text-xs text-white/30 flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-white/15" />
+                  Not in target universe
+                </span>
+              )}
             </div>
           )}
         </div>

@@ -16,7 +16,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { DashboardView } from '@/types'
 import ScanSheetPanel from '@/components/ScanSheetPanel'
-import { Download, Shield, LogOut, Camera, Users, CheckCircle, MessageCircle, ThumbsUp, HelpCircle, Clock, ThumbsDown, Sparkles, Table, Calendar, ArrowLeft, ChevronsUpDown } from 'lucide-react'
+import { Download, Shield, LogOut, Camera, Users, MessageCircle, ThumbsUp, Clock, Sparkles, Table, Calendar, ArrowLeft, ChevronsUpDown, Star } from 'lucide-react'
+import { isInTargetUniverse } from '@/lib/voter-segments'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
@@ -29,13 +30,23 @@ export default function DashboardPage() {
 
   // Stats
   const totalPeople = state.personEntries.length
-  const matchedCount = state.matchResults.filter(r => r.status === 'confirmed').length
   const contactedCount = state.actionPlanState.filter(i => i.contacted).length
   const outcomes = state.actionPlanState.filter(i => i.contactOutcome)
   const supporters = outcomes.filter(i => i.contactOutcome === 'supporter').length
-  const undecided = outcomes.filter(i => i.contactOutcome === 'undecided').length
-  const needsFollowUp = outcomes.filter(i => i.contactOutcome === 'left-message' || i.contactOutcome === 'no-answer').length
-  const opposed = outcomes.filter(i => i.contactOutcome === 'opposed').length
+  const followUps = outcomes.filter(i =>
+    i.contactOutcome === 'undecided' ||
+    i.contactOutcome === 'left-message' ||
+    i.contactOutcome === 'no-answer'
+  ).length
+
+  // Target universe stats
+  const targetUniverseCfg = campaignConfig.aiContext?.targetUniverse
+  const hasTargetConfig = targetUniverseCfg && Object.values(targetUniverseCfg).some(v => v)
+  const targetsHit = hasTargetConfig
+    ? state.actionPlanState.filter(i =>
+        i.contacted && i.matchResult.bestMatch && isInTargetUniverse(i.matchResult.bestMatch, targetUniverseCfg)
+      ).length
+    : 0
 
   // Derive initials from user name
   const userInitials = user?.name
@@ -70,7 +81,7 @@ export default function DashboardPage() {
           {user && (
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="min-w-0 text-right">
-                <p className="text-sm font-bold text-white leading-tight truncate">{user.name || 'Volunteer'}</p>
+                <p className="text-sm md:text-base font-bold text-white leading-tight truncate">{user.name || 'Volunteer'}</p>
                 {memberships.length > 1 ? (
                   <div className="relative">
                     <select
@@ -109,7 +120,7 @@ export default function DashboardPage() {
         <div className="max-w-6xl mx-auto px-4 md:px-6 pb-3 md:pb-4 flex flex-wrap items-center gap-1.5 md:gap-3">
           <button
             onClick={() => setView('chat')}
-            className={`text-sm px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+            className={`text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
               view === 'chat'
                 ? 'bg-vc-purple text-white shadow-glow'
                 : 'text-white/60 hover:text-white glass hover:border-white/20'
@@ -120,7 +131,7 @@ export default function DashboardPage() {
           </button>
           <button
             onClick={() => setView('contacts')}
-            className={`text-sm px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+            className={`text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
               view === 'contacts'
                 ? 'bg-vc-purple text-white shadow-glow'
                 : 'text-white/60 hover:text-white glass hover:border-white/20'
@@ -132,7 +143,7 @@ export default function DashboardPage() {
           {isAdmin && (
             <button
               onClick={() => setView('admin')}
-              className={`text-sm px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+              className={`text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
                 view === 'admin'
                   ? 'bg-vc-purple text-white shadow-glow'
                   : 'text-white/60 hover:text-white glass hover:border-white/20'
@@ -144,7 +155,7 @@ export default function DashboardPage() {
           )}
           <button
             onClick={() => setShowScanSheet(true)}
-            className="text-sm text-white/60 hover:text-white transition-colors px-5 py-2.5 rounded-btn glass hover:border-white/20 flex items-center gap-2 font-bold"
+            className="text-sm md:text-base text-white/60 hover:text-white transition-colors px-5 py-2.5 rounded-btn glass hover:border-white/20 flex items-center gap-2 font-bold"
           >
             <Camera className="w-4 h-4" />
             Scan Sheet
@@ -162,7 +173,7 @@ export default function DashboardPage() {
                 const date = new Date().toISOString().slice(0, 10)
                 downloadCSV(csv, `threshold-${campaignConfig.id}-${date}.csv`)
               }}
-              className="text-sm text-white/60 hover:text-white px-5 py-2.5 rounded-btn glass hover:border-white/20 font-bold transition-colors flex items-center gap-2"
+              className="text-sm md:text-base text-white/60 hover:text-white px-5 py-2.5 rounded-btn glass hover:border-white/20 font-bold transition-colors flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
               Export
@@ -171,23 +182,33 @@ export default function DashboardPage() {
 
           {/* Stats — pushed right, hidden on small screens */}
           {view !== 'admin' && totalPeople > 0 && (
-            <div className="hidden md:flex flex-wrap items-center gap-4 text-sm ml-auto font-display tabular-nums">
+            <div className="hidden md:flex flex-wrap items-center gap-4 text-sm md:text-base ml-auto font-display tabular-nums">
               <span className="flex items-center gap-1.5 text-white/70">
                 <Users className="w-4 h-4" />
                 <span className="text-white font-bold">{totalPeople}</span>
-              </span>
-              <span className="flex items-center gap-1.5 text-vc-teal">
-                <CheckCircle className="w-4 h-4" />
-                <span className="font-bold">{matchedCount}</span>
               </span>
               <span className="flex items-center gap-1.5 text-vc-gold">
                 <MessageCircle className="w-4 h-4" />
                 <span className="font-bold">{contactedCount}</span>
               </span>
-              {supporters > 0 && <span className="flex items-center gap-1 text-vc-teal font-bold"><ThumbsUp className="w-3.5 h-3.5" /> {supporters}</span>}
-              {undecided > 0 && <span className="flex items-center gap-1 text-vc-gold font-bold"><HelpCircle className="w-3.5 h-3.5" /> {undecided}</span>}
-              {needsFollowUp > 0 && <span className="flex items-center gap-1 text-white/60 font-bold"><Clock className="w-3.5 h-3.5" /> {needsFollowUp}</span>}
-              {opposed > 0 && <span className="flex items-center gap-1 text-white/30 font-bold"><ThumbsDown className="w-3.5 h-3.5" /> {opposed}</span>}
+              {supporters > 0 && (
+                <span className="flex items-center gap-1.5 text-vc-teal">
+                  <ThumbsUp className="w-4 h-4" />
+                  <span className="font-bold">{supporters}</span>
+                </span>
+              )}
+              {hasTargetConfig && targetsHit > 0 && (
+                <span className="flex items-center gap-1.5 text-vc-gold">
+                  <Star className="w-4 h-4 fill-vc-gold" />
+                  <span className="font-bold">{targetsHit}</span>
+                </span>
+              )}
+              {followUps > 0 && (
+                <span className="flex items-center gap-1.5 text-white/60">
+                  <Clock className="w-4 h-4" />
+                  <span className="font-bold">{followUps}</span>
+                </span>
+              )}
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { VoterRecord, VoterSegment, MatchResult, SafeVoterRecord, VoteValue } from '@/types'
+import { VoterRecord, VoterSegment, MatchResult, SafeVoterRecord, VoteValue, TargetUniverseConfig } from '@/types'
 
 const ELECTION_FIELDS = ['VH2024G', 'VH2022G', 'VH2020G', 'VH2024P', 'VH2022P', 'VH2020P'] as const
 
@@ -18,6 +18,26 @@ export function determineSegment(score: number): VoterSegment {
   if (score >= 0.8) return 'super-voter'
   if (score >= 0.3) return 'sometimes-voter'
   return 'rarely-voter'
+}
+
+export function isInTargetUniverse(
+  record: VoterRecord | SafeVoterRecord,
+  targetUniverse?: TargetUniverseConfig
+): boolean {
+  if (!targetUniverse) return false
+
+  let hasCriteria = false
+  for (const field of ELECTION_FIELDS) {
+    const criterion = targetUniverse[field]
+    if (!criterion) continue
+    hasCriteria = true
+
+    const voted = VOTED_VALUES.has(record[field])
+    if (criterion === 'voted' && !voted) return false
+    if (criterion === 'did-not-vote' && voted) return false
+  }
+
+  return hasCriteria
 }
 
 export interface VoteHistoryDetail {

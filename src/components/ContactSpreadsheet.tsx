@@ -32,7 +32,7 @@ const SORT_OPTIONS: { value: SortField; label: string }[] = [
   { value: 'name', label: 'Name' },
   { value: 'category', label: 'Category' },
   { value: 'matchStatus', label: 'Match status' },
-  { value: 'voteScore', label: 'Vote score' },
+  { value: 'voteScore', label: 'Target' },
   { value: 'outcome', label: 'Outcome' },
   { value: 'priority', label: 'Priority' },
 ]

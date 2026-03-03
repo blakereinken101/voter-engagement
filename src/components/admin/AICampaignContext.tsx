@@ -13,6 +13,7 @@ import type {
   CustomSurveyQuestion,
   FundraisingConfig,
   FundraiserTypeConfig,
+  TargetUniverseConfig,
 } from '@/types'
 
 const US_STATES = [
@@ -48,6 +49,7 @@ export default function AICampaignContext() {
   const [customSurveyQuestions, setCustomSurveyQuestions] = useState<CustomSurveyQuestion[]>([])
   const [rawOptionsText, setRawOptionsText] = useState<Record<string, string>>({})
   const [fundraisingConfig, setFundraisingConfig] = useState<FundraisingConfig>({})
+  const [targetUniverse, setTargetUniverse] = useState<TargetUniverseConfig>({})
 
   // Platform overrides (platform admin only)
   const [platformOverrides, setPlatformOverrides] = useState<Partial<AICampaignContextType>>({})
@@ -77,6 +79,7 @@ export default function AICampaignContext() {
           setPartyStrategies(ctx.partyStrategies || {})
           setCustomSurveyQuestions(ctx.customSurveyQuestions || [])
           setFundraisingConfig(ctx.fundraisingConfig || {})
+          setTargetUniverse(ctx.targetUniverse || {})
         }
         if (data.platformOverrides) {
           setPlatformOverrides(data.platformOverrides)
@@ -204,6 +207,9 @@ export default function AICampaignContext() {
           : undefined,
         fundraisingConfig: (fundraisingConfig.requireResidency || fundraisingConfig.contributionLimits || fundraisingConfig.fundraisingGuidance || (fundraisingConfig.fundraiserTypes && fundraisingConfig.fundraiserTypes.length > 0))
           ? fundraisingConfig
+          : undefined,
+        targetUniverse: Object.values(targetUniverse).some(v => v)
+          ? targetUniverse
           : undefined,
       }
 
@@ -516,6 +522,44 @@ export default function AICampaignContext() {
             Priority order: {goalPriorities.map((g, i) => `${i + 1}. ${g.replace(/-/g, ' ')}`).join(', ')}
           </p>
         )}
+      </div>
+
+      {/* Target Universe */}
+      <div>
+        <label className={labelClass}>
+          Target Universe <span className={sublabelClass}>(which voters should volunteers prioritize?)</span>
+        </label>
+        <p className="text-xs text-white/40 mb-3 -mt-1">
+          Define your target universe by setting criteria on each election.
+          Voters matching ALL set criteria get a gold star in the rolodex.
+          Leave an election unset to ignore it.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {([
+            { field: 'VH2024G' as const, label: '2024 General' },
+            { field: 'VH2022G' as const, label: '2022 General' },
+            { field: 'VH2020G' as const, label: '2020 General' },
+            { field: 'VH2024P' as const, label: '2024 Primary' },
+            { field: 'VH2022P' as const, label: '2022 Primary' },
+            { field: 'VH2020P' as const, label: '2020 Primary' },
+          ]).map(({ field, label }) => (
+            <div key={field}>
+              <label className="block text-xs text-white/40 mb-1">{label}</label>
+              <select
+                value={targetUniverse[field] || ''}
+                onChange={e => setTargetUniverse(prev => ({
+                  ...prev,
+                  [field]: e.target.value || undefined,
+                }))}
+                className={inputClass}
+              >
+                <option value="">Don&apos;t care</option>
+                <option value="voted">Voted</option>
+                <option value="did-not-vote">Did Not Vote</option>
+              </select>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Fundraising Settings — only shown when fundraising is a goal priority */}

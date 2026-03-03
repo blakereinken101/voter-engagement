@@ -36,6 +36,7 @@ data/*.db-journal
 data/*.csv
 data/Statewide/
 data/pa-fve/
+data/anne-hughes-texting/
 
 # geocoding cache
 data/geocode-cache.json
