@@ -2,6 +2,18 @@ import { getPool } from './db'
 import campaignConfig, { type CampaignConfig, type SurveyQuestionConfig } from './campaign-config'
 import type { AICampaignContext } from '@/types'
 
+// Cache campaign config for 60 seconds to avoid hitting DB on every chat message
+const configCache = new Map<string, { config: CampaignConfig; timestamp: number }>()
+const CONFIG_CACHE_TTL = 60_000
+
+export function invalidateConfigCache(campaignId?: string) {
+  if (campaignId) {
+    configCache.delete(campaignId)
+  } else {
+    configCache.clear()
+  }
+}
+
 /**
  * Load campaign config from the database by campaign ID.
  * Server-only — imports pg which requires Node.js modules.
@@ -9,8 +21,15 @@ import type { AICampaignContext } from '@/types'
  *
  * Platform admin overrides (stored in campaigns.settings.platformOverrides)
  * are merged on top of aiContext so they take precedence.
+ *
+ * Results are cached for 60 seconds to avoid redundant DB queries.
  */
 export async function getCampaignConfig(campaignId: string): Promise<CampaignConfig> {
+  const now = Date.now()
+  const cached = configCache.get(campaignId)
+  if (cached && now - cached.timestamp < CONFIG_CACHE_TTL) {
+    return cached.config
+  }
   const pool = getPool()
 
   const { rows } = await pool.query(
@@ -55,7 +74,7 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
     }
   }
 
-  return {
+  const result: CampaignConfig = {
     id: row.id as string,
     name: row.name as string,
     candidateName: (row.candidate_name as string) || campaignConfig.candidateName,
@@ -69,4 +88,7 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
       : campaignConfig.surveyQuestions,
     aiContext: mergedAiContext,
   }
+
+  configCache.set(campaignId, { config: result, timestamp: Date.now() })
+  return result
 }

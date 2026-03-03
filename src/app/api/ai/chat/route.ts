@@ -52,25 +52,44 @@ export async function POST(request: NextRequest) {
     const isInit = rawMessage === '__INIT__'
     const db = await getDb()
 
-    // Load existing contacts to check if this is a returning user
-    const existingContacts = await loadExistingContacts(ctx.userId, ctx.campaignId)
+    // Parallelize independent DB queries for speed
+    const [existingContacts, membershipResult, campaignConfig, upcomingEventsResult] = await Promise.all([
+      loadExistingContacts(ctx.userId, ctx.campaignId),
+      db.query(
+        `SELECT settings FROM memberships WHERE user_id = $1 AND campaign_id = $2 LIMIT 1`,
+        [ctx.userId, ctx.campaignId],
+      ),
+      getCampaignConfig(ctx.campaignId),
+      db.query(`
+        SELECT e.id, e.title, e.event_type, e.start_time
+        FROM events e
+        JOIN campaigns c ON c.org_id = e.organization_id
+        WHERE c.id = $1 AND e.status = 'published' AND e.start_time > NOW()
+        ORDER BY e.start_time ASC
+        LIMIT 5
+      `, [ctx.campaignId]).catch(err => {
+        console.error('[ai-chat] Upcoming events load error (non-fatal):', err)
+        return { rows: [] }
+      }),
+    ])
+
     const isReturningUser = existingContacts.length > 0
 
-    // Load volunteer's workflow mode (voter-contact vs fundraising)
-    const { rows: membershipRows } = await db.query(
-      `SELECT settings FROM memberships WHERE user_id = $1 AND campaign_id = $2 LIMIT 1`,
-      [ctx.userId, ctx.campaignId],
-    )
-    const membershipSettings = (membershipRows[0]?.settings || {}) as Record<string, unknown>
+    const membershipSettings = (membershipResult.rows[0]?.settings || {}) as Record<string, unknown>
     const workflowMode = (membershipSettings.workflowMode as string) || null
     const activeFundraiserTypeId = (membershipSettings.activeFundraiserTypeId as string) || null
 
-    // Check if fundraising branching is enabled for this campaign
-    const campaignConfig = await getCampaignConfig(ctx.campaignId)
     const fundraisingEnabled = isFundraisingEnabled(campaignConfig.aiContext)
     const fundraiserTypes = campaignConfig.aiContext?.fundraisingConfig?.fundraiserTypes || []
 
-    // Detect upcoming fundraiser events this volunteer has RSVP'd to
+    const upcomingEvents = upcomingEventsResult.rows.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      title: r.title as string,
+      eventType: r.event_type as string,
+      startTime: r.start_time as string,
+    }))
+
+    // Detect upcoming fundraiser events (depends on campaignConfig, so runs after parallel batch)
     let upcomingFundraiserEvents: { title: string; typeId: string; typeName: string }[] = []
     if (fundraisingEnabled && !activeFundraiserTypeId && fundraiserTypes.length > 0) {
       try {
@@ -90,36 +109,15 @@ export async function POST(request: NextRequest) {
         `, [ctx.userId, ctx.campaignId])
 
         upcomingFundraiserEvents = rsvpEvents
-          .map(r => {
+          .map((r: Record<string, unknown>) => {
             const ft = fundraiserTypes.find(t => t.id === r.fundraiser_type)
-            return ft ? { title: r.title, typeId: r.fundraiser_type, typeName: ft.name } : null
+            return ft ? { title: r.title as string, typeId: r.fundraiser_type as string, typeName: ft.name } : null
           })
-          .filter((e): e is { title: string; typeId: string; typeName: string } => e !== null)
+          .filter((e: unknown): e is { title: string; typeId: string; typeName: string } => e !== null)
       } catch (err) {
         // Non-fatal: RSVP detection failing shouldn't break chat
         console.error('[ai-chat] RSVP detection error (non-fatal):', err)
       }
-    }
-
-    // Load upcoming events for the campaign's org (for contact event RSVP tracking)
-    let upcomingEvents: { id: string; title: string; eventType: string; startTime: string }[] = []
-    try {
-      const { rows: eventRows } = await db.query(`
-        SELECT e.id, e.title, e.event_type, e.start_time
-        FROM events e
-        JOIN campaigns c ON c.org_id = e.organization_id
-        WHERE c.id = $1 AND e.status = 'published' AND e.start_time > NOW()
-        ORDER BY e.start_time ASC
-        LIMIT 5
-      `, [ctx.campaignId])
-      upcomingEvents = eventRows.map(r => ({
-        id: r.id,
-        title: r.title,
-        eventType: r.event_type,
-        startTime: r.start_time,
-      }))
-    } catch (err) {
-      console.error('[ai-chat] Upcoming events load error (non-fatal):', err)
     }
 
     let message: string
@@ -249,6 +247,7 @@ Ask ONE specific question to get them going immediately. Don't recap everything 
             activeFundraiserTypeId,
             upcomingFundraiserEvents,
             upcomingEvents,
+            campaignConfig,
           })) {
             if (event.type === 'text') {
               fullAssistantText += event.text as string

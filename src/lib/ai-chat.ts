@@ -285,9 +285,14 @@ Record these as surveyResponses when using the log_conversation tool.`)
 - Segments: ${volunteerState.superVoters} super-voters, ${volunteerState.sometimesVoters} sometimes-voters, ${volunteerState.rarelyVoters} rarely-voters`)
 
   // Existing contacts — so AI knows who's already in the rolodex
+  // Cap at 75 individual entries to keep prompt size manageable; summarize the rest
   if (existingContacts && existingContacts.length > 0) {
+    const MAX_DETAILED_CONTACTS = 75
     const contactsByCategory: Record<string, string[]> = {}
-    for (const c of existingContacts) {
+    const detailed = existingContacts.length <= MAX_DETAILED_CONTACTS
+      ? existingContacts
+      : existingContacts.slice(-MAX_DETAILED_CONTACTS) // most recent entries
+    for (const c of detailed) {
       const cat = c.category || 'other'
       if (!contactsByCategory[cat]) contactsByCategory[cat] = []
       const status = c.contacted ? `(contacted: ${c.outcome || 'unknown'})` : c.matchStatus === 'confirmed' ? '(matched)' : ''
@@ -296,10 +301,13 @@ Record these as surveyResponses when using the log_conversation tool.`)
     const contactList = Object.entries(contactsByCategory)
       .map(([cat, names]) => `- ${cat}: ${names.join('; ')}`)
       .join('\n')
+    const truncationNote = existingContacts.length > MAX_DETAILED_CONTACTS
+      ? `\n(Showing most recent ${MAX_DETAILED_CONTACTS} of ${existingContacts.length} contacts. The rest are tracked but omitted for brevity.)`
+      : ''
     parts.push(`
 ## Existing Contacts Already in Rolodex
 The volunteer already has ${existingContacts.length} people on their list. DO NOT re-add these people. Here is who they already have:
-${contactList}
+${contactList}${truncationNote}
 
 Use this to:
 1. Skip anyone they already named — say "Got it, they're already on your list" and move on
@@ -1182,23 +1190,31 @@ export interface ChatStreamOptions {
   activeFundraiserTypeId?: string | null
   upcomingFundraiserEvents?: { title: string; typeId: string; typeName: string }[]
   upcomingEvents?: { id: string; title: string; eventType: string; startTime: string }[]
+  /** Pre-loaded campaign config to avoid redundant DB fetch */
+  campaignConfig?: CampaignConfig
 }
 
 export async function* streamChat(
   options: ChatStreamOptions,
 ): AsyncGenerator<{ type: string; [key: string]: unknown }> {
   const db = await getDb()
-  const config = await getCampaignConfig(options.campaignId)
-  const volunteerState = await loadVolunteerState(options.userId, options.campaignId)
-  const aiSettings = await getAISettings()
 
-  // Load volunteer name
-  const { rows: userRows } = await db.query(
-    'SELECT name FROM users WHERE id = $1', [options.userId],
-  )
-  const volunteerName = userRows[0]?.name || undefined
+  // Use pre-loaded config if available, otherwise fetch (with cache)
+  const configPromise = options.campaignConfig
+    ? Promise.resolve(options.campaignConfig)
+    : getCampaignConfig(options.campaignId)
 
-  // Load DB-backed prompt templates (resolves campaign-type overrides)
+  // Parallelize all independent setup queries
+  const [config, volunteerState, aiSettings, userRows] = await Promise.all([
+    configPromise,
+    loadVolunteerState(options.userId, options.campaignId),
+    getAISettings(),
+    db.query('SELECT name FROM users WHERE id = $1', [options.userId]),
+  ])
+
+  const volunteerName = userRows.rows[0]?.name || undefined
+
+  // Load DB-backed prompt templates (depends on config for campaignType)
   const campaignType = (config.aiContext?.campaignType as CampaignType) || null
   const promptSections = await getAllPromptSections(campaignType)
   const promptTemplates: Record<string, string> = {}
@@ -1288,11 +1304,15 @@ export async function* streamChat(
     const finalMessage = await stream.finalMessage()
 
     if (toolUseBlocks.length > 0) {
-      // Execute tools and feed results back
-      const toolResults: Anthropic.ToolResultBlockParam[] = []
+      // Execute tools in parallel and feed results back
+      const toolExecutions = await Promise.all(
+        toolUseBlocks.map(tool => executeTool(tool.name, tool.input, ctx))
+      )
 
-      for (const tool of toolUseBlocks) {
-        const result = await executeTool(tool.name, tool.input, ctx)
+      const toolResults: Anthropic.ToolResultBlockParam[] = []
+      for (let i = 0; i < toolUseBlocks.length; i++) {
+        const tool = toolUseBlocks[i]
+        const result = toolExecutions[i]
         toolResults.push({
           type: 'tool_result',
           tool_use_id: tool.id,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
+import { invalidateConfigCache } from '@/lib/campaign-config.server'
 import type { AICampaignContext, CampaignType, GoalPriority } from '@/types'
 
 // Sanitize a string value: strip HTML tags, trim, and limit length
@@ -168,6 +169,9 @@ export async function PUT(request: NextRequest) {
         [JSON.stringify({ platformOverrides }), ctx.campaignId],
       )
     }
+
+    // Invalidate cached config so next chat picks up changes immediately
+    invalidateConfigCache(ctx.campaignId)
 
     return NextResponse.json({ success: true })
   } catch (error) {
