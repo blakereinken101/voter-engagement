@@ -57,14 +57,21 @@ function sortForRolodex(items: ActionPlanItem[]): ActionPlanItem[] {
 }
 
 export default function RolodexCard() {
-  const { state, toggleContacted, setContactOutcome, clearContact, updateNote } = useAppContext()
+  const { state, toggleContacted, setContactOutcome, clearContact, updateNote, setSurveyResponses } = useAppContext()
   const { campaignConfig: authConfig } = useAuth()
   const campaignConfig = authConfig || defaultCampaignConfig
+  const allSurveyQuestions = useMemo(() => {
+    const custom = (campaignConfig.aiContext?.customSurveyQuestions || []).map(q => ({
+      id: q.id, label: q.question, type: q.type as 'text' | 'select', options: q.options,
+    }))
+    return [...campaignConfig.surveyQuestions, ...custom]
+  }, [campaignConfig])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [step, setStep] = useState<CardStep>('prep')
   const [selectedMethod, setSelectedMethod] = useState<OutreachMethod | null>(null)
   const [selectedOutcome, setSelectedOutcome] = useState<ContactOutcome | null>(null)
   const [noteText, setNoteText] = useState('')
+  const [surveyAnswers, setSurveyAnswers] = useState<Record<string, string>>({})
 
   const sortedItems = useMemo(() => sortForRolodex(state.actionPlanState), [state.actionPlanState])
 
@@ -101,6 +108,9 @@ export default function RolodexCard() {
     if (noteText.trim()) {
       updateNote(personEntry.id, noteText.trim())
     }
+    if (Object.values(surveyAnswers).some(v => v)) {
+      setSurveyResponses(personEntry.id, surveyAnswers)
+    }
     advanceToNext()
   }
 
@@ -113,6 +123,7 @@ export default function RolodexCard() {
     setSelectedMethod(null)
     setSelectedOutcome(null)
     setNoteText('')
+    setSurveyAnswers({})
     if (safeIndex < sortedItems.length - 1) {
       setCurrentIndex(safeIndex + 1)
     }
@@ -125,6 +136,7 @@ export default function RolodexCard() {
       setSelectedMethod(null)
       setSelectedOutcome(null)
       setNoteText('')
+      setSurveyAnswers({})
     }
   }
 
@@ -377,6 +389,38 @@ export default function RolodexCard() {
               className="glass-input w-full p-3 rounded-btn text-sm focus:outline-none focus:ring-2 focus:ring-vc-purple/30 resize-none mb-4"
               rows={3}
             />
+
+            {/* Survey questions */}
+            {allSurveyQuestions.length > 0 && selectedOutcome && selectedOutcome !== 'no-answer' && selectedOutcome !== 'left-message' && (
+              <div className="mb-4 space-y-2">
+                <p className="text-xs font-bold text-vc-purple-light uppercase tracking-wider">Survey</p>
+                {allSurveyQuestions.map(q => (
+                  <div key={q.id}>
+                    <label className="text-xs text-white/50 block mb-0.5">{q.label}</label>
+                    {q.type === 'select' && q.options ? (
+                      <select
+                        value={surveyAnswers[q.id] ?? item.surveyResponses?.[q.id] ?? ''}
+                        onChange={e => setSurveyAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        className="glass-input w-full px-3 py-2 rounded-btn text-sm"
+                      >
+                        <option value="">—</option>
+                        {q.options.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        value={surveyAnswers[q.id] ?? item.surveyResponses?.[q.id] ?? ''}
+                        onChange={e => setSurveyAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        className="glass-input w-full px-3 py-2 rounded-btn text-sm"
+                        placeholder={q.label}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <button
               onClick={handleSaveAndNext}
