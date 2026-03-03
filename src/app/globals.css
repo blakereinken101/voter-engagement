@@ -96,6 +96,13 @@ body {
     color: rgba(255, 255, 255, 0.35);
   }
 
+  /* Give select elements an opaque background so dropdowns aren't see-through */
+  select.glass-input {
+    background: #1a1f2e;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   /* Ensure select/option elements render correctly on dark backgrounds */
   .glass-input option {
     background: #1a1f2e;
