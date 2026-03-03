@@ -3,15 +3,14 @@ import { useState, useMemo, useEffect } from 'react'
 import { useAppContext } from '@/context/AppContext'
 import { SpreadsheetRow, SortField, SortDirection, SegmentFilter, OutcomeFilter, IntakeMode } from '@/types'
 import InlineAddRow from './InlineAddRow'
-import ContactRow from './ContactRow'
-import ContactCard from './ContactCard'
+import { ContactItem } from './contact-item'
 import MatchAllBar from './MatchAllBar'
 import NearbyPanel from './NearbyPanel'
 import ContactsPanel from './ContactsPanel'
 import { calculatePriority } from '@/lib/contact-priority'
 import { useAuth } from '@/context/AuthContext'
 import defaultCampaignConfig from '@/lib/campaign-config'
-import { Pencil, MapPin, ClipboardList, HelpCircle, MessageCircle, Phone, Coffee, Smartphone, ThumbsUp, ThumbsDown, Mail } from 'lucide-react'
+import { Pencil, MapPin, ClipboardList, HelpCircle, MessageCircle, Phone, Coffee, Smartphone, ThumbsUp, ThumbsDown, Mail, ArrowUpDown } from 'lucide-react'
 import clsx from 'clsx'
 
 function formatElectionDate(dateStr?: string): string {
@@ -27,6 +26,15 @@ const INTAKE_TABS: { id: IntakeMode; label: string; Icon: typeof Pencil }[] = [
   { id: 'manual', label: 'Manual', Icon: Pencil },
   { id: 'nearby', label: 'Nearby', Icon: MapPin },
   { id: 'contacts', label: 'Contacts', Icon: ClipboardList },
+]
+
+const SORT_OPTIONS: { value: SortField; label: string }[] = [
+  { value: 'name', label: 'Name' },
+  { value: 'category', label: 'Category' },
+  { value: 'matchStatus', label: 'Match status' },
+  { value: 'voteScore', label: 'Vote score' },
+  { value: 'outcome', label: 'Outcome' },
+  { value: 'priority', label: 'Priority' },
 ]
 
 function ConversationGuide() {
@@ -176,15 +184,6 @@ export default function ContactSpreadsheet() {
     !state.matchResults.find(r => r.personEntry.id === p.id)
   ).length
 
-  function handleSort(field: SortField) {
-    if (sortField === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDir('asc')
-    }
-  }
-
   function handleRemove(personId: string) {
     removePerson(personId)
   }
@@ -192,9 +191,6 @@ export default function ContactSpreadsheet() {
   function handleVolunteerInterest(personId: string, interest: 'yes' | 'no' | 'maybe') {
     setVolunteerInterest(personId, interest)
   }
-
-  const sortIndicator = (field: SortField) =>
-    sortField === field ? (sortDir === 'asc' ? ' \u2191' : ' \u2193') : ''
 
   return (
     <div className="flex flex-col h-full">
@@ -228,7 +224,7 @@ export default function ContactSpreadsheet() {
         <ConversationGuide />
       )}
 
-      {/* Filters — glass bar */}
+      {/* Filters + sort — glass bar */}
       {rows.length > 0 && (
         <div className="px-4 md:px-6 py-3 flex flex-wrap gap-2 items-center">
           <input
@@ -263,78 +259,54 @@ export default function ContactSpreadsheet() {
             <option value="no-answer">No answer</option>
             <option value="opposed">Not interested</option>
           </select>
-          <span className="text-xs text-white/60 font-display tabular-nums ml-auto">
-            {sorted.length} of {rows.length}
-          </span>
-        </div>
-      )}
 
-      {/* Desktop table */}
-      {rows.length > 0 && (
-        <div className="hidden md:block flex-1 overflow-auto px-4 md:px-6 pb-20">
-          <table className="w-full text-left border-separate" style={{ borderSpacing: '0 6px' }}>
-            <thead className="sticky top-0 z-10">
-              <tr className="text-[11px] font-bold text-white/50 uppercase tracking-wider">
-                <th className="py-2 px-3 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('name')}>
-                  Name{sortIndicator('name')}
-                </th>
-                <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('category')}>
-                  Cat{sortIndicator('category')}
-                </th>
-                <th className="py-2 px-2">City</th>
-                <th className="py-2 px-2">Age</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('matchStatus')}>
-                  Match{sortIndicator('matchStatus')}
-                </th>
-                <th className="py-2 px-2">Outreach</th>
-                <th className="py-2 px-2 cursor-pointer hover:text-white/70 transition-colors" onClick={() => handleSort('outcome')}>
-                  Outcome{sortIndicator('outcome')}
-                </th>
-                <th className="py-2 px-2">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((row, i) => (
-                <ContactRow
-                  key={row.person.id}
-                  row={row}
-                  index={i}
-                  eventRsvps={eventRsvps[row.person.id]}
-                  onToggleContacted={toggleContacted}
-                  onOutcomeSelect={setContactOutcome}
-                  onRecontact={clearContact}
-                  onNotesChange={updateNote}
-                  onRemove={handleRemove}
-                  onConfirmMatch={confirmMatch}
-                  onRejectMatch={rejectMatch}
-                  onVolunteerInterest={handleVolunteerInterest}
-                  onSurveyChange={setSurveyResponses}
-                />
+          {/* Sort dropdown */}
+          <div className="flex items-center gap-1 ml-auto">
+            <ArrowUpDown className="w-3 h-3 text-white/40" />
+            <select
+              value={sortField}
+              onChange={e => setSortField(e.target.value as SortField)}
+              className="glass-input px-2 py-2 rounded-btn text-xs"
+            >
+              {SORT_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
-            </tbody>
-          </table>
+            </select>
+            <button
+              onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+              className="text-xs text-white/50 hover:text-white/80 transition-colors px-1.5 py-1.5 rounded"
+              title={sortDir === 'asc' ? 'Ascending' : 'Descending'}
+            >
+              {sortDir === 'asc' ? '↑' : '↓'}
+            </button>
+            <span className="text-xs text-white/60 font-display tabular-nums ml-2">
+              {sorted.length} of {rows.length}
+            </span>
+          </div>
         </div>
       )}
 
-      {/* Mobile cards */}
+      {/* Contact cards — unified responsive layout */}
       {rows.length > 0 && (
-        <div className="md:hidden flex-1 overflow-auto px-4 pb-20 space-y-4">
-          {sorted.map(row => (
-            <ContactCard
-              key={row.person.id}
-              row={row}
-              eventRsvps={eventRsvps[row.person.id]}
-              onToggleContacted={toggleContacted}
-              onOutcomeSelect={setContactOutcome}
-              onRecontact={clearContact}
-              onNotesChange={updateNote}
-              onRemove={handleRemove}
-              onConfirmMatch={confirmMatch}
-              onRejectMatch={rejectMatch}
-              onVolunteerInterest={handleVolunteerInterest}
-              onSurveyChange={setSurveyResponses}
-            />
-          ))}
+        <div className="flex-1 overflow-auto px-4 md:px-6 pb-20">
+          <div className="space-y-3 max-w-4xl">
+            {sorted.map(row => (
+              <ContactItem
+                key={row.person.id}
+                row={row}
+                eventRsvps={eventRsvps[row.person.id]}
+                onToggleContacted={toggleContacted}
+                onOutcomeSelect={setContactOutcome}
+                onRecontact={clearContact}
+                onNotesChange={updateNote}
+                onRemove={handleRemove}
+                onConfirmMatch={confirmMatch}
+                onRejectMatch={rejectMatch}
+                onVolunteerInterest={handleVolunteerInterest}
+                onSurveyChange={setSurveyResponses}
+              />
+            ))}
+          </div>
         </div>
       )}
 

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { MessageCircle, Phone, Coffee, ThumbsUp, HelpCircle, ThumbsDown, Mail, PhoneOff, Smartphone } from 'lucide-react'
-import { ActionPlanItem, OutreachMethod, ContactOutcome, VoterSegment } from '@/types'
+import { Smartphone } from 'lucide-react'
+import { ActionPlanItem, OutreachMethod, ContactOutcome } from '@/types'
 import { useAppContext } from '@/context/AppContext'
 import { CONVERSATION_SCRIPTS } from '@/lib/scripts'
 import { getVoteHistoryDetail } from '@/lib/voter-segments'
@@ -9,28 +9,15 @@ import { getRelationshipTip } from '@/lib/scripts'
 import { generateSmsLinkForContact, getSmsTemplate, fillTemplate } from '@/lib/sms-templates'
 import defaultCampaignConfig from '@/lib/campaign-config'
 import { useAuth } from '@/context/AuthContext'
+import {
+  OUTCOME_CONFIG,
+  OUTREACH_LABELS,
+  SEGMENT_CONFIG,
+  getSegmentColors,
+  isRecontactOutcome,
+} from '@/lib/contact-config'
 import ScriptCard from './ScriptCard'
 import clsx from 'clsx'
-
-const OUTREACH_LABELS: Record<OutreachMethod, { label: string; Icon: typeof MessageCircle }> = {
-  text: { label: 'Text', Icon: MessageCircle },
-  call: { label: 'Call', Icon: Phone },
-  'one-on-one': { label: '1:1 meetup', Icon: Coffee },
-}
-
-const OUTCOME_CONFIG: Record<ContactOutcome, { label: string; Icon: typeof MessageCircle; color: string }> = {
-  'supporter':    { label: 'Supporter',       Icon: ThumbsUp,   color: 'bg-vc-teal text-white' },
-  'undecided':    { label: 'Undecided',       Icon: HelpCircle, color: 'bg-vc-gold text-white' },
-  'opposed':      { label: 'Not interested',  Icon: ThumbsDown, color: 'bg-white/10 text-white/60' },
-  'left-message': { label: 'Left message',    Icon: Mail,       color: 'bg-vc-purple/10 text-vc-purple-light' },
-  'no-answer':    { label: 'No answer',       Icon: PhoneOff,   color: 'bg-vc-purple/10 text-vc-purple-light' },
-}
-
-const SEGMENT_LABELS: Record<VoterSegment, { label: string; color: string }> = {
-  'rarely-voter': { label: 'Rarely Votes', color: 'text-vc-coral' },
-  'sometimes-voter': { label: 'Sometimes Votes', color: 'text-vc-gold' },
-  'super-voter': { label: 'Super Voter', color: 'text-vc-teal' },
-}
 
 type CardStep = 'prep' | 'log'
 
@@ -45,8 +32,8 @@ function sortForRolodex(items: ActionPlanItem[]): ActionPlanItem[] {
     if (!a.contacted && b.contacted) return -1
     if (a.contacted && !b.contacted) return 1
 
-    const aRecontact = a.contactOutcome === 'left-message' || a.contactOutcome === 'no-answer'
-    const bRecontact = b.contactOutcome === 'left-message' || b.contactOutcome === 'no-answer'
+    const aRecontact = isRecontactOutcome(a.contactOutcome)
+    const bRecontact = isRecontactOutcome(b.contactOutcome)
     if (aRecontact && !bRecontact) return -1
     if (!aRecontact && bRecontact) return 1
 
@@ -84,16 +71,10 @@ export default function RolodexCard() {
   const voteHistory = bestMatch ? getVoteHistoryDetail(bestMatch) : []
   const relationshipTip = getRelationshipTip(personEntry.category)
 
-  const totalRemaining = sortedItems.filter(i => !i.contacted || i.contactOutcome === 'left-message' || i.contactOutcome === 'no-answer').length
-  const totalDone = sortedItems.filter(i => i.contacted && i.contactOutcome && i.contactOutcome !== 'left-message' && i.contactOutcome !== 'no-answer').length
+  const totalRemaining = sortedItems.filter(i => !i.contacted || isRecontactOutcome(i.contactOutcome)).length
+  const totalDone = sortedItems.filter(i => i.contacted && i.contactOutcome && !isRecontactOutcome(i.contactOutcome)).length
 
-  const segmentDot = segment === 'super-voter' ? 'bg-vc-teal' :
-    segment === 'sometimes-voter' ? 'bg-vc-gold' :
-    segment === 'rarely-voter' ? 'bg-vc-coral' : 'bg-white/20'
-
-  const segmentColor = segment === 'super-voter' ? 'text-vc-teal' :
-    segment === 'sometimes-voter' ? 'text-vc-gold' :
-    segment === 'rarely-voter' ? 'text-vc-coral' : 'text-white/40'
+  const { textColor: segmentColor, dotColor: segmentDot } = getSegmentColors(segment)
 
   function handleMethodSelect(method: OutreachMethod) {
     setSelectedMethod(method)
@@ -142,7 +123,7 @@ export default function RolodexCard() {
 
   // Guard against invalid outcome values from stale data
   const outcomeValid = item.contactOutcome && item.contactOutcome in OUTCOME_CONFIG
-  const isRecontact = item.contacted && (item.contactOutcome === 'left-message' || item.contactOutcome === 'no-answer')
+  const isRecontact = item.contacted && isRecontactOutcome(item.contactOutcome)
   const isFullyDone = item.contacted && outcomeValid && !isRecontact
   // If contacted but no outcome recorded (e.g. user selected method then skipped), show log step
   const needsOutcome = item.contacted && !outcomeValid
@@ -187,9 +168,9 @@ export default function RolodexCard() {
             {bestMatch && (
               <span className="text-sm text-white/50">{bestMatch.city}, {bestMatch.state}</span>
             )}
-            {segment && (
-              <span className={clsx('text-xs font-display font-bold', SEGMENT_LABELS[segment].color)}>
-                {SEGMENT_LABELS[segment].label}
+            {segment && SEGMENT_CONFIG[segment] && (
+              <span className={clsx('text-xs font-display font-bold', SEGMENT_CONFIG[segment].textColor)}>
+                {SEGMENT_CONFIG[segment].label}
               </span>
             )}
             {status === 'unmatched' && (
@@ -346,7 +327,7 @@ export default function RolodexCard() {
 
             <p className="text-sm font-bold text-white mb-3">How will you reach out?</p>
             <div className="flex gap-2">
-              {(Object.entries(OUTREACH_LABELS) as [OutreachMethod, { label: string; Icon: typeof MessageCircle }][]).map(([method, { label, Icon }]) => (
+              {(Object.entries(OUTREACH_LABELS) as [OutreachMethod, typeof OUTREACH_LABELS[OutreachMethod]][]).map(([method, { label, Icon }]) => (
                 <button
                   key={method}
                   onClick={() => handleMethodSelect(method)}
