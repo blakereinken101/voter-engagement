@@ -202,7 +202,7 @@ export default function ContactRow({
                 Pick ▾
               </button>
               {showCandidates && matchResult?.candidates && (
-                <div className="absolute z-20 top-full mt-1 left-0 glass-card rounded-lg shadow-lg border border-white/15 p-2 min-w-[280px]">
+                <div className="absolute z-20 top-full mt-1 left-0 bg-vc-surface rounded-lg shadow-lg border border-white/15 p-2 min-w-[280px] backdrop-blur-xl">
                   {matchResult.candidates.map((c, i) => {
                     const age = c.voterRecord.birth_year ? new Date().getFullYear() - parseInt(c.voterRecord.birth_year) : null
                     return (

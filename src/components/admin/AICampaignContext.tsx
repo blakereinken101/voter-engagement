@@ -46,6 +46,7 @@ export default function AICampaignContext() {
   const [goalPriorities, setGoalPriorities] = useState<GoalPriority[]>([])
   const [partyStrategies, setPartyStrategies] = useState<PartyStrategies>({})
   const [customSurveyQuestions, setCustomSurveyQuestions] = useState<CustomSurveyQuestion[]>([])
+  const [rawOptionsText, setRawOptionsText] = useState<Record<string, string>>({})
   const [fundraisingConfig, setFundraisingConfig] = useState<FundraisingConfig>({})
 
   // Platform overrides (platform admin only)
@@ -740,10 +741,13 @@ export default function AICampaignContext() {
                   {q.type === 'select' && (
                     <input
                       type="text"
-                      value={q.options?.join(', ') || ''}
-                      onChange={e => updateSurveyQuestion(q.id, {
-                        options: e.target.value.split(',').map(o => o.trim()).filter(Boolean),
-                      })}
+                      value={rawOptionsText[q.id] ?? q.options?.join(', ') ?? ''}
+                      onChange={e => setRawOptionsText(prev => ({ ...prev, [q.id]: e.target.value }))}
+                      onBlur={e => {
+                        const parsed = e.target.value.split(',').map(o => o.trim()).filter(Boolean)
+                        updateSurveyQuestion(q.id, { options: parsed })
+                        setRawOptionsText(prev => { const next = { ...prev }; delete next[q.id]; return next })
+                      }}
                       placeholder="Options (comma-separated)"
                       className={`${inputClass} flex-1`}
                     />
