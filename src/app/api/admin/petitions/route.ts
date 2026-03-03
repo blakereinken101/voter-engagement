@@ -132,22 +132,37 @@ export async function POST(request: NextRequest) {
         VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9)
       `, [sheetId, ctx.campaignId, sanitize(petitionerName, 100), ctx.userId, signatures.length, fingerprint, isDuplicate, duplicateOf, petitionerId])
 
-      // Insert signatures
-      for (const sig of signatures) {
-        if (!sig.firstName || !sig.lastName) continue
+      // Batch insert all signatures in one query using unnest
+      const validSigs = signatures.filter(sig => sig.firstName && sig.lastName)
+      if (validSigs.length > 0) {
+        const sigIds: string[] = []
+        const sheetIds: string[] = []
+        const lineNumbers: (number | null)[] = []
+        const firstNames: (string | null)[] = []
+        const lastNames: (string | null)[] = []
+        const addresses: (string | null)[] = []
+        const cities: (string | null)[] = []
+        const zips: (string | null)[] = []
+        const datesSigned: (string | null)[] = []
 
-        const zipVal = typeof sig.zip === 'string' ? sig.zip.replace(/[^0-9]/g, '').slice(0, 5) || null : null
+        for (const sig of validSigs) {
+          sigIds.push(crypto.randomUUID())
+          sheetIds.push(sheetId)
+          lineNumbers.push(typeof sig.lineNumber === 'number' ? sig.lineNumber : null)
+          firstNames.push(sanitize(sig.firstName, 50))
+          lastNames.push(sanitize(sig.lastName, 50))
+          addresses.push(sanitize(sig.address, 200))
+          cities.push(sanitize(sig.city, 50))
+          zips.push(typeof sig.zip === 'string' ? sig.zip.replace(/[^0-9]/g, '').slice(0, 5) || null : null)
+          datesSigned.push(sanitize(sig.dateSigned, 20))
+        }
 
         await client.query(`
           INSERT INTO petition_signatures (id, sheet_id, line_number, first_name, last_name, address, city, zip, date_signed)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-        `, [
-          crypto.randomUUID(), sheetId,
-          typeof sig.lineNumber === 'number' ? sig.lineNumber : null,
-          sanitize(sig.firstName, 50), sanitize(sig.lastName, 50),
-          sanitize(sig.address, 200), sanitize(sig.city, 50),
-          zipVal, sanitize(sig.dateSigned, 20),
-        ])
+          SELECT * FROM unnest(
+            $1::uuid[], $2::uuid[], $3::int[], $4::text[], $5::text[], $6::text[], $7::text[], $8::text[], $9::text[]
+          )
+        `, [sigIds, sheetIds, lineNumbers, firstNames, lastNames, addresses, cities, zips, datesSigned])
       }
 
       await client.query('COMMIT')

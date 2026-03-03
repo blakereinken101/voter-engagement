@@ -104,82 +104,102 @@ export async function POST(
       }
     }
 
-    // Update each signature with match results
-    const client = await db.connect()
+    // Compute match results for all signatures, then batch-update in one query
     let matchedCount = 0
+    const ids: string[] = []
+    const statuses: string[] = []
+    const matchDatas: (string | null)[] = []
+    const matchScores: (number | null)[] = []
+    const candidatesDatas: (string | null)[] = []
 
+    for (const result of results) {
+      const sigId = result.personEntry.id
+      let matchStatus: string
+      let matchData: string | null = null
+      let matchScore: number | null = null
+      let candidatesData: string | null = null
+
+      // Store all candidates for side-by-side comparison (including AI fields)
+      if (result.candidates.length > 0) {
+        candidatesData = JSON.stringify(result.candidates.map(c => ({
+          voterRecord: c.voterRecord,
+          score: c.score,
+          confidenceLevel: c.confidenceLevel,
+          matchedOn: c.matchedOn,
+          ...(c.aiConfidence ? { aiConfidence: c.aiConfidence } : {}),
+          ...(c.aiReasoning ? { aiReasoning: c.aiReasoning } : {}),
+        })))
+      }
+
+      // Determine match status using algorithmic score + AI confidence
+      const topCandidate = result.candidates[0]
+      const score = topCandidate?.score || 0
+      const aiConf = topCandidate?.aiConfidence // undefined if AI didn't run
+
+      if (result.status === 'confirmed' || score >= 0.70) {
+        if (aiConf === 'unlikely-match') {
+          matchStatus = 'ambiguous'
+        } else {
+          matchStatus = 'matched'
+        }
+        matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
+        matchScore = score || null
+        matchedCount++
+      } else if (score >= 0.55) {
+        if (aiConf === 'likely-match') {
+          matchStatus = 'matched'
+        } else if (aiConf === 'unlikely-match') {
+          matchStatus = 'unmatched'
+        } else {
+          matchStatus = 'ambiguous'
+        }
+        matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
+        matchScore = score || null
+        if (matchStatus !== 'unmatched') matchedCount++
+      } else if (aiConf === 'likely-match') {
+        matchStatus = 'ambiguous'
+        matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
+        matchScore = score || null
+        matchedCount++
+      } else {
+        matchStatus = 'unmatched'
+        if (result.bestMatch) {
+          matchData = JSON.stringify(result.bestMatch)
+          matchScore = score || null
+        }
+      }
+
+      ids.push(sigId)
+      statuses.push(matchStatus)
+      matchDatas.push(matchData)
+      matchScores.push(matchScore)
+      candidatesDatas.push(candidatesData)
+    }
+
+    // Batch update all signatures + sheet stats in a single transaction (2 queries instead of N+1)
+    const client = await db.connect()
     try {
       await client.query('BEGIN')
 
-      for (const result of results) {
-        const sigId = result.personEntry.id
-        let matchStatus: string
-        let matchData: string | null = null
-        let matchScore: number | null = null
-        let candidatesData: string | null = null
-
-        // Store all candidates for side-by-side comparison (including AI fields)
-        if (result.candidates.length > 0) {
-          candidatesData = JSON.stringify(result.candidates.map(c => ({
-            voterRecord: c.voterRecord,
-            score: c.score,
-            confidenceLevel: c.confidenceLevel,
-            matchedOn: c.matchedOn,
-            ...(c.aiConfidence ? { aiConfidence: c.aiConfidence } : {}),
-            ...(c.aiReasoning ? { aiReasoning: c.aiReasoning } : {}),
-          })))
-        }
-
-        // Determine match status using algorithmic score + AI confidence
-        const topCandidate = result.candidates[0]
-        const score = topCandidate?.score || 0
-        const aiConf = topCandidate?.aiConfidence // undefined if AI didn't run
-
-        if (result.status === 'confirmed' || score >= 0.70) {
-          // High algorithmic confidence — AI can downgrade
-          if (aiConf === 'unlikely-match') {
-            matchStatus = 'ambiguous'
-          } else {
-            matchStatus = 'matched'
-          }
-          matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
-          matchScore = score || null
-          matchedCount++
-        } else if (score >= 0.55) {
-          // Medium algorithmic confidence — AI can upgrade or downgrade
-          if (aiConf === 'likely-match') {
-            matchStatus = 'matched'
-          } else if (aiConf === 'unlikely-match') {
-            matchStatus = 'unmatched'
-          } else {
-            matchStatus = 'ambiguous'
-          }
-          matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
-          matchScore = score || null
-          if (matchStatus !== 'unmatched') matchedCount++
-        } else if (aiConf === 'likely-match') {
-          // Low algorithmic score but AI says likely — upgrade to ambiguous
-          matchStatus = 'ambiguous'
-          matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
-          matchScore = score || null
-          matchedCount++
-        } else {
-          matchStatus = 'unmatched'
-          // Still store best match data for "best guess" display
-          if (result.bestMatch) {
-            matchData = JSON.stringify(result.bestMatch)
-            matchScore = score || null
-          }
-        }
-
+      if (ids.length > 0) {
         await client.query(`
-          UPDATE petition_signatures
-          SET match_status = $1, match_data = $2, match_score = $3, candidates_data = $4
-          WHERE id = $5
-        `, [matchStatus, matchData, matchScore, candidatesData, sigId])
+          UPDATE petition_signatures AS ps SET
+            match_status = bulk.match_status,
+            match_data = bulk.match_data::jsonb,
+            match_score = bulk.match_score,
+            candidates_data = bulk.candidates_data::jsonb
+          FROM (
+            SELECT
+              unnest($1::uuid[]) AS id,
+              unnest($2::text[]) AS match_status,
+              unnest($3::text[]) AS match_data,
+              unnest($4::double precision[]) AS match_score,
+              unnest($5::text[]) AS candidates_data
+          ) AS bulk
+          WHERE ps.id = bulk.id
+        `, [ids, statuses, matchDatas, matchScores, candidatesDatas])
       }
 
-      // Update sheet stats
       const validityRate = signatures.length > 0
         ? Math.round((matchedCount / signatures.length) * 1000) / 10
         : 0

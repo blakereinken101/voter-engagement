@@ -1,6 +1,15 @@
 import { createHash } from 'crypto'
 import type { Pool } from 'pg'
 
+// Cache the natural module so we only pay the dynamic import cost once
+let naturalModule: typeof import('natural') | null = null
+async function getNatural() {
+  if (!naturalModule) {
+    naturalModule = await import('natural')
+  }
+  return naturalModule
+}
+
 // =============================================
 // SHEET FINGERPRINTING (duplicate detection)
 // =============================================
@@ -107,7 +116,7 @@ export async function findOrCreatePetitioner(
 
   // Pass 3: Jaro-Winkler fuzzy match (> 0.85 threshold)
   try {
-    const natural = await import('natural')
+    const natural = await getNatural()
     const jw = natural.JaroWinklerDistance
 
     for (const p of existing) {
