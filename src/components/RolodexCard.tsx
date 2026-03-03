@@ -48,10 +48,9 @@ export default function RolodexCard() {
   const { campaignConfig: authConfig } = useAuth()
   const campaignConfig = authConfig || defaultCampaignConfig
   const allSurveyQuestions = useMemo(() => {
-    const custom = (campaignConfig.aiContext?.customSurveyQuestions || []).map(q => ({
+    return (campaignConfig.aiContext?.customSurveyQuestions || []).map(q => ({
       id: q.id, label: q.question, type: q.type as 'text' | 'select', options: q.options,
     }))
-    return [...campaignConfig.surveyQuestions, ...custom]
   }, [campaignConfig])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [step, setStep] = useState<CardStep>('prep')

@@ -19,10 +19,9 @@ export default function SurveyInline({ personId, actionItem, contacted, contactO
   const campaignConfig = authConfig || defaultCampaignConfig
 
   const allSurveyQuestions = useMemo(() => {
-    const custom = (campaignConfig.aiContext?.customSurveyQuestions || []).map(q => ({
+    return (campaignConfig.aiContext?.customSurveyQuestions || []).map(q => ({
       id: q.id, label: q.question, type: q.type, options: q.options,
     }))
-    return [...campaignConfig.surveyQuestions, ...custom]
   }, [campaignConfig])
 
   // Only show after a response outcome (supporter, undecided, opposed)
