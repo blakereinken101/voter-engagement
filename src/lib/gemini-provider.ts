@@ -159,6 +159,7 @@ export interface GeminiStreamOptions {
   message: string
   userId: string
   campaignId: string
+  fundraisingEnabled?: boolean
 }
 
 /**
@@ -178,7 +179,11 @@ export async function* streamGeminiChat(
   }
 
   const ctx = { userId: options.userId, campaignId: options.campaignId }
-  const functionDeclarations = convertToolsToGemini()
+  // Filter out fundraising tool when fundraising is disabled
+  const allDeclarations = convertToolsToGemini()
+  const functionDeclarations = options.fundraisingEnabled !== false
+    ? allDeclarations
+    : allDeclarations.filter(t => t.name !== 'set_workflow_mode')
 
   let contents = convertHistoryToGemini(options.history, options.message)
   let continueLoop = true

@@ -401,7 +401,16 @@ This volunteer has chosen the voter contact workflow. Do NOT ask the branching q
   }
 
   // Tool usage instructions (always included)
-  parts.push(`\n${t('tool_usage')}`)
+  let toolUsageText = t('tool_usage')
+  if (!fundraisingEnabled) {
+    // Scrub set_workflow_mode from tool usage text so the AI never sees
+    // the word "fundraising" when it's disabled for this campaign
+    toolUsageText = toolUsageText.replace(/.*set_workflow_mode.*/gi, '')
+    parts.push(`\n${toolUsageText}`)
+    parts.push('\nFundraising is NOT part of this campaign. Do NOT mention donations or fundraising under any circumstances.')
+  } else {
+    parts.push(`\n${toolUsageText}`)
+  }
 
   // Campaign-specific directive — injected at the very top with highest priority.
   // Only present when a campaign admin sets promptOverrides._directive.
@@ -1260,6 +1269,7 @@ export async function* streamChat(
         message: options.message,
         userId: options.userId,
         campaignId: options.campaignId,
+        fundraisingEnabled: isFundraisingEnabled(config.aiContext),
       })
     } catch (err) {
       console.error('[ai-chat] Gemini delegation error:', err)
@@ -1271,6 +1281,13 @@ export async function* streamChat(
   // Default: Anthropic provider
   const client = getAnthropicClient()
   const ctx: ToolContext = { userId: options.userId, campaignId: options.campaignId }
+
+  // Filter out fundraising tool when fundraising is disabled to prevent
+  // the tool description from leaking "fundraising" into the AI's context
+  const fundraisingActive = isFundraisingEnabled(config.aiContext)
+  const activeTools = fundraisingActive
+    ? TOOL_DEFINITIONS
+    : TOOL_DEFINITIONS.filter(t => t.name !== 'set_workflow_mode')
 
   // Build messages array
   const messages: Anthropic.MessageParam[] = [
@@ -1289,7 +1306,7 @@ export async function* streamChat(
       max_tokens: aiSettings.maxTokens,
       system: systemPrompt,
       messages,
-      tools: TOOL_DEFINITIONS,
+      tools: activeTools,
     })
 
     let fullText = ''
