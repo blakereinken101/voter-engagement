@@ -15,6 +15,7 @@ import { getDb } from './db'
 // =============================================
 
 export const PROMPT_SECTIONS = [
+  '_directive',
   'identity',
   'rolodex',
   'match_confirmation',
@@ -51,6 +52,11 @@ interface StoredPromptValue {
 // =============================================
 
 const SECTION_META: Record<PromptSectionId, { label: string; description: string; variables: string[] }> = {
+  _directive: {
+    label: 'Campaign Directive (Overrides All)',
+    description: 'Top-level instructions that override all other prompt sections. Injected at the highest priority. Chat only — does not affect events or petitions.',
+    variables: ['campaignName', 'areaLabel', 'electionState'],
+  },
   identity: {
     label: 'Bot Identity & Persona',
     description: 'Defines who the AI is, its tone, formatting rules, and how it introduces itself to volunteers.',
@@ -104,6 +110,7 @@ const SECTION_META: Record<PromptSectionId, { label: string; description: string
 // =============================================
 
 export const DEFAULT_TEMPLATES: Record<PromptSectionId, string> = {
+  _directive: '',
   identity: `You are a campaign coach for "{{campaignName}}". You help volunteers build a list of voters in {{areaLabel}} and coach them through conversations.
 
 ## Core Principle: Context Awareness

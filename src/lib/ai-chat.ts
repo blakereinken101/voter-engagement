@@ -403,6 +403,19 @@ This volunteer has chosen the voter contact workflow. Do NOT ask the branching q
   // Tool usage instructions (always included)
   parts.push(`\n${t('tool_usage')}`)
 
+  // Campaign-specific directive — injected at the very top with highest priority.
+  // Only present when a campaign admin sets promptOverrides._directive.
+  const directive = promptTemplates?.['_directive']
+  if (directive) {
+    parts.unshift(`## CAMPAIGN-SPECIFIC DIRECTIVE (HIGHEST PRIORITY)
+
+The following instructions are set by this campaign's administrator and take precedence over ALL other instructions in this prompt. If any section below conflicts with this directive, follow the directive.
+
+${directive}
+
+---`)
+  }
+
   return parts.join('\n')
 }
 
@@ -1219,7 +1232,7 @@ export async function* streamChat(
   const promptSections = await getAllPromptSections(campaignType)
   const promptTemplates: Record<string, string> = {}
   for (const s of promptSections) {
-    if (s.id !== 'event_suggest') promptTemplates[s.id] = s.content
+    if (s.id !== 'event_suggest' && s.id !== '_directive') promptTemplates[s.id] = s.content
   }
 
   // Per-campaign prompt overrides take highest priority — override everything
