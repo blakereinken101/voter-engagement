@@ -61,14 +61,16 @@ function convertToolsToGemini(): FunctionDeclaration[] {
 
 /**
  * Convert chat history from Anthropic format to Gemini format.
+ * Includes critical sanitization to guarantee strictly alternating roles.
  */
 function convertHistoryToGemini(
   history: Array<{ role: 'user' | 'assistant'; content: string | Array<Record<string, unknown>> }>,
   message: string,
 ): Content[] {
   const contents: Content[] = []
+
+  // 1. Process all history and flatten
   for (const m of history) {
-    // Flatten content blocks (tool_use/tool_result) to text for Gemini
     let text: string
     if (typeof m.content === 'string') {
       text = m.content
@@ -89,11 +91,35 @@ function convertHistoryToGemini(
       parts: [{ text }],
     })
   }
+
+  // 2. Add current message
   contents.push({
     role: 'user',
     parts: [{ text: message }],
   })
-  return contents
+
+  // 3. Merge consecutive roles and ensure it starts with 'user'
+  const finalContents: Content[] = []
+  for (const content of contents) {
+    // If the very first message is 'model' (e.g. __INIT__ user msg wasn't saved),
+    // prepend a silent user context message to satisfy the schema.
+    if (finalContents.length === 0 && content.role === 'model') {
+      finalContents.push({ role: 'user', parts: [{ text: '(Conversation started)' }] })
+    }
+
+    const last = finalContents[finalContents.length - 1]
+
+    // If we have consecutive messages of the same role (e.g. tool results
+    // followed by new user text), merge them into one.
+    if (last && last.role === content.role && last.parts && content.parts) {
+      last.parts.push({ text: '\n\n' })
+      last.parts.push(...content.parts)
+    } else {
+      finalContents.push(content)
+    }
+  }
+
+  return finalContents
 }
 
 /**
