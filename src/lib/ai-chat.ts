@@ -391,7 +391,13 @@ When they choose fundraising, ask if they're working on one of these events and 
     }
   }
 
-  if (volunteerWorkflowMode === 'fundraising') {
+  // If volunteer chose fundraising but the campaign no longer has it as a priority,
+  // treat them as having no mode set (fall through to normal voter-contact flow).
+  const effectiveWorkflowMode = (volunteerWorkflowMode === 'fundraising' && !fundraisingEnabled)
+    ? null
+    : volunteerWorkflowMode
+
+  if (effectiveWorkflowMode === 'fundraising') {
     parts.push(`
 ## Active Mode: FUNDRAISING${activeType ? ` — ${activeType.name}` : ''}
 This volunteer has chosen the fundraising workflow. Do NOT ask the branching question again. Do NOT do rolodex list-building or voter contact coaching. Focus entirely on fundraising coaching.${
@@ -404,14 +410,14 @@ This volunteer has chosen the fundraising workflow. Do NOT ask the branching que
 ${activeType.guidance}` : ''}`)
   }
 
-  if (volunteerWorkflowMode === 'voter-contact') {
+  if (effectiveWorkflowMode === 'voter-contact') {
     parts.push(`
 ## Active Mode: VOTER CONTACT
 This volunteer has chosen the voter contact workflow. Do NOT ask the branching question again. Proceed with normal list-building and conversation coaching.`)
   }
 
   // Conditional section inclusion based on workflow mode
-  if (volunteerWorkflowMode !== 'fundraising') {
+  if (effectiveWorkflowMode !== 'fundraising') {
     // Normal voter-contact flow (or mode not yet chosen)
     parts.push(`\n${t('rolodex')}`)
     parts.push(`\n${t('match_confirmation')}`)

@@ -76,11 +76,27 @@ export async function POST(request: NextRequest) {
     const isReturningUser = existingContacts.length > 0
 
     const membershipSettings = (membershipResult.rows[0]?.settings || {}) as Record<string, unknown>
-    const workflowMode = (membershipSettings.workflowMode as string) || null
-    const activeFundraiserTypeId = (membershipSettings.activeFundraiserTypeId as string) || null
+    let workflowMode = (membershipSettings.workflowMode as string) || null
+    let activeFundraiserTypeId = (membershipSettings.activeFundraiserTypeId as string) || null
 
     const fundraisingEnabled = isFundraisingEnabled(campaignConfig.aiContext)
     const fundraiserTypes = campaignConfig.aiContext?.fundraisingConfig?.fundraiserTypes || []
+
+    // Clear stale fundraising workflow if fundraising is no longer a campaign priority
+    if (workflowMode === 'fundraising' && !fundraisingEnabled) {
+      console.warn(`[ai-chat] Clearing stale fundraising workflowMode for user=${ctx.userId} campaign=${ctx.campaignId}`)
+      workflowMode = null
+      activeFundraiserTypeId = null
+      // Async DB cleanup so future requests don't re-clear
+      db.query(
+        `UPDATE memberships
+         SET settings = COALESCE(settings, '{}'::jsonb) - 'workflowMode' - 'activeFundraiserTypeId'
+         WHERE user_id = $1 AND campaign_id = $2`,
+        [ctx.userId, ctx.campaignId],
+      ).catch(err => {
+        console.error('[ai-chat] Failed to clear stale workflow settings (non-fatal):', err)
+      })
+    }
 
     const upcomingEvents = upcomingEventsResult.rows.map((r: Record<string, unknown>) => ({
       id: r.id as string,
