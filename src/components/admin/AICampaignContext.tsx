@@ -50,6 +50,7 @@ export default function AICampaignContext() {
   const [rawOptionsText, setRawOptionsText] = useState<Record<string, string>>({})
   const [fundraisingConfig, setFundraisingConfig] = useState<FundraisingConfig>({})
   const [targetUniverse, setTargetUniverse] = useState<TargetUniverseConfig>({})
+  const [promptOverrides, setPromptOverrides] = useState<Record<string, string> | undefined>()
 
   // Platform overrides (platform admin only)
   const [platformOverrides, setPlatformOverrides] = useState<Partial<AICampaignContextType>>({})
@@ -80,6 +81,7 @@ export default function AICampaignContext() {
           setCustomSurveyQuestions(ctx.customSurveyQuestions || [])
           setFundraisingConfig(ctx.fundraisingConfig || {})
           setTargetUniverse(ctx.targetUniverse || {})
+          setPromptOverrides(ctx.promptOverrides)
         }
         if (data.platformOverrides) {
           setPlatformOverrides(data.platformOverrides)
@@ -211,6 +213,7 @@ export default function AICampaignContext() {
         targetUniverse: Object.values(targetUniverse).some(v => v)
           ? targetUniverse
           : undefined,
+        promptOverrides,
       }
 
       const payload: Record<string, unknown> = { aiContext }
