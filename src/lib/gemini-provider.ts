@@ -77,8 +77,21 @@ function convertHistoryToGemini(
     } else {
       text = m.content
         .map(block => {
-          if (block.type === 'text') return block.text as string
-          // Skip tool_use/tool_result blocks — they add noise and the model echoes them back
+          if (block.type === 'text') return (block.text as string).trim()
+          // Preserve tool results as system data so the model retains context
+          // from previous tool calls, but frame them neutrally to avoid echo
+          if (block.type === 'tool_result') {
+            const resultContent = typeof block.content === 'string'
+              ? block.content
+              : Array.isArray(block.content)
+                ? (block.content as Array<Record<string, unknown>>)
+                    .map(c => (c.text as string) || '')
+                    .filter(Boolean)
+                    .join(' ')
+                : JSON.stringify(block.content)
+            if (resultContent) return `[System Data Retrieved: ${resultContent}]`
+          }
+          // Skip tool_use blocks — they add noise and the model echoes them back
           return ''
         })
         .filter(Boolean)

@@ -137,6 +137,15 @@ export async function POST(request: NextRequest) {
       [ctx.userId, ctx.campaignId],
     )
 
+    // Guard: if __INIT__ arrives but conversation already exists, don't
+    // re-trigger the AI greeting — that would signal "start over" to the model.
+    if (isInit && historyRows.length > 0) {
+      return new Response(
+        new TextEncoder().encode('data: [DONE]\n\n'),
+        { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' } },
+      )
+    }
+
     const history: Array<{ role: 'user' | 'assistant'; content: string | Array<Record<string, unknown>> }> = []
     for (const row of historyRows) {
       if (row.role === 'assistant' && row.tool_calls) {

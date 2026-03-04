@@ -163,6 +163,9 @@ export function buildSystemPrompt(
 
   // Template variables shared across sections
   const areaLabel = aiContext?.electionInfo?.district || electionState
+  const jurisdictionDescription = aiContext?.electionInfo?.district
+    ? `${aiContext.electionInfo.district} in ${electionState}`
+    : `the state of ${electionState}`
   const categoryList = CATEGORIES.map(c =>
     `- **${c.id}**: "${c.question}" (aim for ${c.minSuggested}+) — Examples: ${c.examples.slice(0, 3).join(', ')}`
   ).join('\n')
@@ -194,6 +197,7 @@ ${script.introduction}
   const vars: Record<string, string> = {
     campaignName: config.name,
     areaLabel,
+    jurisdictionDescription,
     electionState,
     categoryList,
     scriptSummaries,
@@ -785,8 +789,12 @@ async function executeRunMatching(ctx: ToolContext): Promise<Record<string, unkn
         fullName: `${best.voterRecord.first_name} ${best.voterRecord.last_name}`,
         address: best.voterRecord.residential_address || null,
         city: best.voterRecord.city || null,
+        state: best.voterRecord.state || null,
         birthYear: best.voterRecord.birth_year || null,
         party: best.voterRecord.party_affiliation || null,
+        congressionalDistrict: best.voterRecord.congressional_district || null,
+        stateSenateDistrict: best.voterRecord.state_senate_district || null,
+        stateHouseDistrict: best.voterRecord.state_house_district || null,
         confidence: best.confidenceLevel,
         score: Math.round(best.score * 100),
         matchedOn: best.matchedOn,
@@ -916,6 +924,7 @@ async function executeGetNextContact(ctx: ToolContext): Promise<Record<string, u
   const segment = next.matchResult.segment
   const tip = getRelationshipTip(person.category)
 
+  const bm = next.matchResult.bestMatch
   return {
     contactId: person.id,
     name: `${person.firstName} ${person.lastName}`,
@@ -926,6 +935,16 @@ async function executeGetNextContact(ctx: ToolContext): Promise<Record<string, u
     priorityScore: priority,
     relationshipTip: tip,
     remainingUncontacted: sorted.filter(i => !i.contacted).length,
+    voterMatch: bm ? {
+      address: bm.residential_address || null,
+      city: bm.city || null,
+      state: bm.state || null,
+      birthYear: bm.birth_year || null,
+      party: bm.party_affiliation || null,
+      congressionalDistrict: bm.congressional_district || null,
+      stateSenateDistrict: bm.state_senate_district || null,
+      stateHouseDistrict: bm.state_house_district || null,
+    } : null,
   }
 }
 
@@ -971,22 +990,37 @@ async function executeGetContactDetails(
     rsvpsByContact.get(r.contact_id)!.push({ eventTitle: r.title, status: r.status, startTime: r.start_time })
   }
 
-  const contacts = rows.map(row => ({
-    contactId: row.id,
-    name: `${row.first_name} ${row.last_name}`,
-    phone: row.phone || null,
-    city: row.city || null,
-    category: row.category,
-    matchStatus: row.mr_status || 'pending',
-    segment: row.segment || null,
-    voteScore: row.vote_score ?? null,
-    contacted: !!row.contacted,
-    outcome: row.contact_outcome || null,
-    method: row.outreach_method || null,
-    notes: row.notes || null,
-    surveyResponses: row.survey_responses ? JSON.parse(row.survey_responses) : null,
-    eventRsvps: rsvpsByContact.get(row.id) || [],
-  }))
+  const contacts = rows.map(row => {
+    const bm = row.best_match_data
+      ? (typeof row.best_match_data === 'string' ? JSON.parse(row.best_match_data) : row.best_match_data)
+      : null
+    return {
+      contactId: row.id,
+      name: `${row.first_name} ${row.last_name}`,
+      phone: row.phone || null,
+      city: row.city || null,
+      category: row.category,
+      matchStatus: row.mr_status || 'pending',
+      segment: row.segment || null,
+      voteScore: row.vote_score ?? null,
+      contacted: !!row.contacted,
+      outcome: row.contact_outcome || null,
+      method: row.outreach_method || null,
+      notes: row.notes || null,
+      surveyResponses: row.survey_responses ? JSON.parse(row.survey_responses) : null,
+      eventRsvps: rsvpsByContact.get(row.id) || [],
+      voterMatch: bm ? {
+        address: bm.residential_address || null,
+        city: bm.city || null,
+        state: bm.state || null,
+        birthYear: bm.birth_year || null,
+        party: bm.party_affiliation || null,
+        congressionalDistrict: bm.congressional_district || null,
+        stateSenateDistrict: bm.state_senate_district || null,
+        stateHouseDistrict: bm.state_house_district || null,
+      } : null,
+    }
+  })
 
   return contacts.length === 1 ? contacts[0] : { matches: contacts }
 }

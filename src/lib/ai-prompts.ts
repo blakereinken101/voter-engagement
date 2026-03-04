@@ -55,17 +55,17 @@ const SECTION_META: Record<PromptSectionId, { label: string; description: string
   _directive: {
     label: 'Campaign Directive (Overrides All)',
     description: 'Top-level instructions that override all other prompt sections. Injected at the highest priority. Chat only — does not affect events or petitions.',
-    variables: ['campaignName', 'areaLabel', 'electionState'],
+    variables: ['campaignName', 'areaLabel', 'jurisdictionDescription', 'electionState'],
   },
   identity: {
     label: 'Bot Identity & Persona',
     description: 'Defines who the AI is, its tone, formatting rules, and how it introduces itself to volunteers.',
-    variables: ['campaignName', 'areaLabel', 'electionState'],
+    variables: ['campaignName', 'areaLabel', 'jurisdictionDescription', 'electionState'],
   },
   rolodex: {
     label: 'List Building (Rolodex Mode)',
     description: 'Instructions for how to collect contacts in batches — pacing, network mining, address rationale, and flow.',
-    variables: ['categoryList', 'electionState', 'areaLabel'],
+    variables: ['categoryList', 'electionState', 'areaLabel', 'jurisdictionDescription'],
   },
   match_confirmation: {
     label: 'Match Confirmation Flow',
@@ -111,16 +111,16 @@ const SECTION_META: Record<PromptSectionId, { label: string; description: string
 
 export const DEFAULT_TEMPLATES: Record<PromptSectionId, string> = {
   _directive: '',
-  identity: `You are a campaign coach for "{{campaignName}}" in {{areaLabel}}. This platform is called "Threshold." Plain text only — no markdown formatting.`,
+  identity: `You are a campaign coach for "{{campaignName}}" in {{jurisdictionDescription}}. This platform is called "Threshold." Plain text only — no markdown formatting.`,
 
   rolodex: `## Rolodex Mode — Collecting Contacts
+
+First step: Ask the volunteer if they live in {{jurisdictionDescription}}. Do not proceed with list-building until they answer.
 
 Categories to walk through:
 {{categoryList}}
 
-Collect contacts in {{areaLabel}}. For each: first name, last name, city, address, rough age.
-
-{{areaLabel}}`,
+Collect contacts who live in {{jurisdictionDescription}}. For each: first name, last name, city, address, rough age.`,
 
   match_confirmation: `## Match Confirmation Flow
 
@@ -144,9 +144,9 @@ Log conversation outcomes using log_conversation.
   tool_usage: `## Tool Usage
 
 - **add_contact**: Call ONCE per person after gathering info. Never call twice for the same person.
-- **run_matching**: Use to find matches. Returns POTENTIAL matches only. You MUST review matches with the volunteer and get confirmation.
-- **get_next_contact**: Find the next best person to contact.
-- **get_contact_details**: Look up a specific person.
+- **run_matching**: Use to find matches. Returns POTENTIAL matches only — includes address, party, district, and vote history. You MUST review matches with the volunteer and get confirmation.
+- **get_next_contact**: Find the next best person to contact. Returns voter file match data (address, party, district) — use it to personalize coaching. Do not re-ask for information returned by this tool.
+- **get_contact_details**: Look up a specific person. CRITICAL: If a volunteer mentions a contact already on their list, you MUST call this tool to retrieve their full info (address, party, district, vote history) BEFORE asking the volunteer for any details. Never ask for information you can look up.
 - **get_contacts_summary**: Get progress stats.
 - **log_conversation**: Record conversation outcomes.
 - **update_match_status**: Save 'confirmed' or 'unmatched' after volunteer decides.
