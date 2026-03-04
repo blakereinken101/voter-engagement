@@ -71,6 +71,18 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
           }
         }
       }
+
+      // Deep merge promptOverrides (one level deeper)
+      if (platformOverrides.promptOverrides && mergedAiContext) {
+        const overridePo = Object.entries(platformOverrides.promptOverrides)
+          .filter(([, v]) => v !== undefined && v !== null && v !== '')
+        if (overridePo.length > 0) {
+          mergedAiContext.promptOverrides = {
+            ...(aiContext?.promptOverrides || {}),
+            ...Object.fromEntries(overridePo),
+          }
+        }
+      }
     }
   }
 

@@ -302,8 +302,30 @@ export default function AICampaignContext() {
           {overridesExpanded && (
             <div className="space-y-4 pt-2 border-t border-amber-500/20">
               <p className="text-xs text-amber-400/40">
-                Any field set here will take priority over the campaign admin's values. Leave blank to use campaign admin's settings.
+                Any field set here will take priority over the campaign admin&apos;s values. Leave blank to use campaign admin&apos;s settings.
               </p>
+
+              <div>
+                <label className="block text-xs text-amber-400/60 mb-1">Campaign Directive (Overrides ALL AI Instructions)</label>
+                <p className="text-xs text-amber-400/30 mb-2">
+                  Instructions here override everything — identity, list-building, coaching, all default prompts. Chat only, does not affect events or petitions.
+                </p>
+                <textarea
+                  value={platformOverrides.promptOverrides?._directive || ''}
+                  onChange={e => setPlatformOverrides(prev => {
+                    const val = e.target.value
+                    if (!val) {
+                      // Remove _directive from promptOverrides
+                      const { _directive, ...rest } = prev.promptOverrides || {}
+                      return { ...prev, promptOverrides: Object.keys(rest).length > 0 ? rest : undefined }
+                    }
+                    return { ...prev, promptOverrides: { ...prev.promptOverrides, _directive: val } }
+                  })}
+                  placeholder="e.g., This campaign focuses only on fundraising. Do not ask about voter contact or list-building. Skip the residency question. Go directly into fundraising coaching."
+                  rows={5}
+                  className={`${inputClass} resize-none border-amber-500/20`}
+                />
+              </div>
 
               <div>
                 <label className="block text-xs text-amber-400/60 mb-1">Goals Override</label>
