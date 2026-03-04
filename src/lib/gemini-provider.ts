@@ -78,8 +78,7 @@ function convertHistoryToGemini(
       text = m.content
         .map(block => {
           if (block.type === 'text') return block.text as string
-          if (block.type === 'tool_use') return `[Used tool: ${block.name}]`
-          if (block.type === 'tool_result') return `[Tool result: ${block.content}]`
+          // Skip tool_use/tool_result blocks — they add noise and the model echoes them back
           return ''
         })
         .filter(Boolean)
