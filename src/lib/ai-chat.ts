@@ -19,7 +19,7 @@ import { calculateVoteScore, determineSegment } from './voter-segments'
 import { CATEGORIES } from './wizard-config'
 import { CONVERSATION_SCRIPTS, getRelationshipTip } from './scripts'
 import { getAISettings } from './ai-settings'
-import { streamGeminiChat } from './gemini-provider'
+import { streamGeminiChat, isGeminiEnabled, ProviderUnavailableError } from './gemini-provider'
 import { getAllPromptSections, interpolateTemplate, type PromptSectionId, type CampaignType } from './ai-prompts'
 import type { AICampaignContext, FundraisingConfig, FundraiserTypeConfig, PersonEntry, MatchResult, ActionPlanItem } from '@/types'
 
@@ -36,6 +36,25 @@ function getAnthropicClient(): Anthropic {
 
 export function isAIEnabled(): boolean {
   return !!process.env.ANTHROPIC_API_KEY || !!process.env.GEMINI_API_KEY
+}
+
+export function isAnthropicEnabled(): boolean {
+  return !!process.env.ANTHROPIC_API_KEY
+}
+
+/** Get the default model for a provider when used as fallback */
+function getFallbackModel(provider: 'anthropic' | 'gemini'): string {
+  if (provider === 'anthropic') {
+    return process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
+  }
+  return process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+}
+
+/** Get the alternate provider if its API key is configured, else null */
+function getAlternateProvider(current: 'anthropic' | 'gemini'): 'anthropic' | 'gemini' | null {
+  if (current === 'gemini' && isAnthropicEnabled()) return 'anthropic'
+  if (current === 'anthropic' && isGeminiEnabled()) return 'gemini'
+  return null
 }
 
 // =============================================
@@ -1292,38 +1311,61 @@ export async function* streamChat(
 
   const systemPrompt = buildSystemPrompt(config, config.aiContext, volunteerState, volunteerName, options.existingContacts, promptTemplates, options.volunteerWorkflowMode, options.activeFundraiserTypeId, options.upcomingFundraiserEvents, options.upcomingEvents)
 
-  // Delegate to Gemini provider if configured
-  if (aiSettings.provider === 'gemini') {
+  const fundraisingActive = isFundraisingEnabled(config.aiContext)
+  let useProvider: 'gemini' | 'anthropic' = aiSettings.provider
+  let useModel: string = aiSettings.chatModel
+
+  // ── Gemini path (with fallback to Anthropic) ──────────────────────
+  if (useProvider === 'gemini') {
+    let textYielded = false
+    let fellBack = false
+
     try {
-      yield* streamGeminiChat({
-        model: aiSettings.chatModel,
+      const geminiGen = streamGeminiChat({
+        model: useModel,
         maxTokens: aiSettings.maxTokens,
         systemPrompt,
         history: options.history,
         message: options.message,
         userId: options.userId,
         campaignId: options.campaignId,
-        fundraisingEnabled: isFundraisingEnabled(config.aiContext),
+        fundraisingEnabled: fundraisingActive,
       })
+
+      for await (const event of geminiGen) {
+        if (event.type === 'text') textYielded = true
+        yield event
+      }
     } catch (err) {
-      console.error('[ai-chat] Gemini delegation error:', err)
-      yield { type: 'error', message: 'Gemini encountered an error. Please try again or switch to a different AI provider in settings.' }
+      const alt = getAlternateProvider('gemini')
+      const canFallback = !textYielded
+        && err instanceof ProviderUnavailableError
+        && err.isFallbackEligible
+        && alt !== null
+
+      if (canFallback) {
+        console.warn(`[ai-chat] Gemini unavailable (${(err as Error).message}), falling back to ${alt} with model ${getFallbackModel(alt!)}`)
+        fellBack = true
+        useProvider = alt!
+        useModel = getFallbackModel(alt!)
+      } else {
+        console.error('[ai-chat] Gemini error (no fallback):', err)
+        yield { type: 'error', message: 'Gemini encountered an error. Please try again or switch to a different AI provider in settings.' }
+        return
+      }
     }
-    return
+
+    if (!fellBack) return
   }
 
-  // Default: Anthropic provider
+  // ── Anthropic path (primary or fallback target) ───────────────────
   const client = getAnthropicClient()
   const ctx: ToolContext = { userId: options.userId, campaignId: options.campaignId }
 
-  // Filter out fundraising tool when fundraising is disabled to prevent
-  // the tool description from leaking "fundraising" into the AI's context
-  const fundraisingActive = isFundraisingEnabled(config.aiContext)
   const activeTools = fundraisingActive
     ? TOOL_DEFINITIONS
     : TOOL_DEFINITIONS.filter(t => t.name !== 'set_workflow_mode')
 
-  // Build messages array
   const messages: Anthropic.MessageParam[] = [
     ...options.history.map(m => ({
       role: m.role as 'user' | 'assistant',
@@ -1333,86 +1375,108 @@ export async function* streamChat(
   ]
 
   let continueLoop = true
+  let anthropicTextYielded = false
 
-  while (continueLoop) {
-    const stream = client.messages.stream({
-      model: aiSettings.chatModel,
-      max_tokens: aiSettings.maxTokens,
-      system: systemPrompt,
-      messages,
-      tools: activeTools,
-    })
+  try {
+    while (continueLoop) {
+      const stream = client.messages.stream({
+        model: useModel,
+        max_tokens: aiSettings.maxTokens,
+        system: systemPrompt,
+        messages,
+        tools: activeTools,
+      })
 
-    let fullText = ''
-    const toolUseBlocks: Array<{ id: string; name: string; input: Record<string, unknown> }> = []
-    let currentToolId = ''
-    let currentToolName = ''
-    let currentToolInput = ''
+      let fullText = ''
+      const toolUseBlocks: Array<{ id: string; name: string; input: Record<string, unknown> }> = []
+      let currentToolId = ''
+      let currentToolName = ''
+      let currentToolInput = ''
 
-    for await (const event of stream) {
-      if (event.type === 'content_block_start') {
-        if (event.content_block.type === 'tool_use') {
-          currentToolId = event.content_block.id
-          currentToolName = event.content_block.name
-          currentToolInput = ''
-        }
-      } else if (event.type === 'content_block_delta') {
-        if (event.delta.type === 'text_delta') {
-          fullText += event.delta.text
-          yield { type: 'text', text: event.delta.text }
-        } else if (event.delta.type === 'input_json_delta') {
-          currentToolInput += event.delta.partial_json
-        }
-      } else if (event.type === 'content_block_stop') {
-        if (currentToolId && currentToolName) {
-          let parsedInput: Record<string, unknown> = {}
-          try {
-            if (currentToolInput) parsedInput = JSON.parse(currentToolInput)
-          } catch { /* empty input is ok */ }
-          toolUseBlocks.push({ id: currentToolId, name: currentToolName, input: parsedInput })
-          currentToolId = ''
-          currentToolName = ''
-          currentToolInput = ''
+      for await (const event of stream) {
+        if (event.type === 'content_block_start') {
+          if (event.content_block.type === 'tool_use') {
+            currentToolId = event.content_block.id
+            currentToolName = event.content_block.name
+            currentToolInput = ''
+          }
+        } else if (event.type === 'content_block_delta') {
+          if (event.delta.type === 'text_delta') {
+            fullText += event.delta.text
+            anthropicTextYielded = true
+            yield { type: 'text', text: event.delta.text }
+          } else if (event.delta.type === 'input_json_delta') {
+            currentToolInput += event.delta.partial_json
+          }
+        } else if (event.type === 'content_block_stop') {
+          if (currentToolId && currentToolName) {
+            let parsedInput: Record<string, unknown> = {}
+            try {
+              if (currentToolInput) parsedInput = JSON.parse(currentToolInput)
+            } catch { /* empty input is ok */ }
+            toolUseBlocks.push({ id: currentToolId, name: currentToolName, input: parsedInput })
+            currentToolId = ''
+            currentToolName = ''
+            currentToolInput = ''
+          }
         }
       }
+
+      const finalMessage = await stream.finalMessage()
+
+      if (toolUseBlocks.length > 0) {
+        const toolExecutions = await Promise.all(
+          toolUseBlocks.map(tool => executeTool(tool.name, tool.input, ctx))
+        )
+
+        const toolResults: Anthropic.ToolResultBlockParam[] = []
+        for (let i = 0; i < toolUseBlocks.length; i++) {
+          const tool = toolUseBlocks[i]
+          const result = toolExecutions[i]
+          toolResults.push({
+            type: 'tool_result',
+            tool_use_id: tool.id,
+            content: JSON.stringify(result),
+          })
+          yield { type: 'tool_result', id: tool.id, name: tool.name, input: tool.input, result }
+        }
+
+        messages.push({ role: 'assistant', content: finalMessage.content })
+        messages.push({ role: 'user', content: toolResults })
+      } else {
+        continueLoop = false
+      }
     }
+  } catch (err) {
+    // Anthropic → Gemini fallback on overloaded errors
+    const isOverloaded = err instanceof Anthropic.APIError && (err.status === 529 || err.status === 503)
+    const alt = getAlternateProvider('anthropic')
+    const canFallback = !anthropicTextYielded && isOverloaded && alt !== null
 
-    const finalMessage = await stream.finalMessage()
-
-    if (toolUseBlocks.length > 0) {
-      // Execute tools in parallel and feed results back
-      const toolExecutions = await Promise.all(
-        toolUseBlocks.map(tool => executeTool(tool.name, tool.input, ctx))
-      )
-
-      const toolResults: Anthropic.ToolResultBlockParam[] = []
-      for (let i = 0; i < toolUseBlocks.length; i++) {
-        const tool = toolUseBlocks[i]
-        const result = toolExecutions[i]
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: tool.id,
-          content: JSON.stringify(result),
+    if (canFallback) {
+      const apiErr = err as InstanceType<typeof Anthropic.APIError>
+      console.warn(`[ai-chat] Anthropic unavailable (status ${apiErr.status}), falling back to ${alt} with model ${getFallbackModel(alt!)}`)
+      try {
+        yield* streamGeminiChat({
+          model: getFallbackModel(alt!),
+          maxTokens: aiSettings.maxTokens,
+          systemPrompt,
+          history: options.history,
+          message: options.message,
+          userId: options.userId,
+          campaignId: options.campaignId,
+          fundraisingEnabled: fundraisingActive,
         })
-
-        // Emit tool result to client for AppContext sync
-        yield { type: 'tool_result', id: tool.id, name: tool.name, input: tool.input, result }
+      } catch (geminiErr) {
+        console.error('[ai-chat] Gemini fallback also failed:', geminiErr)
+        yield { type: 'error', message: 'Both AI providers are temporarily unavailable. Please try again in a moment.' }
       }
-
-      // Add assistant message with tool calls + tool results to continue conversation
-      messages.push({
-        role: 'assistant',
-        content: finalMessage.content,
-      })
-      messages.push({
-        role: 'user',
-        content: toolResults,
-      })
-
-      // Loop continues — AI will respond incorporating tool results
-    } else {
-      continueLoop = false
+      return
     }
+
+    console.error('[ai-chat] Anthropic error (no fallback):', err)
+    yield { type: 'error', message: 'The AI service encountered an error. Please try again.' }
+    return
   }
 
   yield { type: 'done' }

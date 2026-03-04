@@ -10,6 +10,31 @@
 import { GoogleGenAI, type Content, type FunctionDeclaration, type Part } from '@google/genai'
 import { executeTool, TOOL_DEFINITIONS } from './ai-chat'
 
+/**
+ * Typed error for provider failures. Carries metadata to determine
+ * whether the caller should attempt fallback to an alternate provider.
+ */
+export class ProviderUnavailableError extends Error {
+  public readonly provider: 'gemini' | 'anthropic'
+  public readonly isFallbackEligible: boolean
+  public readonly originalError: unknown
+
+  constructor(provider: 'gemini' | 'anthropic', originalError: unknown) {
+    const message = originalError instanceof Error ? originalError.message : String(originalError)
+    super(message)
+    this.name = 'ProviderUnavailableError'
+    this.provider = provider
+    this.originalError = originalError
+
+    const lower = message.toLowerCase()
+    // Eligible: transient capacity issues (503, 429, overloaded, quota)
+    // Not eligible: config errors (bad API key, model not found), safety blocks
+    this.isFallbackEligible =
+      lower.includes('503') || lower.includes('unavailable') || lower.includes('high demand') || lower.includes('overloaded') ||
+      lower.includes('rate') || lower.includes('quota') || lower.includes('429') || lower.includes('resource_exhausted')
+  }
+}
+
 let geminiClient: GoogleGenAI | null = null
 
 function getGeminiClient(): GoogleGenAI {
@@ -137,7 +162,7 @@ function convertHistoryToGemini(
 /**
  * Parse a Gemini API error into a user-friendly message.
  */
-function getGeminiErrorMessage(err: unknown): string {
+export function getGeminiErrorMessage(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err)
   const lower = message.toLowerCase()
 
@@ -226,13 +251,12 @@ export async function* streamGeminiChat(
           await new Promise(r => setTimeout(r, RETRY_DELAY_MS * retries))
           continue
         }
-        throw retryErr
+        throw new ProviderUnavailableError('gemini', retryErr)
       }
     }
 
+    let fullText = ''
     try {
-
-      let fullText = ''
       const functionCalls: Array<{ name: string; args: Record<string, unknown>; id: string }> = []
       // Preserve original model parts including thoughtSignature for thinking models
       const originalModelParts: Part[] = []
@@ -303,7 +327,12 @@ export async function* streamGeminiChat(
       }
     } catch (err) {
       console.error('[gemini] Stream error:', err)
-      yield { type: 'error', message: getGeminiErrorMessage(err) }
+      if (!fullText) {
+        // No text sent yet — throw so caller can attempt fallback
+        throw new ProviderUnavailableError('gemini', err)
+      }
+      // Text was already streamed — can't un-send it, yield error
+      yield { type: 'error', message: getGeminiErrorMessage(err) + ' (partial response may be incomplete)' }
       return
     }
   }

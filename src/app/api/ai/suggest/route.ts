@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getSessionFromRequest } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { isAIEnabled } from '@/lib/ai-chat'
+import { isAIEnabled, isAnthropicEnabled } from '@/lib/ai-chat'
 import { getAISettings } from '@/lib/ai-settings'
-import { geminiComplete } from '@/lib/gemini-provider'
+import { geminiComplete, isGeminiEnabled } from '@/lib/gemini-provider'
 import { getPromptSection } from '@/lib/ai-prompts'
 import { EVENT_TYPE_CONFIG } from '@/types/events'
 import type { EventType } from '@/types/events'
@@ -99,23 +99,57 @@ export async function POST(request: NextRequest) {
     const suggestPromptSection = await getPromptSection('event_suggest')
     const systemPrompt = suggestPromptSection.content
 
+    const userMessage = parts.join('\n')
+
     if (aiSettings.provider === 'gemini') {
-      suggestion = (await geminiComplete({
-        model: aiSettings.suggestModel,
-        systemPrompt,
-        userMessage: parts.join('\n'),
-        maxTokens,
-      })).trim()
-    } else {
-      const client = new Anthropic()
-      const response = await client.messages.create({
-        model: aiSettings.suggestModel,
-        max_tokens: maxTokens,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: parts.join('\n') }],
-      })
-      const textBlock = response.content.find(b => b.type === 'text')
-      suggestion = textBlock?.text?.trim() || ''
+      try {
+        suggestion = (await geminiComplete({
+          model: aiSettings.suggestModel,
+          systemPrompt,
+          userMessage,
+          maxTokens,
+        })).trim()
+      } catch (geminiErr) {
+        const msg = geminiErr instanceof Error ? geminiErr.message : String(geminiErr)
+        const isTransient = /503|unavailable|high demand|overloaded|429|quota|resource_exhausted/i.test(msg)
+        if (isTransient && isAnthropicEnabled()) {
+          console.warn(`[ai/suggest] Gemini unavailable, falling back to Anthropic`)
+          // fall through to Anthropic below
+        } else {
+          throw geminiErr
+        }
+      }
+    }
+
+    if (!suggestion && (aiSettings.provider === 'anthropic' || aiSettings.provider === 'gemini')) {
+      try {
+        const client = new Anthropic()
+        const fallbackModel = aiSettings.provider === 'anthropic'
+          ? aiSettings.suggestModel
+          : (process.env.ANTHROPIC_SUGGEST_MODEL || 'claude-haiku-4-5-20251001')
+        const response = await client.messages.create({
+          model: fallbackModel,
+          max_tokens: maxTokens,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userMessage }],
+        })
+        const textBlock = response.content.find(b => b.type === 'text')
+        suggestion = textBlock?.text?.trim() || ''
+      } catch (anthropicErr) {
+        const status = anthropicErr instanceof Anthropic.APIError ? anthropicErr.status : 0
+        const isTransient = status === 529 || status === 503
+        if (isTransient && aiSettings.provider === 'anthropic' && isGeminiEnabled()) {
+          console.warn(`[ai/suggest] Anthropic unavailable, falling back to Gemini`)
+          suggestion = (await geminiComplete({
+            model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+            systemPrompt,
+            userMessage,
+            maxTokens,
+          })).trim()
+        } else {
+          throw anthropicErr
+        }
+      }
     }
 
     if (!suggestion) {

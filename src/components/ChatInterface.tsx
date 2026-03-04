@@ -182,6 +182,9 @@ export default function ChatInterface() {
                   ),
                 )
                 handleToolResult(event.name, event.input || {}, event.result)
+              } else if (event.type === 'info') {
+                // Provider fallback info — silent, for debugging only
+                console.info('[chat]', event.message)
               } else if (event.type === 'error') {
                 setError(event.message)
               }

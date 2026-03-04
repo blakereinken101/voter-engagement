@@ -237,6 +237,9 @@ export async function POST(request: NextRequest) {
               allToolCalls.push({ id: event.id as string, name: event.name as string, input: event.input as Record<string, unknown> })
               allToolResults.push({ id: event.id as string, name: event.name as string, result: event.result as Record<string, unknown> })
               safeEnqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
+            } else if (event.type === 'info') {
+              // Provider fallback info — log server-side only, don't forward to client
+              console.info('[ai/chat]', event.message)
             } else if (event.type === 'error') {
               safeEnqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
             } else if (event.type === 'done') {

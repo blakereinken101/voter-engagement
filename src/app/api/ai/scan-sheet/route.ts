@@ -3,8 +3,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenAI } from '@google/genai'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { isAIEnabled } from '@/lib/ai-chat'
+import { isAIEnabled, isAnthropicEnabled } from '@/lib/ai-chat'
 import { getAISettings } from '@/lib/ai-settings'
+import { isGeminiEnabled } from '@/lib/gemini-provider'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -420,9 +421,33 @@ export async function POST(request: NextRequest) {
 
     try {
       if (aiSettings.provider === 'gemini') {
-        rawText = await extractWithGemini(image, mimeType, aiSettings.chatModel, prompt)
+        try {
+          rawText = await extractWithGemini(image, mimeType, aiSettings.chatModel, prompt)
+        } catch (geminiErr) {
+          const msg = geminiErr instanceof Error ? geminiErr.message : String(geminiErr)
+          const isTransient = /503|unavailable|high demand|overloaded|429|quota|resource_exhausted/i.test(msg)
+          if (isTransient && isAnthropicEnabled()) {
+            console.warn('[scan-sheet] Gemini unavailable, falling back to Anthropic')
+            const fallbackModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
+            rawText = await extractWithAnthropic(image, mimeType, fallbackModel, prompt)
+          } else {
+            throw geminiErr
+          }
+        }
       } else {
-        rawText = await extractWithAnthropic(image, mimeType, aiSettings.chatModel, prompt)
+        try {
+          rawText = await extractWithAnthropic(image, mimeType, aiSettings.chatModel, prompt)
+        } catch (anthropicErr) {
+          const status = anthropicErr instanceof Anthropic.APIError ? anthropicErr.status : 0
+          const isTransient = status === 529 || status === 503
+          if (isTransient && isGeminiEnabled()) {
+            console.warn('[scan-sheet] Anthropic unavailable, falling back to Gemini')
+            const fallbackModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+            rawText = await extractWithGemini(image, mimeType, fallbackModel, prompt)
+          } else {
+            throw anthropicErr
+          }
+        }
       }
     } catch (err) {
       console.error('[scan-sheet] AI extraction error:', err)
