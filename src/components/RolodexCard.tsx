@@ -391,7 +391,7 @@ export default function RolodexCard() {
                       <select
                         value={surveyAnswers[q.id] ?? item.surveyResponses?.[q.id] ?? ''}
                         onChange={e => setSurveyAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                        className="glass-input w-full px-3 py-2 rounded-btn text-sm"
+                        className="glass-input w-full px-3 py-2 rounded-btn text-sm bg-vc-surface/95 text-white"
                       >
                         <option value="">—</option>
                         {q.options.map(opt => (
