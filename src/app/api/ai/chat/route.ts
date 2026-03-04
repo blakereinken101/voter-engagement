@@ -120,36 +120,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let message: string
-    if (!isInit) {
-      message = rawMessage
-    } else if (isReturningUser) {
-      // Returning user with existing contacts — pick up where they left off
-      const uncontacted = existingContacts.filter(c => !c.contacted).length
-      const unmatched = existingContacts.filter(c => c.matchStatus === 'pending').length
-      const contacted = existingContacts.filter(c => c.contacted).length
-      // Figure out which categories they've covered
-      const coveredCategories = new Set(existingContacts.map(c => c.category))
-      const allCatIds = ['household', 'close-family', 'close-friends', 'neighbors', 'coworkers', 'faith-community', 'school-parents', 'social-clubs', 'local-business', 'political', 'online-friends', 'service-providers', 'former-connections', 'who-did-we-miss']
-      const uncoveredCategories = allCatIds.filter(id => !coveredCategories.has(id))
-
-      if (fundraisingEnabled && !workflowMode) {
-        // Returning user, fundraising enabled, but they never chose a mode
-        message = `[System: Returning volunteer. ${existingContacts.length} contacts on list. No workflow chosen yet. Welcome them back and proceed per your instructions.]`
-      } else if (workflowMode === 'fundraising') {
-        // Returning user in fundraising mode
-        message = `[System: Returning volunteer in FUNDRAISING mode. Welcome them back and continue fundraising coaching.]`
-      } else {
-        // Returning user in voter-contact mode (or no fundraising enabled — existing behavior)
-        message = `[System: Returning volunteer. ${existingContacts.length} contacts, ${contacted} contacted, ${unmatched} unmatched, ${uncontacted} uncontacted. Welcome them back and proceed per your instructions.]`
-      }
-    } else if (fundraisingEnabled) {
-      // Brand new user, fundraising-enabled campaign — ask branching question instead of residency
-      message = '[System: New volunteer, first time opening chat. Fundraising is enabled. Greet them and proceed per your instructions.]'
-    } else {
-      // Brand new user, normal campaign — first time
-      message = '[System: New volunteer, first time opening chat. Greet them and proceed per your instructions.]'
-    }
+    // For __INIT__, pass a silent signal. The AI's behavior is dictated
+    // entirely by the system prompt (managed via Admin UI DB prompts).
+    // No behavioral instructions here — that was causing the AI to
+    // override Admin UI prompts with hardcoded onboarding logic.
+    const message = isInit ? '(Conversation started)' : rawMessage
 
     // Load chat history (most recent 50 messages, in chronological order)
     const { rows: historyRows } = await db.query(
