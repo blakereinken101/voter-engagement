@@ -135,36 +135,20 @@ export async function POST(request: NextRequest) {
 
       if (fundraisingEnabled && !workflowMode) {
         // Returning user, fundraising enabled, but they never chose a mode
-        message = `[System: The volunteer is returning — they already have ${existingContacts.length} people on their list but haven't chosen a workflow yet.
-
-Welcome them back by name. Be brief — just one sentence of welcome.
-
-Then ask the BRANCHING QUESTION: are they here to have conversations with voters, or are they working on fundraising (like hosting a get-together or asking people to pitch in)? Wait for their answer before proceeding. Do NOT use markdown formatting. Do NOT describe your process.]`
+        message = `[System: Returning volunteer. ${existingContacts.length} contacts on list. No workflow chosen yet. Welcome them back and proceed per your instructions.]`
       } else if (workflowMode === 'fundraising') {
         // Returning user in fundraising mode
-        message = `[System: The volunteer is returning in FUNDRAISING mode. Welcome them back by name. Be brief — just one sentence of welcome.
-
-Then get right back to fundraising coaching. Ask them what they've been working on — have they made any asks? Hosted or planned any events? Help them pick up where they left off. Do NOT use markdown formatting. Do NOT describe your process.]`
+        message = `[System: Returning volunteer in FUNDRAISING mode. Welcome them back and continue fundraising coaching.]`
       } else {
         // Returning user in voter-contact mode (or no fundraising enabled — existing behavior)
-        message = `[System: The volunteer is returning — they already have ${existingContacts.length} people on their list. ${contacted > 0 ? `They've had ${contacted} conversations so far.` : ''} ${unmatched > 0 ? `${unmatched} contacts still need matching.` : ''} ${uncontacted > 0 ? `${uncontacted} people haven't been contacted yet.` : ''}
-
-Welcome them back by name. Be brief — just one sentence of welcome.
-
-Then get RIGHT back to work. Based on their current state, pick the highest-impact next step:
-${existingContacts.length < 25 ? `- They only have ${existingContacts.length} contacts. Push to add more.${uncoveredCategories.length > 0 ? ` They haven't covered these categories yet: ${uncoveredCategories.slice(0, 4).join(', ')}. Ask about one of those with a specific, direct question.` : ''}` : ''}
-${unmatched > 5 ? `- ${unmatched} contacts are unmatched. Run matching and start confirming.` : ''}
-${uncontacted > 0 && existingContacts.length >= 15 ? `- ${uncontacted} people haven't been contacted. Suggest they reach out to someone.` : ''}
-${contacted > 0 && existingContacts.length >= 25 ? '- They have momentum. Suggest their next conversation or ask them to add more people from an uncovered category.' : ''}
-
-Ask ONE specific question to get them going immediately. Don't recap everything — they know what this is. Do NOT use markdown formatting. Do NOT describe your process.]`
+        message = `[System: Returning volunteer. ${existingContacts.length} contacts, ${contacted} contacted, ${unmatched} unmatched, ${uncontacted} uncontacted. Welcome them back and proceed per your instructions.]`
       }
     } else if (fundraisingEnabled) {
       // Brand new user, fundraising-enabled campaign — ask branching question instead of residency
-      message = '[System: The volunteer just opened the chat for the first time. Greet them by name. In 1-2 sentences: mention the campaign name and that you\'re here to help. Then ask the BRANCHING QUESTION: are they here to have conversations with voters, or are they working on fundraising — like hosting a get-together or asking people to pitch in? Keep it natural and conversational. Do NOT ask about residency yet — wait until they answer the branching question. Do NOT use markdown formatting (no ** or * or headers). Do NOT describe your own process or tone. Just do it.]'
+      message = '[System: New volunteer, first time opening chat. Fundraising is enabled. Greet them and proceed per your instructions.]'
     } else {
       // Brand new user, normal campaign — first time
-      message = '[System: The volunteer just opened the chat for the first time. Greet them by name. In 2-3 sentences: mention the campaign name and that you help them build a list of people they know in the state/district, match to the voter file, and coach conversations. Say the state or district name. Then ask if they live in the state/district. Vary your opening naturally. Do NOT use markdown formatting. Do NOT describe your process or tone. Important: if they say they do NOT live in the area, remember this context — when they start naming people, those contacts may also be from outside the area. Use your context awareness to ask smart follow-up questions rather than robotically asking "do they live in [state]?" for every single person.]'
+      message = '[System: New volunteer, first time opening chat. Greet them and proceed per your instructions.]'
     }
 
     // Load chat history (most recent 50 messages, in chronological order)
