@@ -90,7 +90,8 @@ platform :ios do
       output_directory: "./build",
       output_name: "Threshold.ipa",
       clean: true,
-      include_bitcode: false
+      include_bitcode: false,
+      xcargs: "ASSETCATALOG_COMPILER_SKIP_VALIDATIONS=YES"
     )
 
     pilot(
@@ -133,7 +134,8 @@ platform :ios do
       output_directory: "./build",
       output_name: "Threshold.ipa",
       clean: true,
-      include_bitcode: false
+      include_bitcode: false,
+      xcargs: "ASSETCATALOG_COMPILER_SKIP_VALIDATIONS=YES"
     )
 
     deliver(
