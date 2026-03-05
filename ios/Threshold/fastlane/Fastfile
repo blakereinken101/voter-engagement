@@ -66,12 +66,14 @@ platform :ios do
     fetch_certs
     increment_build
 
+    profile_name = ENV["sigh_com.thresholdvote.app_appstore_profile-name"]
+
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "Threshold.xcodeproj",
       team_id: ENV["TEAM_ID"],
       bundle_identifier: "com.thresholdvote.app",
-      profile_name: "match AppStore com.thresholdvote.app",
+      profile_name: profile_name,
       code_sign_identity: "iPhone Distribution"
     )
 
@@ -82,7 +84,7 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          "com.thresholdvote.app" => "match AppStore com.thresholdvote.app"
+          "com.thresholdvote.app" => profile_name
         }
       },
       output_directory: "./build",
@@ -107,12 +109,14 @@ platform :ios do
     fetch_certs
     increment_build
 
+    profile_name = ENV["sigh_com.thresholdvote.app_appstore_profile-name"]
+
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "Threshold.xcodeproj",
       team_id: ENV["TEAM_ID"],
       bundle_identifier: "com.thresholdvote.app",
-      profile_name: "match AppStore com.thresholdvote.app",
+      profile_name: profile_name,
       code_sign_identity: "iPhone Distribution"
     )
 
@@ -123,7 +127,7 @@ platform :ios do
       export_method: "app-store",
       export_options: {
         provisioningProfiles: {
-          "com.thresholdvote.app" => "match AppStore com.thresholdvote.app"
+          "com.thresholdvote.app" => profile_name
         }
       },
       output_directory: "./build",
