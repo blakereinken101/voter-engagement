@@ -32,7 +32,12 @@ jobs:
         run: xcodebuild -version
 
       - name: Install iOS platform
-        run: xcodebuild -downloadPlatform iOS
+        run: |
+          for i in 1 2 3; do
+            xcodebuild -downloadPlatform iOS && break
+            echo "Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
