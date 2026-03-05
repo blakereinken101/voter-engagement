@@ -30,18 +30,9 @@ final class SSEClient {
                         return
                     }
 
-                    // Detect redirect: URLSession auto-follows 302s from the auth
-                    // middleware, so we get a 200 from the sign-in HTML page.
-                    // Compare response URL to request URL to detect this.
-                    if let responseURL = httpResponse.url,
-                       let requestURL = request.url,
-                       responseURL.path != requestURL.path {
-                        continuation.yield(.error("Your session has expired. Please sign in again."))
-                        continuation.finish()
-                        return
-                    }
-
-                    // Check for HTML response (another redirect indicator)
+                    // Detect auth redirect: URLSession auto-follows 302s from the
+                    // middleware, landing on the sign-in HTML page with status 200.
+                    // Check Content-Type to distinguish HTML from SSE/JSON.
                     if let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type"),
                        contentType.contains("text/html") {
                         continuation.yield(.error("Your session has expired. Please sign in again."))

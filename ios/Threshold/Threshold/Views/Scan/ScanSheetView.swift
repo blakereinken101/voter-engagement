@@ -153,7 +153,7 @@ struct ScanSheetView: View {
             let endpoint = APIEndpoint(
                 path: "/api/ai/scan-sheet",
                 method: .post,
-                body: ScanSheetBody(image: base64, mode: "contact")
+                body: ScanSheetBody(image: base64, mimeType: "image/jpeg", mode: "contact")
             )
 
             let response: ScanSheetResponse = try await APIClient.shared.request(endpoint)
@@ -230,6 +230,7 @@ struct ScanSheetView: View {
 
 struct ScanSheetBody: Encodable {
     let image: String
+    let mimeType: String
     let mode: String
 }
 
