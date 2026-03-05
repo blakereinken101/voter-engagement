@@ -1,0 +1,41 @@
+name: Threshold
+options:
+  bundleIdPrefix: com.thresholdvote
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  Threshold:
+    type: application
+    platform: iOS
+    sources:
+      - path: Threshold
+        excludes:
+          - "Resources/**"
+    resources:
+      - path: Threshold/Resources
+      - path: Threshold/Info.plist
+    info:
+      path: Threshold/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSContactsUsageDescription: "Threshold uses your contacts to help you quickly add people you know to your voter outreach list."
+        NSLocationWhenInUseUsageDescription: "Threshold uses your location to find nearby voters on the map."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    settings:
+      base:
+        INFOPLIST_FILE: Threshold/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.thresholdvote.app
+        TARGETED_DEVICE_FAMILY: "1"
+    dependencies: []

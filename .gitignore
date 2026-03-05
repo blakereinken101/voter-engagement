@@ -43,3 +43,21 @@ data/geocode-cache.json
 
 # scripts output
 scripts/*.log
+
+# Fastlane
+ios/Threshold/vendor/
+ios/Threshold/.bundle/
+ios/Threshold/fastlane/report.xml
+ios/Threshold/fastlane/Preview.html
+ios/Threshold/fastlane/screenshots/**/*.png
+ios/Threshold/fastlane/test_output
+ios/Threshold/fastlane/.env.default
+ios/Threshold/build/
+
+# Xcode user data
+xcuserdata/
+
+# iOS build artifacts
+*.ipa
+*.dSYM.zip
+*.dSYM
