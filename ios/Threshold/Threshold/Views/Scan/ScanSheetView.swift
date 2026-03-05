@@ -150,10 +150,15 @@ struct ScanSheetView: View {
         let base64 = imageData.base64EncodedString()
 
         do {
+            // Build survey questions from campaign config for AI extraction
+            let surveyQs: [ScanSurveyQuestion]? = auth.campaignConfig?.surveyQuestions?.map { q in
+                ScanSurveyQuestion(id: q.id, label: q.label, type: q.type, options: q.options)
+            }
+
             let endpoint = APIEndpoint(
                 path: "/api/ai/scan-sheet",
                 method: .post,
-                body: ScanSheetBody(image: base64, mimeType: "image/jpeg", mode: "contact")
+                body: ScanSheetBody(image: base64, mimeType: "image/jpeg", mode: "contact", surveyQuestions: surveyQs)
             )
 
             let response: ScanSheetResponse = try await APIClient.shared.request(endpoint)
@@ -170,6 +175,7 @@ struct ScanSheetView: View {
                     category: c.category ?? "who-did-we-miss",
                     contactOutcome: c.contactOutcome,
                     volunteerInterest: c.volunteerInterest,
+                    surveyResponses: c.surveyResponses,
                     included: true
                 )
             }
@@ -185,7 +191,7 @@ struct ScanSheetView: View {
         let toImport = scannedContacts.filter(\.included)
 
         for contact in toImport {
-            await contacts.addContact(
+            let contactId = await contacts.addContact(
                 firstName: contact.firstName,
                 lastName: contact.lastName,
                 phone: contact.phone,
@@ -196,6 +202,11 @@ struct ScanSheetView: View {
                 contactOutcome: contact.contactOutcome,
                 volunteerInterest: contact.volunteerInterest
             )
+
+            // Save survey responses via updateAction if present
+            if let contactId, let responses = contact.surveyResponses, !responses.isEmpty {
+                await contacts.updateAction(contactId: contactId, surveyResponses: responses)
+            }
         }
 
         await contacts.loadContacts()
@@ -236,6 +247,14 @@ struct ScanSheetBody: Encodable {
     let image: String
     let mimeType: String
     let mode: String
+    let surveyQuestions: [ScanSurveyQuestion]?
+}
+
+struct ScanSurveyQuestion: Encodable {
+    let id: String
+    let label: String
+    let type: String
+    let options: [String]?
 }
 
 struct ScanSheetResponse: Codable {
@@ -253,6 +272,7 @@ struct ScannedContactResponse: Codable {
     let category: String?
     let contactOutcome: String?
     let volunteerInterest: String?
+    let surveyResponses: [String: String]?
 }
 
 struct ScannedContact: Identifiable {
@@ -267,6 +287,7 @@ struct ScannedContact: Identifiable {
     var category: String
     var contactOutcome: String?
     var volunteerInterest: String?
+    var surveyResponses: [String: String]?
     var included: Bool
 }
 
@@ -437,6 +458,28 @@ struct ScanReviewView: View {
                                             )
                                             .cornerRadius(6)
                                         }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Survey responses
+                        if let responses = contact.surveyResponses, !responses.isEmpty {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 4) {
+                                    ForEach(responses.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                                        HStack(spacing: 2) {
+                                            Text(key)
+                                                .font(.system(size: 8, weight: .medium))
+                                                .foregroundStyle(Color.vcSlate)
+                                            Text(value)
+                                                .font(.system(size: 9, weight: .semibold))
+                                                .foregroundStyle(Color.vcTeal)
+                                        }
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3)
+                                        .background(Color.vcTeal.opacity(0.1))
+                                        .cornerRadius(4)
                                     }
                                 }
                             }

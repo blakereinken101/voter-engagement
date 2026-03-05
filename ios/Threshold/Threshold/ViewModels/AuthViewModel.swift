@@ -49,6 +49,10 @@ final class AuthViewModel {
     private let tokenManager = TokenManager.shared
     private var resendTimer: Timer?
 
+    deinit {
+        resendTimer?.invalidate()
+    }
+
     // MARK: - Lifecycle
 
     /// Check for existing session on app launch.
@@ -309,11 +313,13 @@ final class AuthViewModel {
         resendCooldown = 60
         resendTimer?.invalidate()
         resendTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
-            guard let self else { timer.invalidate(); return }
-            if self.resendCooldown > 0 {
-                self.resendCooldown -= 1
-            } else {
-                timer.invalidate()
+            DispatchQueue.main.async {
+                guard let self else { timer.invalidate(); return }
+                if self.resendCooldown > 0 {
+                    self.resendCooldown -= 1
+                } else {
+                    timer.invalidate()
+                }
             }
         }
     }

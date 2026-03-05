@@ -126,9 +126,9 @@ struct HomeView: View {
                 ForEach(auth.memberships, id: \.campaignId) { membership in
                     Button(membership.campaignName ?? membership.campaignId) {
                         if membership.campaignId != auth.activeMembership?.campaignId {
-                            auth.performCampaignSwitch(to: membership.campaignId)
-                            chat.clearForCampaignSwitch()
                             Task {
+                                auth.performCampaignSwitch(to: membership.campaignId)
+                                chat.clearForCampaignSwitch()
                                 await auth.reloadCampaignConfig()
                                 async let contactsLoad: () = contacts.loadContacts()
                                 async let chatLoad: () = chat.loadHistory()
@@ -271,7 +271,7 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Match to Voter File")
                                 .font(.subheadline.bold())
-                            Text("Match your contacts to the voter file")
+                            Text("Match your people to the voter file")
                                 .font(.caption)
                                 .foregroundStyle(Color.vcSlate)
                         }
@@ -286,6 +286,32 @@ struct HomeView: View {
                     .cornerRadius(10)
                 }
                 .disabled(contacts.isLoading)
+
+                // AI Coach
+                Button {
+                    selectedTab = 2
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.title3)
+                            .frame(width: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("AI Coach")
+                                .font(.subheadline.bold())
+                            Text("Get personalized outreach help")
+                                .font(.caption)
+                                .foregroundStyle(Color.vcSlate)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.vcSlate)
+                    }
+                    .padding(14)
+                    .background(Color.vcPurple.opacity(0.3))
+                    .foregroundStyle(Color.white.opacity(0.9))
+                    .cornerRadius(10)
+                }
             }
         }
         .padding(24)

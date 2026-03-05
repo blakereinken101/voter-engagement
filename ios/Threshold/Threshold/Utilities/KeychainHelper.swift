@@ -21,7 +21,10 @@ final class KeychainHelper {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
         ]
 
-        SecItemAdd(query as CFDictionary, nil)
+        let status = SecItemAdd(query as CFDictionary, nil)
+        if status != errSecSuccess {
+            print("[Keychain] Save failed for \(key): \(status)")
+        }
     }
 
     func read(key: String) -> String? {
@@ -50,6 +53,9 @@ final class KeychainHelper {
             kSecAttrAccount as String: key,
         ]
 
-        SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(query as CFDictionary)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            print("[Keychain] Delete failed for \(key): \(status)")
+        }
     }
 }

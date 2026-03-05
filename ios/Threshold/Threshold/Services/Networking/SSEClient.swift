@@ -100,6 +100,8 @@ final class SSEClient {
                             case "error":
                                 let message = json["message"] as? String ?? "Unknown error"
                                 continuation.yield(.error(message))
+                                continuation.finish()
+                                return
                             default:
                                 break
                             }

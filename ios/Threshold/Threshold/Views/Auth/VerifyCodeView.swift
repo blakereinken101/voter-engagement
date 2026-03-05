@@ -44,7 +44,7 @@ struct VerifyCodeView: View {
                             // Auto-submit when 6 digits entered
                             let filtered = String(newValue.prefix(6).filter(\.isNumber))
                             auth.verificationCode = filtered
-                            if filtered.count == 6 {
+                            if filtered.count == 6, !auth.isLoading {
                                 Task { await auth.verifyCode() }
                             }
                         }

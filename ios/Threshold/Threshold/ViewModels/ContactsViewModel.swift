@@ -52,8 +52,10 @@ final class ContactsViewModel {
             personEntries = response.personEntries
             matchResults = response.matchResults
             actionPlanState = response.actionPlanState
+            print("[Contacts] Loaded \(response.personEntries.count) people, \(response.matchResults.count) matches, \(response.actionPlanState.count) action items")
         } catch {
             self.error = error.localizedDescription
+            print("[Contacts] Load failed: \(error)")
         }
 
         isLoading = false
@@ -61,6 +63,7 @@ final class ContactsViewModel {
 
     // MARK: - Add Contact
 
+    @discardableResult
     func addContact(
         firstName: String,
         lastName: String,
@@ -73,7 +76,7 @@ final class ContactsViewModel {
         category: RelationshipCategory,
         contactOutcome: String? = nil,
         volunteerInterest: String? = nil
-    ) async {
+    ) async -> String? {
         let body = CreateContactBody(
             firstName: firstName,
             lastName: lastName,
@@ -92,8 +95,10 @@ final class ContactsViewModel {
         do {
             let newContact = try await contactRepo.createContact(body)
             personEntries.append(newContact)
+            return newContact.id
         } catch {
             self.error = error.localizedDescription
+            return nil
         }
     }
 

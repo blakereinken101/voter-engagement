@@ -99,17 +99,21 @@ final class ChatViewModel {
                         }
 
                     case .error(let message):
-                        self.error = message
+                        await MainActor.run { self.error = message }
 
                     case .done:
                         break
                     }
                 }
             } catch {
-                self.error = error.localizedDescription
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                }
             }
 
-            isStreaming = false
+            await MainActor.run {
+                isStreaming = false
+            }
         }
     }
 

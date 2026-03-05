@@ -57,6 +57,7 @@ interface ExtractedContact {
   supportStatus?: string
   volunteerInterest?: string
   notes?: string
+  surveyResponses?: Record<string, string>
 }
 
 interface ScanSheetResult {
@@ -361,6 +362,17 @@ function parseScanResult(rawText: string): ScanSheetResult {
       if (typeof c.notes === 'string' && c.notes.trim()) {
         contact.notes = c.notes.trim().slice(0, 200)
       }
+      if (c.surveyResponses && typeof c.surveyResponses === 'object' && !Array.isArray(c.surveyResponses)) {
+        const sr: Record<string, string> = {}
+        for (const [key, val] of Object.entries(c.surveyResponses as Record<string, unknown>)) {
+          if (typeof key === 'string' && typeof val === 'string' && val.trim()) {
+            sr[key.slice(0, 100)] = val.trim().slice(0, 500)
+          }
+        }
+        if (Object.keys(sr).length > 0) {
+          contact.surveyResponses = sr
+        }
+      }
       return contact
     })
 
@@ -391,14 +403,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let body: { image: string; mimeType: string; mode?: string }
+    let body: { image: string; mimeType: string; mode?: string; surveyQuestions?: { id: string; label: string; type: string; options?: string[] }[] }
     try {
       body = await request.json()
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { image, mimeType, mode } = body
+    const { image, mimeType, mode, surveyQuestions } = body
     const isPetition = mode === 'petition'
 
     if (!image || typeof image !== 'string') {
@@ -415,7 +427,21 @@ export async function POST(request: NextRequest) {
     }
 
     const aiSettings = await getAISettings()
-    const prompt = isPetition ? PETITION_EXTRACTION_PROMPT : EXTRACTION_PROMPT
+    let prompt: string
+    if (isPetition) {
+      prompt = PETITION_EXTRACTION_PROMPT
+    } else if (surveyQuestions && surveyQuestions.length > 0) {
+      // Build survey-aware extraction prompt
+      const surveyDesc = surveyQuestions.map(q => {
+        if (q.type === 'select' && q.options?.length) {
+          return `  - "${q.id}": "${q.label}" (options: ${q.options.join(', ')})`
+        }
+        return `  - "${q.id}": "${q.label}" (free text)`
+      }).join('\n')
+      prompt = EXTRACTION_PROMPT + `\n\nIMPORTANT: This sheet may contain survey question columns. Look for columns or fields matching these survey questions and extract the answers:\n${surveyDesc}\n\nFor each contact, include a "surveyResponses" object mapping question IDs to their answers. Only include survey responses you can clearly read. Example: "surveyResponses": {"top_issue": "Economy", "vote_plan": "Yes Election Day"}`
+    } else {
+      prompt = EXTRACTION_PROMPT
+    }
 
     let rawText: string
 
