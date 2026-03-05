@@ -384,6 +384,11 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					FE12C77CCBDA5B90EFE19B8A = {
+						ProvisioningStyle = Automatic;
+					};
+				};
 			};
 			buildConfigurationList = FD35C13420D073CE293F5339 /* Build configuration list for PBXProject "Threshold" */;
 			compatibilityVersion = "Xcode 14.0";
