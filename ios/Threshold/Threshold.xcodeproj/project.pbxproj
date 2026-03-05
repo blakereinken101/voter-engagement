@@ -62,6 +62,7 @@
 		AA8888888888888888888888 /* ToolResultChipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8888888888888888888888 /* ToolResultChipView.swift */; };
 		AA9999999999999999999999 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB9999999999999999999999 /* FlowLayout.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAAAA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BBAAAAAAAAAAAAAAAAAAAAAAA /* PrivacyInfo.xcprivacy */; };
+		CCBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -122,6 +123,7 @@
 		BB8888888888888888888888 /* ToolResultChipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolResultChipView.swift; sourceTree = "<group>"; };
 		BB9999999999999999999999 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
 		BBAAAAAAAAAAAAAAAAAAAAAAA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		DDBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -133,6 +135,7 @@
 				BB1111111111111111111111 /* SurveyQuestionsView.swift */,
 				DD6666666666666666666666 /* VoterRegistrationLinksView.swift */,
 				BB9999999999999999999999 /* FlowLayout.swift */,
+				DDBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -487,6 +490,7 @@
 				EE7777777777777777777777 /* LocationManager.swift in Sources */,
 				AA8888888888888888888888 /* ToolResultChipView.swift in Sources */,
 				AA9999999999999999999999 /* FlowLayout.swift in Sources */,
+				CCBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
