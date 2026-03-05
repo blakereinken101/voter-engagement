@@ -63,7 +63,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  const token = request.cookies.get('vc-session')?.value
+  let token = request.cookies.get('vc-session')?.value
+
+  // Mobile fallback: accept Bearer token for API routes
+  if (!token && pathname.startsWith('/api/')) {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.slice(7)
+    }
+  }
 
   // Determine the right sign-in URL based on what path they're trying to reach
   const signInUrl = pathname.startsWith('/texting')

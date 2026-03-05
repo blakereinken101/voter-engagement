@@ -54,13 +54,32 @@ export function verifySessionToken(token: string): SessionPayload | null {
 export function getSessionFromRequest(): SessionPayload | null {
   const cookieStore = cookies()
   const token = cookieStore.get('vc-session')?.value
-  if (!token) return null
-  return verifySessionToken(token)
+  if (token) return verifySessionToken(token)
+
+  // Mobile fallback: check Authorization: Bearer header
+  const { headers } = require('next/headers')
+  try {
+    const headerStore = headers()
+    const authHeader = headerStore.get('authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      return verifySessionToken(authHeader.slice(7))
+    }
+  } catch { /* headers() unavailable outside request context */ }
+
+  return null
 }
 
 export function getActiveCampaignId(): string | null {
   const cookieStore = cookies()
-  return cookieStore.get('vc-campaign')?.value || null
+  const fromCookie = cookieStore.get('vc-campaign')?.value
+  if (fromCookie) return fromCookie
+
+  // Mobile fallback: check X-Campaign-Id header
+  const { headers } = require('next/headers')
+  try {
+    const headerStore = headers()
+    return headerStore.get('x-campaign-id') || null
+  } catch { return null }
 }
 
 export function setSessionCookie(token: string): HeadersInit {
@@ -97,7 +116,22 @@ export function createPendingToken(
 
 export function getPendingSession(): PendingSession | null {
   const cookieStore = cookies()
-  const token = cookieStore.get('vc-2fa-pending')?.value
+  let token = cookieStore.get('vc-2fa-pending')?.value
+
+  // Mobile fallback: check X-2FA-Token header
+  if (!token) {
+    const { headers } = require('next/headers')
+    try {
+      const headerStore = headers()
+      const header = headerStore.get('x-2fa-token')
+      if (header?.startsWith('Bearer ')) {
+        token = header.slice(7)
+      } else if (header) {
+        token = header
+      }
+    } catch { /* headers() unavailable */ }
+  }
+
   if (!token) return null
   try {
     const decoded = jwt.verify(token, getJwtSecret()) as PendingSession

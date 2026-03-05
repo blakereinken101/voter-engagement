@@ -74,9 +74,12 @@ export async function POST(request: NextRequest) {
     // Create pending 2FA token (short-lived, can't access dashboard)
     const pendingToken = createPendingToken(user.id, user.email, { product: effectiveProduct })
 
+    const isMobile = request.headers.get('x-client') === 'mobile'
+
     const response = NextResponse.json({
       requiresVerification: true,
       email: user.email,
+      ...(isMobile && { pendingToken }),
     })
 
     response.cookies.set('vc-2fa-pending', pendingToken, {

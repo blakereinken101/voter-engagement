@@ -6,7 +6,7 @@ struct HomeView: View {
     @Environment(ContactsViewModel.self) private var contacts
     @Environment(ChatViewModel.self) private var chat
     @State private var showWizard = false
-    @State private var showScanSheet = false
+    @State private var showPhoneBookPicker = false
     @State private var showCampaignPicker = false
 
     var body: some View {
@@ -138,8 +138,23 @@ struct HomeView: View {
                 }
             }
             .tint(.white)
-            .fullScreenCover(isPresented: $showScanSheet) {
-                ScanSheetView()
+            .sheet(isPresented: $showPhoneBookPicker) {
+                PhoneBookPickerView(isPresented: $showPhoneBookPicker) { selected in
+                    Task {
+                        for contact in selected {
+                            await contacts.addContact(
+                                firstName: contact.firstName,
+                                lastName: contact.lastName,
+                                phone: contact.phone,
+                                address: contact.address,
+                                city: contact.city,
+                                zip: contact.zip,
+                                category: .whoDidWeMiss
+                            )
+                        }
+                        await contacts.loadContacts()
+                    }
+                }
             }
         }
     }
@@ -190,18 +205,18 @@ struct HomeView: View {
                     .cornerRadius(10)
                 }
 
-                // AI Coach
+                // Import from Contacts
                 Button {
-                    showWizard = true
+                    showPhoneBookPicker = true
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "sparkles")
+                        Image(systemName: "person.crop.rectangle.stack")
                             .font(.title3)
                             .frame(width: 32)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("AI Coach")
+                            Text("Import from Contacts")
                                 .font(.subheadline.bold())
-                            Text("Walk through your life categories")
+                            Text("Add people from your phone's contact list")
                                 .font(.caption)
                                 .foregroundStyle(Color.vcSlate)
                         }
@@ -216,18 +231,20 @@ struct HomeView: View {
                     .cornerRadius(10)
                 }
 
-                // Photo Scan
+                // Sync Rolodex
                 Button {
-                    showScanSheet = true
+                    Task {
+                        await contacts.runMatching(state: auth.campaignConfig?.state ?? "")
+                    }
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "doc.text.viewfinder")
+                        Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.title3)
                             .frame(width: 32)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Photo Scan")
+                            Text("Sync Rolodex")
                                 .font(.subheadline.bold())
-                            Text("Snap a pic of a sign-in sheet or list")
+                            Text("Match your contacts to the voter file")
                                 .font(.caption)
                                 .foregroundStyle(Color.vcSlate)
                         }
@@ -355,11 +372,26 @@ struct HomeView: View {
     private var quickActions: some View {
         VStack(spacing: 12) {
             Button {
-                selectedTab = 2
+                showWizard = true
             } label: {
                 HStack {
-                    Image(systemName: "sparkles")
-                    Text("AI Coach")
+                    Image(systemName: "plus.circle")
+                    Text("Manual Entry")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                }
+                .padding(14)
+                .background(Color.vcPurple.opacity(0.15))
+                .foregroundStyle(Color.vcPurpleLight)
+                .cornerRadius(10)
+            }
+
+            Button {
+                showPhoneBookPicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "person.crop.rectangle.stack")
+                    Text("Import from Contacts")
                     Spacer()
                     Image(systemName: "chevron.right")
                 }
@@ -370,31 +402,19 @@ struct HomeView: View {
             }
 
             Button {
-                showScanSheet = true
+                Task {
+                    await contacts.runMatching(state: auth.campaignConfig?.state ?? "")
+                }
             } label: {
                 HStack {
-                    Image(systemName: "doc.text.viewfinder")
-                    Text("Scan Contact Sheet")
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Text("Sync Rolodex")
                     Spacer()
                     Image(systemName: "chevron.right")
                 }
                 .padding(14)
-                .glassCard()
+                .background(Color.vcGold.opacity(0.15))
                 .foregroundStyle(Color.vcGold)
-            }
-
-            Button {
-                showWizard = true
-            } label: {
-                HStack {
-                    Image(systemName: "plus.circle")
-                    Text("Manually Add People")
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                }
-                .padding(14)
-                .background(Color.vcPurple.opacity(0.15))
-                .foregroundStyle(Color.vcPurpleLight)
                 .cornerRadius(10)
             }
         }

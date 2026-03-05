@@ -129,6 +129,8 @@ export async function POST(request: NextRequest) {
       redirect = '/dashboard'
     }
 
+    const isMobile = request.headers.get('x-client') === 'mobile'
+
     const response = NextResponse.json({
       user: {
         id: user.id,
@@ -139,6 +141,10 @@ export async function POST(request: NextRequest) {
       memberships,
       activeMembership: memberships[0] || null,
       redirect,
+      ...(isMobile && {
+        sessionToken,
+        campaignId: memberships[0]?.campaignId || null,
+      }),
     })
 
     // Clear return-url cookie after use
