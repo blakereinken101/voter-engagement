@@ -59,6 +59,8 @@
 		AA5555555555555555555555 /* Volunteer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB5555555555555555555555 /* Volunteer.swift */; };
 		CC6666666666666666666666 /* VoterRegistrationLinksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD6666666666666666666666 /* VoterRegistrationLinksView.swift */; };
 		EE7777777777777777777777 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF7777777777777777777777 /* LocationManager.swift */; };
+		AA8888888888888888888888 /* ToolResultChipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB8888888888888888888888 /* ToolResultChipView.swift */; };
+		AA9999999999999999999999 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB9999999999999999999999 /* FlowLayout.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -116,6 +118,8 @@
 		BB5555555555555555555555 /* Volunteer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Volunteer.swift; sourceTree = "<group>"; };
 		DD6666666666666666666666 /* VoterRegistrationLinksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoterRegistrationLinksView.swift; sourceTree = "<group>"; };
 		FF7777777777777777777777 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		BB8888888888888888888888 /* ToolResultChipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolResultChipView.swift; sourceTree = "<group>"; };
+		BB9999999999999999999999 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -126,6 +130,7 @@
 				7EB488139318AA0CD74321E3 /* CosmicBackground.swift */,
 				BB1111111111111111111111 /* SurveyQuestionsView.swift */,
 				DD6666666666666666666666 /* VoterRegistrationLinksView.swift */,
+				BB9999999999999999999999 /* FlowLayout.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -291,6 +296,7 @@
 			isa = PBXGroup;
 			children = (
 				519805E4597E07F89A7A3F0A /* ChatView.swift */,
+				BB8888888888888888888888 /* ToolResultChipView.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -475,6 +481,8 @@
 				AA4444444444444444444444 /* ConversationScripts.swift in Sources */,
 				CC6666666666666666666666 /* VoterRegistrationLinksView.swift in Sources */,
 				EE7777777777777777777777 /* LocationManager.swift in Sources */,
+				AA8888888888888888888888 /* ToolResultChipView.swift in Sources */,
+				AA9999999999999999999999 /* FlowLayout.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -169,6 +169,8 @@ struct CreateContactBody: Encodable {
     let ageRange: String?
     let gender: String?
     let category: String
+    let contactOutcome: String?
+    let volunteerInterest: String?
 }
 
 struct UpdateActionBody: Encodable {

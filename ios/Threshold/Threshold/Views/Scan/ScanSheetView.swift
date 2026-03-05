@@ -192,10 +192,13 @@ struct ScanSheetView: View {
                 address: contact.address,
                 city: contact.city,
                 zip: contact.zip,
-                category: RelationshipCategory(rawValue: contact.category) ?? .whoDidWeMiss
+                category: RelationshipCategory(rawValue: contact.category) ?? .whoDidWeMiss,
+                contactOutcome: contact.contactOutcome,
+                volunteerInterest: contact.volunteerInterest
             )
         }
 
+        await contacts.loadContacts()
         dismiss()
     }
 
@@ -222,6 +225,7 @@ struct ScanSheetView: View {
             // Error handling — the review view shows an alert
         }
 
+        await contacts.loadContacts()
         dismiss()
     }
 }
@@ -351,45 +355,102 @@ struct ScanReviewView: View {
             // Contact list
             List {
                 ForEach($contacts) { $contact in
-                    HStack {
-                        Button {
-                            contact.included.toggle()
-                        } label: {
-                            Image(systemName: contact.included ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(contact.included ? Color.vcTeal : Color.vcSlate)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(contact.firstName) \(contact.lastName)")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.white)
-
-                            if let phone = contact.phone, !phone.isEmpty {
-                                Text(phone)
-                                    .font(.caption)
-                                    .foregroundStyle(Color.vcSlate)
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Top row: checkbox + name
+                        HStack {
+                            Button {
+                                contact.included.toggle()
+                            } label: {
+                                Image(systemName: contact.included ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(contact.included ? Color.vcTeal : Color.vcSlate)
                             }
 
-                            if let notes = contact.notes, !notes.isEmpty {
-                                Text(notes)
-                                    .font(.caption2)
-                                    .foregroundStyle(Color.vcSlate)
-                                    .lineLimit(1)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(contact.firstName) \(contact.lastName)")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.white)
+
+                                if let phone = contact.phone, !phone.isEmpty {
+                                    Text(phone)
+                                        .font(.caption)
+                                        .foregroundStyle(Color.vcSlate)
+                                }
+                            }
+
+                            Spacer()
+
+                            // Category picker
+                            Menu {
+                                ForEach(RelationshipCategory.allCases) { cat in
+                                    Button {
+                                        contact.category = cat.rawValue
+                                    } label: {
+                                        Label(cat.displayName, systemImage: cat.icon)
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 3) {
+                                    Image(systemName: RelationshipCategory(rawValue: contact.category)?.icon ?? "questionmark.circle.fill")
+                                        .font(.system(size: 9))
+                                    Text(RelationshipCategory(rawValue: contact.category)?.displayName ?? "Category")
+                                        .font(.system(size: 10, weight: .medium))
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 7))
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.vcPurple.opacity(0.15))
+                                .foregroundStyle(Color.vcPurpleLight)
+                                .cornerRadius(6)
                             }
                         }
 
-                        Spacer()
+                        // Outcome chips (editable)
+                        if contact.included {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(ContactOutcome.allCases, id: \.self) { outcome in
+                                        Button {
+                                            if contact.contactOutcome == outcome.rawValue {
+                                                contact.contactOutcome = nil
+                                            } else {
+                                                contact.contactOutcome = outcome.rawValue
+                                            }
+                                        } label: {
+                                            HStack(spacing: 3) {
+                                                Image(systemName: outcome.icon)
+                                                    .font(.system(size: 9))
+                                                Text(outcome.displayName)
+                                                    .font(.system(size: 10, weight: .medium))
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(
+                                                contact.contactOutcome == outcome.rawValue
+                                                    ? scanOutcomeColor(outcome).opacity(0.3)
+                                                    : Color.white.opacity(0.05)
+                                            )
+                                            .foregroundStyle(
+                                                contact.contactOutcome == outcome.rawValue
+                                                    ? scanOutcomeColor(outcome)
+                                                    : Color.vcSlate
+                                            )
+                                            .cornerRadius(6)
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
-                        if let outcome = contact.contactOutcome {
-                            Text(outcome.capitalized)
+                        // Notes
+                        if let notes = contact.notes, !notes.isEmpty {
+                            Text(notes)
                                 .font(.caption2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.vcTeal.opacity(0.2))
-                                .foregroundStyle(Color.vcTeal)
-                                .cornerRadius(4)
+                                .foregroundStyle(Color.vcSlate)
+                                .lineLimit(1)
                         }
                     }
+                    .padding(.vertical, 4)
                     .listRowBackground(Color.vcBgCard)
                 }
             }
@@ -440,6 +501,15 @@ struct ScanReviewView: View {
                 // Silently fail — admin can still import as themselves
             }
             isLoadingVolunteers = false
+        }
+    }
+
+    private func scanOutcomeColor(_ outcome: ContactOutcome) -> Color {
+        switch outcome {
+        case .supporter: return .vcTeal
+        case .undecided: return .vcGold
+        case .opposed: return .vcCoral
+        case .leftMessage, .noAnswer: return .vcSlate
         }
     }
 }

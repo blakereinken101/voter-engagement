@@ -39,6 +39,9 @@ struct MainTabView: View {
                 // Don't actually navigate to the scan tab — present the sheet
                 selectedTab = oldValue
                 showScanSheet = true
+            } else if newValue == 1 {
+                // Reload contacts when switching to People tab for freshness after imports
+                Task { await contacts.loadContacts() }
             }
         }
         .fullScreenCover(isPresented: $showScanSheet) {
@@ -97,9 +100,16 @@ struct PeopleView: View {
                                 await contacts.runMatching(state: auth.campaignConfig?.state ?? "")
                             }
                         } label: {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .foregroundStyle(Color.vcTeal)
+                            if contacts.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .tint(Color.vcTeal)
+                            } else {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .foregroundStyle(Color.vcTeal)
+                            }
                         }
+                        .disabled(contacts.isLoading)
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {

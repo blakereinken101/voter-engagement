@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var showWizard = false
     @State private var showPhoneBookPicker = false
     @State private var showCampaignPicker = false
+    @State private var showMatchAlert = false
 
     var body: some View {
         NavigationStack {
@@ -138,6 +139,24 @@ struct HomeView: View {
                 }
             }
             .tint(.white)
+            .alert("Voter File Matching", isPresented: $showMatchAlert) {
+                Button("OK", role: .cancel) {
+                    contacts.matchingResult = nil
+                }
+            } message: {
+                switch contacts.matchingResult {
+                case .success(let matched, let total):
+                    Text("Found matches for \(matched) of \(total) contacts.")
+                case .noUnmatched:
+                    Text("All contacts are already matched.")
+                case .missingState:
+                    Text("Campaign state is not configured. Please contact your campaign admin.")
+                case .error(let msg):
+                    Text("Matching failed: \(msg)")
+                case nil:
+                    Text("")
+                }
+            }
             .sheet(isPresented: $showPhoneBookPicker) {
                 PhoneBookPickerView(isPresented: $showPhoneBookPicker) { selected in
                     Task {
@@ -231,18 +250,26 @@ struct HomeView: View {
                     .cornerRadius(10)
                 }
 
-                // Sync Rolodex
+                // Match to Voter File
                 Button {
                     Task {
                         await contacts.runMatching(state: auth.campaignConfig?.state ?? "")
+                        showMatchAlert = true
                     }
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.title3)
-                            .frame(width: 32)
+                        if contacts.isLoading {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .tint(Color.vcGold)
+                                .frame(width: 32)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.title3)
+                                .frame(width: 32)
+                        }
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Sync Rolodex")
+                            Text("Match to Voter File")
                                 .font(.subheadline.bold())
                             Text("Match your contacts to the voter file")
                                 .font(.caption)
@@ -258,6 +285,7 @@ struct HomeView: View {
                     .foregroundStyle(Color.vcGold)
                     .cornerRadius(10)
                 }
+                .disabled(contacts.isLoading)
             }
         }
         .padding(24)
@@ -404,11 +432,18 @@ struct HomeView: View {
             Button {
                 Task {
                     await contacts.runMatching(state: auth.campaignConfig?.state ?? "")
+                    showMatchAlert = true
                 }
             } label: {
                 HStack {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                    Text("Sync Rolodex")
+                    if contacts.isLoading {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(Color.vcGold)
+                    } else {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                    }
+                    Text("Match to Voter File")
                     Spacer()
                     Image(systemName: "chevron.right")
                 }
@@ -417,6 +452,7 @@ struct HomeView: View {
                 .foregroundStyle(Color.vcGold)
                 .cornerRadius(10)
             }
+            .disabled(contacts.isLoading)
         }
         .padding(.horizontal)
     }

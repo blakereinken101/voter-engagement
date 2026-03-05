@@ -21,7 +21,17 @@ final class ChatViewModel {
         isLoadingHistory = true
         error = nil
         do {
-            messages = try await chatRepo.fetchHistory()
+            var loaded = try await chatRepo.fetchHistory()
+            // Strip legacy "[Used tool: ...]" text from message content
+            for i in loaded.indices {
+                loaded[i].content = loaded[i].content
+                    .replacingOccurrences(
+                        of: #"\n\[Used tool: [^\]]+\]"#,
+                        with: "",
+                        options: .regularExpression
+                    )
+            }
+            messages = loaded
         } catch {
             // History load failure is non-critical — clear messages and let user start fresh
             messages = []
@@ -81,13 +91,11 @@ final class ChatViewModel {
                             messages[idx].content += chunk
                         }
 
-                    case .toolResult(_, let name, _):
-                        // Show tool result as a note in the message
+                    case .toolResult(_, let name, let result):
+                        // Append structured tool result as a badge chip
                         if let idx = messages.lastIndex(where: { $0.id == assistantId }) {
-                            let note = "\n[Used tool: \(name)]"
-                            if !messages[idx].content.contains(note) {
-                                messages[idx].content += note
-                            }
+                            let toolResult = ToolResult(name: name, result: result)
+                            messages[idx].toolResultItems.append(toolResult)
                         }
 
                     case .error(let message):

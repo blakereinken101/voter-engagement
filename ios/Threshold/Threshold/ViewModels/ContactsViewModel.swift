@@ -9,6 +9,14 @@ final class ContactsViewModel {
     var actionPlanState: [ActionPlanItem] = []
     var isLoading = false
     var error: String?
+    var matchingResult: MatchingFeedback?
+
+    enum MatchingFeedback {
+        case success(matched: Int, total: Int)
+        case noUnmatched
+        case missingState
+        case error(String)
+    }
 
     // MARK: - Computed
 
@@ -62,7 +70,9 @@ final class ContactsViewModel {
         zip: String? = nil,
         age: Int? = nil,
         gender: String? = nil,
-        category: RelationshipCategory
+        category: RelationshipCategory,
+        contactOutcome: String? = nil,
+        volunteerInterest: String? = nil
     ) async {
         let body = CreateContactBody(
             firstName: firstName,
@@ -74,7 +84,9 @@ final class ContactsViewModel {
             age: age,
             ageRange: nil,
             gender: gender,
-            category: category.rawValue
+            category: category.rawValue,
+            contactOutcome: contactOutcome,
+            volunteerInterest: volunteerInterest
         )
 
         do {
@@ -167,17 +179,29 @@ final class ContactsViewModel {
     // MARK: - Matching
 
     func runMatching(state: String) async {
+        let trimmedState = state.trimmingCharacters(in: .whitespaces).uppercased()
+        guard trimmedState.count == 2 else {
+            matchingResult = .missingState
+            return
+        }
+
         let unmatchedPeople = personEntries.filter { person in
             !matchResults.contains { $0.personEntry.id == person.id && $0.status == .confirmed }
         }
 
-        guard !unmatchedPeople.isEmpty else { return }
+        guard !unmatchedPeople.isEmpty else {
+            matchingResult = .noUnmatched
+            return
+        }
 
         isLoading = true
         error = nil
+        matchingResult = nil
 
         do {
-            let response = try await matchRepo.runMatching(people: unmatchedPeople, state: state)
+            let response = try await matchRepo.runMatching(people: unmatchedPeople, state: trimmedState)
+
+            let matchedCount = response.results.filter { $0.status == .confirmed || $0.status == .ambiguous }.count
 
             // Merge results
             for result in response.results {
@@ -187,8 +211,11 @@ final class ContactsViewModel {
                     matchResults.append(result)
                 }
             }
+
+            matchingResult = .success(matched: matchedCount, total: unmatchedPeople.count)
         } catch {
             self.error = error.localizedDescription
+            matchingResult = .error(error.localizedDescription)
         }
 
         isLoading = false

@@ -124,25 +124,44 @@ struct ChatBubbleView: View {
                     .foregroundStyle(Color.vcPurpleLight)
                 }
 
-                Text(message.content.isEmpty ? "..." : message.content)
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
-                    .padding(12)
-                    .background(message.isUser ? Color.vcPurple : Color.white.opacity(0.07))
-                    .cornerRadius(16)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(
-                                message.isUser
-                                    ? Color.vcPurple.opacity(0.5)
-                                    : Color.white.opacity(0.08),
-                                lineWidth: 1
-                            )
-                    )
-                    .shadow(
-                        color: message.isUser ? Color.vcPurple.opacity(0.2) : .clear,
-                        radius: 8
-                    )
+                VStack(alignment: .leading, spacing: 8) {
+                    // Tool result chips
+                    if !message.toolResultItems.isEmpty {
+                        FlowLayout(spacing: 4) {
+                            ForEach(message.toolResultItems) { result in
+                                ToolResultChipView(toolResult: result)
+                            }
+                        }
+                    }
+
+                    // Message content
+                    if !message.content.isEmpty {
+                        Text(message.content)
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                    } else if message.toolResultItems.isEmpty {
+                        // Only show loading dots if no content AND no tool results
+                        Text("...")
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding(12)
+                .background(message.isUser ? Color.vcPurple : Color.white.opacity(0.07))
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            message.isUser
+                                ? Color.vcPurple.opacity(0.5)
+                                : Color.white.opacity(0.08),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(
+                    color: message.isUser ? Color.vcPurple.opacity(0.2) : .clear,
+                    radius: 8
+                )
             }
 
             if message.isAssistant { Spacer(minLength: 40) }
