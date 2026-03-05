@@ -26,6 +26,8 @@
 	<string>Threshold uses your contacts to help you quickly add people you know to your voter outreach list.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Threshold uses your location to find nearby voters on the map.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
