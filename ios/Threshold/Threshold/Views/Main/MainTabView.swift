@@ -128,6 +128,8 @@ struct CoachView: View {
             ChatView()
                 .navigationTitle("AI Coach")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(Color.vcBg, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
