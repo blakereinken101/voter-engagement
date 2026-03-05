@@ -1,5 +1,9 @@
 import SwiftUI
 
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
+}
+
 struct HomeView: View {
     @Binding var selectedTab: Int
     @Environment(AuthViewModel.self) private var auth
@@ -9,6 +13,7 @@ struct HomeView: View {
     @State private var showPhoneBookPicker = false
     @State private var showCampaignPicker = false
     @State private var showMatchAlert = false
+    @State private var safariURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -96,10 +101,14 @@ struct HomeView: View {
                         }
 
                         Section {
-                            Link(destination: URL(string: "https://thresholdvote.com/privacy")!) {
+                            Button {
+                                safariURL = URL(string: "https://thresholdvote.com/privacy")
+                            } label: {
                                 Label("Privacy Policy", systemImage: "lock.shield")
                             }
-                            Link(destination: URL(string: "https://thresholdvote.com/terms")!) {
+                            Button {
+                                safariURL = URL(string: "https://thresholdvote.com/terms")
+                            } label: {
                                 Label("Terms of Use", systemImage: "doc.text")
                             }
                         }
@@ -137,6 +146,10 @@ struct HomeView: View {
                         }
                     }
                 }
+            }
+            .sheet(item: $safariURL) { url in
+                SafariView(url: url)
+                    .ignoresSafeArea()
             }
             .tint(.white)
             .alert("Voter File Matching", isPresented: $showMatchAlert) {

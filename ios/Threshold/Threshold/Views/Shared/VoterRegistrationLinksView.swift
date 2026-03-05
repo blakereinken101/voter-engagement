@@ -4,6 +4,7 @@ struct VoterRegistrationLinksView: View {
     let stateAbbr: String?
 
     @State private var isExpanded = false
+    @State private var safariURL: URL?
 
     private static let stateNames: [String: String] = [
         "NC": "North Carolina",
@@ -61,7 +62,9 @@ struct VoterRegistrationLinksView: View {
                     .foregroundStyle(Color.vcSlate)
 
                 HStack(spacing: 10) {
-                    Link(destination: registrationURL) {
+                    Button {
+                        safariURL = registrationURL
+                    } label: {
                         HStack(spacing: 4) {
                             Text("Register to Vote")
                                 .font(.caption.bold())
@@ -75,7 +78,9 @@ struct VoterRegistrationLinksView: View {
                         .cornerRadius(8)
                     }
 
-                    Link(destination: checkURL) {
+                    Button {
+                        safariURL = checkURL
+                    } label: {
                         HStack(spacing: 4) {
                             Text("Check Status")
                                 .font(.caption.bold())
@@ -104,5 +109,9 @@ struct VoterRegistrationLinksView: View {
         .tint(Color.vcPurpleLight)
         .padding()
         .glassCard()
+        .sheet(item: $safariURL) { url in
+            SafariView(url: url)
+                .ignoresSafeArea()
+        }
     }
 }

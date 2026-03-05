@@ -25,7 +25,7 @@ export default function TermsOfServicePage() {
       {/* Content */}
       <article className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="font-display text-4xl font-extrabold text-white mb-2 tracking-tight">Terms of Service</h1>
-        <p className="text-white/40 text-sm mb-10">Last updated: February 25, 2026</p>
+        <p className="text-white/40 text-sm mb-10">Last updated: March 5, 2026</p>
 
         <div className="space-y-8 text-white/70 leading-relaxed text-[15px]">
           <section>
@@ -47,7 +47,7 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="font-display text-xl font-bold text-white mb-3">3. Account Registration</h2>
             <ul className="list-disc list-inside space-y-2 ml-2">
-              <li>You must be at least 18 years of age to create an account.</li>
+              <li>You must be at least 16 years of age to create an account.</li>
               <li>You must provide accurate and complete information during registration.</li>
               <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
               <li>You are responsible for all activity that occurs under your account.</li>
@@ -88,14 +88,14 @@ export default function TermsOfServicePage() {
           <section>
             <h2 className="font-display text-xl font-bold text-white mb-3">6. AI-Powered Features</h2>
             <p className="mb-3">
-              Threshold Relational includes an AI chat assistant powered by third-party AI services. By using these features, you acknowledge and agree that:
+              Threshold Relational includes an AI chat assistant powered by third-party AI providers. By using these features, you acknowledge and agree that:
             </p>
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li>The AI assistant records contact information and outreach data in the platform on your behalf based on your conversation.</li>
               <li>AI-generated coaching suggestions and conversation guidance are recommendations only and do not constitute professional advice.</li>
               <li>You are solely responsible for the accuracy of information you provide to the AI assistant and for verifying any voter file matches it presents.</li>
               <li>AI responses may occasionally contain errors or inaccuracies. You should review all data recorded by the assistant.</li>
-              <li>Conversation data with the AI assistant may be processed by our third-party AI provider in accordance with our <Link href="/privacy" className="text-vc-purple-light hover:underline">Privacy Policy</Link>.</li>
+              <li>Conversation data with the AI assistant may be processed by our third-party AI providers in accordance with our <Link href="/privacy" className="text-vc-purple-light hover:underline">Privacy Policy</Link>.</li>
             </ul>
           </section>
 

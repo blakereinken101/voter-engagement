@@ -25,7 +25,7 @@ export default function PrivacyPolicyPage() {
       {/* Content */}
       <article className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="font-display text-4xl font-extrabold text-white mb-2 tracking-tight">Privacy Policy</h1>
-        <p className="text-white/40 text-sm mb-10">Last updated: February 22, 2026</p>
+        <p className="text-white/40 text-sm mb-10">Last updated: March 5, 2026</p>
 
         <div className="space-y-8 text-white/70 leading-relaxed text-[15px]">
           <section>
@@ -64,7 +64,7 @@ export default function PrivacyPolicyPage() {
             <p className="mb-3">We do not sell your personal information. We may share data in the following circumstances:</p>
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li><span className="text-white font-semibold">Campaign Organizations:</span> If you are a member of a campaign, your activity data (contacts added, outreach completed, outcomes) may be visible to campaign administrators.</li>
-              <li><span className="text-white font-semibold">Service Providers:</span> We use third-party services for hosting, email delivery, and database management. These providers only access data as needed to perform their services.</li>
+              <li><span className="text-white font-semibold">Service Providers:</span> We use third-party services for AI processing, email delivery, payment processing, hosting, and database management. These providers only access data as needed to perform their services.</li>
               <li><span className="text-white font-semibold">Legal Requirements:</span> We may disclose information when required by law, regulation, or legal process.</li>
             </ul>
           </section>
@@ -115,7 +115,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="font-display text-xl font-bold text-white mb-3">10. Children&rsquo;s Privacy</h2>
             <p>
-              Threshold is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children. If we become aware that we have collected data from someone under 18, we will take steps to delete that information.
+              Threshold is not intended for use by individuals under the age of 16. We do not knowingly collect personal information from children under 13 in compliance with the Children&rsquo;s Online Privacy Protection Act (COPPA). If we become aware that we have collected data from someone under 13, we will take steps to delete that information promptly. Users between the ages of 13 and 15 may not use the platform.
             </p>
           </section>
 
