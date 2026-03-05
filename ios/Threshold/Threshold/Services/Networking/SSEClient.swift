@@ -24,9 +24,57 @@ final class SSEClient {
                 do {
                     let (bytes, response) = try await session.bytes(for: request)
 
-                    guard let httpResponse = response as? HTTPURLResponse,
-                          httpResponse.statusCode == 200 else {
-                        continuation.yield(.error("Server returned an error"))
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        continuation.yield(.error("Invalid server response"))
+                        continuation.finish()
+                        return
+                    }
+
+                    // Detect redirect: URLSession auto-follows 302s from the auth
+                    // middleware, so we get a 200 from the sign-in HTML page.
+                    // Compare response URL to request URL to detect this.
+                    if let responseURL = httpResponse.url,
+                       let requestURL = request.url,
+                       responseURL.path != requestURL.path {
+                        continuation.yield(.error("Your session has expired. Please sign in again."))
+                        continuation.finish()
+                        return
+                    }
+
+                    // Check for HTML response (another redirect indicator)
+                    if let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type"),
+                       contentType.contains("text/html") {
+                        continuation.yield(.error("Your session has expired. Please sign in again."))
+                        continuation.finish()
+                        return
+                    }
+
+                    // Handle non-200 status codes with specific messages
+                    guard httpResponse.statusCode == 200 else {
+                        let errorMessage: String
+                        switch httpResponse.statusCode {
+                        case 401, 403:
+                            errorMessage = "Your session has expired. Please sign in again."
+                        case 429:
+                            errorMessage = "Too many messages. Please wait a moment and try again."
+                        case 503:
+                            errorMessage = "AI features are temporarily unavailable. Please try again later."
+                        default:
+                            // Try to extract error message from response body
+                            var bodyText = ""
+                            for try await line in bytes.lines {
+                                bodyText += line
+                                if bodyText.count > 500 { break }
+                            }
+                            if let data = bodyText.data(using: .utf8),
+                               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                               let msg = json["error"] as? String {
+                                errorMessage = msg
+                            } else {
+                                errorMessage = "Request failed (\(httpResponse.statusCode))"
+                            }
+                        }
+                        continuation.yield(.error(errorMessage))
                         continuation.finish()
                         return
                     }

@@ -46,6 +46,7 @@ struct MeResponse: Codable {
     let memberships: [Membership]
     let activeMembership: Membership?
     let userProducts: [String]?
+    let sessionToken: String?  // mobile only: refreshed JWT from server
 }
 
 // MARK: - Membership Roles

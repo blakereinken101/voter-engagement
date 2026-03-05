@@ -18,6 +18,10 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Threshold uses your camera to scan handwritten contact sheets so AI can extract names and information.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Threshold accesses your photo library to upload images of contact sheets for AI processing.</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Threshold uses your contacts to help you quickly add people you know to your voter outreach list.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

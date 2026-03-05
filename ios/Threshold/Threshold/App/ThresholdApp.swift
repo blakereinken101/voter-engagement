@@ -21,10 +21,11 @@ struct ThresholdApp: App {
 
 struct RootView: View {
     @Environment(AuthViewModel.self) private var auth
+    @State private var minimumTimeElapsed = false
 
     var body: some View {
         Group {
-            if auth.isCheckingSession {
+            if auth.isCheckingSession || !minimumTimeElapsed {
                 LaunchScreenView()
             } else if auth.isAuthenticated {
                 MainTabView()
@@ -33,7 +34,13 @@ struct RootView: View {
             }
         }
         .task {
-            await auth.checkExistingSession()
+            // Run session check and minimum splash delay in parallel
+            async let sessionCheck: () = auth.checkExistingSession()
+            async let delay: () = Task.sleep(for: .seconds(2))
+
+            await sessionCheck
+            _ = try? await delay
+            minimumTimeElapsed = true
         }
     }
 }

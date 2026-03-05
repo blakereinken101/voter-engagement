@@ -27,7 +27,7 @@ struct MainTabView: View {
                 }
                 .tag(3)
 
-            CoachView()
+            CoachView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Coach", systemImage: "sparkles")
                 }
@@ -121,11 +121,23 @@ struct PeopleView: View {
 // MARK: - Coach View (Tab 3)
 
 struct CoachView: View {
+    @Binding var selectedTab: Int
+
     var body: some View {
         NavigationStack {
             ChatView()
                 .navigationTitle("AI Coach")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            selectedTab = 0
+                        } label: {
+                            Image(systemName: "house.fill")
+                                .foregroundStyle(Color.vcPurpleLight)
+                        }
+                    }
+                }
         }
     }
 }

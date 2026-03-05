@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { headers as getHeaders } from 'next/headers'
 import { getDb } from '@/lib/db'
 import { getSessionFromRequest, getActiveCampaignId, createSessionToken } from '@/lib/auth'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
@@ -129,6 +130,20 @@ export async function GET() {
       )
     }
 
+    // For mobile clients, always return a fresh session token in the JSON body.
+    // iOS uses Bearer tokens (not cookies), so Set-Cookie doesn't help.
+    // This extends the session on every app launch.
+    const requestHeaders = getHeaders()
+    const isMobile = requestHeaders.get('x-client') === 'mobile'
+    let mobileSessionToken: string | undefined
+    if (isMobile) {
+      mobileSessionToken = createSessionToken({
+        userId: user.id,
+        email: user.email,
+        products: userProducts,
+      })
+    }
+
     // Strict anti-cache headers — prevents CDN/browser from serving User A's profile to User B
     headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     headers.set('Pragma', 'no-cache')
@@ -150,6 +165,7 @@ export async function GET() {
       organizationSlug: orgSlugRows[0]?.slug || null,
       freeEventsUsed,
       freeEventsRemaining,
+      ...(mobileSessionToken && { sessionToken: mobileSessionToken }),
     }, { headers })
   } catch (error) {
     console.error('[auth/me] Error:', error)

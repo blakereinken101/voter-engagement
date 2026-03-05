@@ -60,6 +60,12 @@ final class AuthViewModel {
 
         do {
             let me = try await authRepo.fetchMe()
+
+            // Save refreshed token from server to extend the session
+            if let refreshedToken = me.sessionToken {
+                tokenManager.sessionToken = refreshedToken
+            }
+
             user = me.user
             memberships = me.memberships
 
