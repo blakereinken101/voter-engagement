@@ -162,6 +162,8 @@ struct ScanSheetView: View {
             )
 
             let response: ScanSheetResponse = try await APIClient.shared.request(endpoint)
+            let validOutcomes = Set(ContactOutcome.allCases.map(\.rawValue))
+            let validVolunteer = Set(VolunteerInterest.allCases.map(\.rawValue))
             scannedContacts = response.contacts.enumerated().map { idx, c in
                 ScannedContact(
                     id: UUID().uuidString,
@@ -173,8 +175,8 @@ struct ScanSheetView: View {
                     zip: c.zip,
                     notes: c.notes,
                     category: c.category ?? "who-did-we-miss",
-                    contactOutcome: c.contactOutcome,
-                    volunteerInterest: c.volunteerInterest,
+                    contactOutcome: c.supportStatus.flatMap { validOutcomes.contains($0) ? $0 : nil },
+                    volunteerInterest: c.volunteerInterest.flatMap { validVolunteer.contains($0) ? $0 : nil },
                     surveyResponses: c.surveyResponses,
                     included: true
                 )
@@ -270,7 +272,7 @@ struct ScannedContactResponse: Codable {
     let zip: String?
     let notes: String?
     let category: String?
-    let contactOutcome: String?
+    let supportStatus: String?
     let volunteerInterest: String?
     let surveyResponses: [String: String]?
 }
@@ -386,10 +388,23 @@ struct ScanReviewView: View {
                                     .foregroundStyle(contact.included ? Color.vcTeal : Color.vcSlate)
                             }
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(contact.firstName) \(contact.lastName)")
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(.white)
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 6) {
+                                    TextField("First", text: $contact.firstName)
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.white.opacity(0.08))
+                                        .cornerRadius(6)
+                                    TextField("Last", text: $contact.lastName)
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.white.opacity(0.08))
+                                        .cornerRadius(6)
+                                }
 
                                 if let phone = contact.phone, !phone.isEmpty {
                                     Text(phone)
@@ -457,6 +472,40 @@ struct ScanReviewView: View {
                                                     : Color.vcSlate
                                             )
                                             .cornerRadius(6)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Volunteer interest chips
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    Text("Vol?")
+                                        .font(.system(size: 9, weight: .medium))
+                                        .foregroundStyle(Color.vcSlate)
+                                    ForEach(VolunteerInterest.allCases, id: \.self) { vol in
+                                        Button {
+                                            if contact.volunteerInterest == vol.rawValue {
+                                                contact.volunteerInterest = nil
+                                            } else {
+                                                contact.volunteerInterest = vol.rawValue
+                                            }
+                                        } label: {
+                                            Text("Vol: \(vol.displayName)")
+                                                .font(.system(size: 10, weight: .medium))
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(
+                                                    contact.volunteerInterest == vol.rawValue
+                                                        ? Color.vcPurple.opacity(0.3)
+                                                        : Color.white.opacity(0.05)
+                                                )
+                                                .foregroundStyle(
+                                                    contact.volunteerInterest == vol.rawValue
+                                                        ? Color.vcPurpleLight
+                                                        : Color.vcSlate
+                                                )
+                                                .cornerRadius(6)
                                         }
                                     }
                                 }
