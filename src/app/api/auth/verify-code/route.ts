@@ -70,8 +70,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Mark code as used
-    await db.query('UPDATE verification_codes SET used = true WHERE id = $1', [storedCode.id])
+    // Mark code as used & record sign-in timestamp
+    await Promise.all([
+      db.query('UPDATE verification_codes SET used = true WHERE id = $1', [storedCode.id]),
+      db.query('UPDATE users SET last_signed_in_at = NOW(), last_active_at = NOW() WHERE id = $1', [pending.userId]),
+    ])
 
     // Get user data + memberships (same as original sign-in response)
     const { rows: userRows } = await db.query(

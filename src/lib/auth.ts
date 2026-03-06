@@ -173,6 +173,19 @@ export function generateVerificationCode(): string {
  * Use this instead of getSessionFromRequest() for campaign-scoped endpoints.
  * Enforces relational product access — events-only users will get a 403.
  */
+// Debounce last_active_at updates: only write once per 5 minutes per user
+const lastActiveCache = new Map<string, number>()
+const ACTIVITY_DEBOUNCE_MS = 5 * 60 * 1000
+
+function touchLastActive(pool: ReturnType<typeof getPool>, userId: string) {
+  const now = Date.now()
+  const last = lastActiveCache.get(userId) || 0
+  if (now - last < ACTIVITY_DEBOUNCE_MS) return
+  lastActiveCache.set(userId, now)
+  // Fire-and-forget — never block the request
+  pool.query('UPDATE users SET last_active_at = NOW() WHERE id = $1', [userId]).catch(() => {})
+}
+
 export async function getRequestContext(): Promise<RequestContext> {
   const session = getSessionFromRequest()
   if (!session) throw new AuthError('Not authenticated', 401)
@@ -190,6 +203,9 @@ export async function getRequestContext(): Promise<RequestContext> {
   )
   if (userRows.length === 0) throw new AuthError('User not found', 401)
   const isPlatformAdmin = !!userRows[0].is_platform_admin
+
+  // Lightweight activity heartbeat (debounced, non-blocking)
+  touchLastActive(pool, session.userId)
 
   // Verify relational product access (the security boundary)
   if (!isPlatformAdmin) {
