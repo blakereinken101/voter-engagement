@@ -4,7 +4,7 @@ import { getSessionFromRequest, handleAuthError } from '@/lib/auth'
 import { getEventsContext, generateSlug, mapEventRow, canViewEvent } from '@/lib/events'
 import { sanitizeSlug } from '@/lib/slugs'
 import { sendEventPublishedConfirmation } from '@/lib/email'
-import { fireAndForget, syncEventToVan, findVanCampaignForOrg } from '@/lib/van-sync'
+import { syncEvent, findCrmCampaignForOrg } from '@/lib/crm-sync'
 
 export async function GET(request: NextRequest) {
   try {
@@ -223,11 +223,10 @@ export async function POST(request: NextRequest) {
         }).catch(err => console.error('[events POST] Failed to send confirmation email:', err))
       }
 
-      // Sync event to VAN (events belong to orgs, find a VAN-enabled campaign)
-      fireAndForget(async () => {
-        const vanCampaignId = await findVanCampaignForOrg(ctx.organizationId)
-        if (vanCampaignId) await syncEventToVan(vanCampaignId, id)
-      }, `event:${id}`)
+      // Sync event to CRM (events belong to orgs, find a CRM-enabled campaign)
+      findCrmCampaignForOrg(ctx.organizationId).then(crmCampaignId => {
+        if (crmCampaignId) syncEvent(crmCampaignId, id)
+      }).catch(() => {})
     }
 
     return NextResponse.json({ id, slug, success: true })

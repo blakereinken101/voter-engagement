@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getSessionFromRequest, handleAuthError } from '@/lib/auth'
 import { canViewEvent, getEventsSubscription, checkRsvpLimit, mapRsvpRow } from '@/lib/events'
-import { fireAndForget, syncSignupToVan, findVanCampaignForOrg } from '@/lib/van-sync'
+import { syncSignup, findCrmCampaignForOrg } from '@/lib/crm-sync'
 
 export async function GET(
   request: NextRequest,
@@ -127,10 +127,9 @@ export async function POST(
       await logActivity(session.userId, 'event_rsvp', { eventId, status: rsvpStatus })
 
       if (rsvpStatus === 'going' || rsvpStatus === 'maybe') {
-        fireAndForget(async () => {
-          const vanCampaignId = await findVanCampaignForOrg(event.organization_id)
-          if (vanCampaignId) await syncSignupToVan(vanCampaignId, eventId, id)
-        }, `signup:${id}`)
+        findCrmCampaignForOrg(event.organization_id).then(crmCampaignId => {
+          if (crmCampaignId) syncSignup(crmCampaignId, eventId, id)
+        }).catch(() => {})
       }
 
       return NextResponse.json({ id, success: true })

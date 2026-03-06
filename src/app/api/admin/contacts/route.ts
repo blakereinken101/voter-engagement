@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
-import { fireAndForget, syncContactToVan } from '@/lib/van-sync'
+import { syncContact } from '@/lib/crm-sync'
 
 export async function GET(request: NextRequest) {
   try {
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     }, ctx.campaignId)
 
     for (const contactId of createdIds) {
-      fireAndForget(() => syncContactToVan(ctx.campaignId, contactId), `contact:${contactId}`)
+      syncContact(ctx.campaignId, contactId)
     }
 
     return NextResponse.json({ success: true, count: createdIds.length, contactIds: createdIds })
