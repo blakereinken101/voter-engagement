@@ -63,6 +63,7 @@ struct PeopleView: View {
 
     enum PeopleViewMode: String, CaseIterable {
         case list = "List"
+        case rolodex = "Rolodex"
         case map = "Map"
     }
 
@@ -85,6 +86,8 @@ struct PeopleView: View {
                     switch viewMode {
                     case .list:
                         ContactListView()
+                    case .rolodex:
+                        RolodexView()
                     case .map:
                         NearbyView()
                     }

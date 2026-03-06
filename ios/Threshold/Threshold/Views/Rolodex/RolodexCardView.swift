@@ -15,6 +15,8 @@ struct RolodexCardView: View {
     @State private var surveyResponses: [String: String] = [:]
     @State private var followUpDate: Date?
     @State private var showFollowUpPicker = false
+    @State private var isSaving = false
+    @State private var saveError: String?
 
     enum CardStep {
         case prep, log
@@ -352,12 +354,29 @@ struct RolodexCardView: View {
                 }
             }
 
+            // Error message
+            if let saveError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                    Text(saveError)
+                        .font(.caption)
+                }
+                .foregroundStyle(Color.vcCoral)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.vcCoral.opacity(0.1))
+                .cornerRadius(8)
+            }
+
             // Save button
             Button {
+                isSaving = true
+                saveError = nil
                 Task {
                     let responsesToSave = surveyResponses.isEmpty ? nil : surveyResponses
                     let followUpStr: String? = followUpDate.map { ISO8601DateFormatter().string(from: $0) }
-                    await contacts.updateAction(
+                    let success = await contacts.updateAction(
                         contactId: person.id,
                         contacted: true,
                         outreachMethod: selectedMethod,
@@ -367,11 +386,21 @@ struct RolodexCardView: View {
                         surveyResponses: responsesToSave,
                         followUpDate: followUpStr
                     )
-                    onNext()
+                    isSaving = false
+                    if success {
+                        onNext()
+                    } else {
+                        saveError = "Failed to save. Please try again."
+                    }
                 }
             } label: {
                 HStack {
-                    Image(systemName: "checkmark.circle.fill")
+                    if isSaving {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Image(systemName: "checkmark.circle.fill")
+                    }
                     Text("Save & Next")
                 }
                 .fontWeight(.semibold)
@@ -381,6 +410,7 @@ struct RolodexCardView: View {
                 .foregroundStyle(.white)
                 .cornerRadius(10)
             }
+            .disabled(isSaving)
         }
     }
 }

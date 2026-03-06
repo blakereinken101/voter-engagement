@@ -2,11 +2,7 @@ import Foundation
 
 enum AppConstants {
     // MARK: - API
-    #if DEBUG
-    static let apiBaseURL = URL(string: "http://localhost:3000")!
-    #else
     static let apiBaseURL = URL(string: "https://thresholdvote.com")!
-    #endif
 
     // MARK: - Keychain Keys
     static let keychainSessionToken = "vc-session-token"

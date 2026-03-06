@@ -61,7 +61,7 @@ enum ContactEndpoints {
     }
 
     static func updateAction(contactId: String, action: UpdateActionBody) -> APIEndpoint {
-        APIEndpoint(path: "/api/contacts/\(contactId)/action", method: .post, body: action)
+        APIEndpoint(path: "/api/contacts/\(contactId)/action", method: .put, body: action)
     }
 
     static func getMatch(contactId: String) -> APIEndpoint {

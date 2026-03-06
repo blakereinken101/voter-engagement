@@ -17,6 +17,7 @@ struct ContactDetailView: View {
     @State private var followUpDate: Date?
     @State private var showFollowUpPicker = false
     @State private var isSaving = false
+    @State private var saveError: String?
 
     // Edit mode state
     @State private var isEditingInfo = false
@@ -706,13 +707,29 @@ struct ContactDetailView: View {
                 }
             }
 
+            // Error message
+            if let saveError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                    Text(saveError)
+                        .font(.caption)
+                }
+                .foregroundStyle(Color.vcCoral)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.vcCoral.opacity(0.1))
+                .cornerRadius(8)
+            }
+
             // Save button
             Button {
                 isSaving = true
+                saveError = nil
                 Task {
                     let responsesToSave = surveyResponses.isEmpty ? nil : surveyResponses
                     let followUpStr: String? = followUpDate.map { ISO8601DateFormatter().string(from: $0) }
-                    await contacts.updateAction(
+                    let success = await contacts.updateAction(
                         contactId: person.id,
                         contacted: true,
                         outreachMethod: selectedMethod,
@@ -723,7 +740,11 @@ struct ContactDetailView: View {
                         followUpDate: followUpStr
                     )
                     isSaving = false
-                    isEditingOutreach = false
+                    if success {
+                        isEditingOutreach = false
+                    } else {
+                        saveError = "Failed to save. Please try again."
+                    }
                 }
             } label: {
                 HStack {

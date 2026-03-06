@@ -104,6 +104,7 @@ final class ContactsViewModel {
 
     // MARK: - Update Action
 
+    @discardableResult
     func updateAction(
         contactId: String,
         contacted: Bool? = nil,
@@ -113,7 +114,7 @@ final class ContactsViewModel {
         volunteerInterest: VolunteerInterest? = nil,
         surveyResponses: [String: String]? = nil,
         followUpDate: String? = nil
-    ) async {
+    ) async -> Bool {
         let body = UpdateActionBody(
             contacted: contacted,
             outreachMethod: outreachMethod?.rawValue,
@@ -137,10 +138,12 @@ final class ContactsViewModel {
 
         do {
             try await contactRepo.updateAction(contactId: contactId, action: body)
+            return true
         } catch {
             self.error = error.localizedDescription
             // Reload on failure to revert optimistic update
             await loadContacts()
+            return false
         }
     }
 
