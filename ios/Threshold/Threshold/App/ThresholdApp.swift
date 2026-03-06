@@ -5,6 +5,7 @@ struct ThresholdApp: App {
     @State private var authVM = AuthViewModel()
     @State private var contactsVM = ContactsViewModel()
     @State private var chatVM = ChatViewModel()
+    @State private var messagingVM = MessagingViewModel()
 
     var body: some Scene {
         WindowGroup {
@@ -12,6 +13,7 @@ struct ThresholdApp: App {
                 .environment(authVM)
                 .environment(contactsVM)
                 .environment(chatVM)
+                .environment(messagingVM)
                 .preferredColorScheme(.dark)
         }
     }

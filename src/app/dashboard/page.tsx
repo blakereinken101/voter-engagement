@@ -21,7 +21,7 @@ import { isInTargetUniverse } from '@/lib/voter-segments'
 
 export default function DashboardPage() {
   const { state } = useAppContext()
-  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig, isLoading: authLoading, hasEventsAccess } = useAuth()
+  const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig, isLoading: authLoading, hasEventsAccess, hasMessagingAccess } = useAuth()
 
   // Product access is enforced by middleware — no client-side redirect guard needed
   const campaignConfig = authConfig || defaultCampaignConfig
@@ -75,6 +75,15 @@ export default function DashboardPage() {
               >
                 <Calendar className="w-4 h-4" />
                 <span className="hidden sm:inline">Events</span>
+              </Link>
+            )}
+            {hasMessagingAccess && (
+              <Link
+                href="/messaging"
+                className="flex items-center gap-1.5 ml-1 px-3 py-1.5 rounded-btn text-sm font-medium text-blue-400 hover:bg-blue-500/10 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="hidden sm:inline">Messages</span>
               </Link>
             )}
           </div>

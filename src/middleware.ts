@@ -31,6 +31,9 @@ const EVENTS_PROTECTED_ROUTES = [
 // Routes that require the 'texting' product
 const TEXTING_ROUTES = ['/texting']
 
+// Routes that require the 'messaging' product
+const MESSAGING_ROUTES = ['/messaging']
+
 // Platform admin only
 const PLATFORM_ROUTES = ['/platform']
 
@@ -76,11 +79,13 @@ export async function middleware(request: NextRequest) {
   // Determine the right sign-in URL based on what path they're trying to reach
   const signInUrl = pathname.startsWith('/texting')
     ? new URL('/sign-in?product=texting', request.url)
-    : pathname.startsWith('/events')
-      ? new URL('/sign-in?product=events', request.url)
-      : RELATIONAL_ROUTES.some(r => pathname.startsWith(r))
-        ? new URL('/sign-in?product=relational', request.url)
-        : new URL('/sign-in', request.url)
+    : pathname.startsWith('/messaging')
+      ? new URL('/sign-in?product=messaging', request.url)
+      : pathname.startsWith('/events')
+        ? new URL('/sign-in?product=events', request.url)
+        : RELATIONAL_ROUTES.some(r => pathname.startsWith(r))
+          ? new URL('/sign-in?product=relational', request.url)
+          : new URL('/sign-in', request.url)
 
   if (!token) {
     const response = NextResponse.redirect(signInUrl)
@@ -162,6 +167,19 @@ export async function middleware(request: NextRequest) {
       }
       if (products.includes('relational')) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      return NextResponse.redirect(new URL('/sign-in', request.url))
+    }
+  }
+
+  // Messaging routes require 'messaging' product
+  if (MESSAGING_ROUTES.some(r => pathname.startsWith(r))) {
+    if (!products.includes('messaging') && !isPlatformAdmin) {
+      if (products.includes('relational')) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      if (products.includes('events')) {
+        return NextResponse.redirect(new URL('/events/manage', request.url))
       }
       return NextResponse.redirect(new URL('/sign-in', request.url))
     }

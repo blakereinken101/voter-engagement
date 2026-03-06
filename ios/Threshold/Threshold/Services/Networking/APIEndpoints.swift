@@ -156,6 +156,67 @@ struct AdminContactInput: Encodable {
     let volunteerInterest: String?
 }
 
+// MARK: - Messaging Endpoints
+
+enum MessagingEndpoints {
+    static var channels: APIEndpoint {
+        APIEndpoint(path: "/api/messaging/channels")
+    }
+
+    static func channelDetail(_ channelId: String) -> APIEndpoint {
+        APIEndpoint(path: "/api/messaging/channels/\(channelId)")
+    }
+
+    static func messages(_ channelId: String, cursor: String? = nil, limit: Int = 50) -> APIEndpoint {
+        var queryItems = [URLQueryItem(name: "limit", value: "\(limit)")]
+        if let cursor { queryItems.append(URLQueryItem(name: "cursor", value: cursor)) }
+        return APIEndpoint(path: "/api/messaging/channels/\(channelId)/messages", queryItems: queryItems)
+    }
+
+    static func sendMessage(_ channelId: String, content: String, parentId: String? = nil) -> APIEndpoint {
+        struct Body: Encodable {
+            let content: String
+            let parentId: String?
+        }
+        return APIEndpoint(
+            path: "/api/messaging/channels/\(channelId)/messages",
+            method: .post,
+            body: Body(content: content, parentId: parentId)
+        )
+    }
+
+    static func markRead(_ channelId: String) -> APIEndpoint {
+        APIEndpoint(path: "/api/messaging/channels/\(channelId)/read", method: .put)
+    }
+
+    static func createChannel(name: String, description: String?, memberIds: [String]) -> APIEndpoint {
+        struct Body: Encodable {
+            let name: String
+            let description: String?
+            let memberIds: [String]
+        }
+        return APIEndpoint(
+            path: "/api/messaging/channels",
+            method: .post,
+            body: Body(name: name, description: description, memberIds: memberIds)
+        )
+    }
+
+    static func startDM(userId: String) -> APIEndpoint {
+        struct Body: Encodable { let userId: String }
+        return APIEndpoint(path: "/api/messaging/dm", method: .post, body: Body(userId: userId))
+    }
+
+    static func broadcast(content: String) -> APIEndpoint {
+        struct Body: Encodable { let content: String }
+        return APIEndpoint(path: "/api/messaging/broadcast", method: .post, body: Body(content: content))
+    }
+
+    static var stream: APIEndpoint {
+        APIEndpoint(path: "/api/messaging/stream")
+    }
+}
+
 // MARK: - Request Bodies
 
 struct CreateContactBody: Encodable {

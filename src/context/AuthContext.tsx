@@ -38,6 +38,7 @@ interface AuthContextValue {
   hasEventsAccess: boolean
   hasRelationalAccess: boolean
   hasTextingAccess: boolean
+  hasMessagingAccess: boolean
   hasEventsSubscription: boolean
   freeEventsUsed: number
   freeEventsRemaining: number
@@ -224,6 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const hasEventsAccess = userProducts.includes('events') || !!user?.isPlatformAdmin
   const hasRelationalAccess = userProducts.includes('relational') || !!user?.isPlatformAdmin
   const hasTextingAccess = userProducts.includes('texting') || !!user?.isPlatformAdmin
+  const hasMessagingAccess = userProducts.includes('messaging') || !!user?.isPlatformAdmin
 
   const hasEventsSubscription = productSubscriptions.some(
     s => s.product === 'events' && (s.status === 'active' || s.status === 'trialing')
@@ -232,7 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, memberships, activeMembership, campaignConfig, productSubscriptions, userProducts, organizationSlug,
-      isLoading, isAdmin, hasEventsAccess, hasRelationalAccess, hasTextingAccess, hasEventsSubscription, freeEventsUsed, freeEventsRemaining,
+      isLoading, isAdmin, hasEventsAccess, hasRelationalAccess, hasTextingAccess, hasMessagingAccess, hasEventsSubscription, freeEventsUsed, freeEventsRemaining,
       signIn, signOut, switchCampaign, verifyCode, resendCode,
     }}>
       {children}

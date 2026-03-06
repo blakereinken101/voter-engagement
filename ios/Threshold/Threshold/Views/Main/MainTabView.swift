@@ -32,6 +32,12 @@ struct MainTabView: View {
                     Label("Coach", systemImage: "sparkles")
                 }
                 .tag(2)
+
+            MessagesTabView()
+                .tabItem {
+                    Label("Messages", systemImage: "bubble.left.and.bubble.right.fill")
+                }
+                .tag(4)
         }
         .tint(Color.vcPurple)
         .onChange(of: selectedTab) { oldValue, newValue in
@@ -154,5 +160,13 @@ struct CoachView: View {
                     }
                 }
         }
+    }
+}
+
+// MARK: - Messages View (Tab 5)
+
+struct MessagesTabView: View {
+    var body: some View {
+        ChannelListView()
     }
 }

@@ -493,6 +493,63 @@ export type DashboardView = 'chat' | 'contacts'
 // CONTACT EVENT RSVP TYPES
 // =============================================
 
+// =============================================
+// MESSAGING TYPES
+// =============================================
+
+export type ChannelType = 'team' | 'broadcast' | 'direct'
+export type MessageType = 'text' | 'system' | 'announcement'
+export type ChannelMemberRole = 'admin' | 'member'
+
+export interface MessagingChannel {
+  id: string
+  campaignId: string
+  name: string | null
+  channelType: ChannelType
+  description: string | null
+  createdBy: string
+  isArchived: boolean
+  createdAt: string
+  updatedAt: string
+  // Computed
+  unreadCount?: number
+  lastMessage?: MessagingMessage | null
+  memberCount?: number
+  members?: ChannelMember[]
+}
+
+export interface ChannelMember {
+  id: string
+  channelId: string
+  userId: string
+  role: ChannelMemberRole
+  lastReadAt: string
+  muted: boolean
+  joinedAt: string
+  // Joined
+  userName?: string
+  userEmail?: string
+}
+
+export interface MessagingMessage {
+  id: string
+  channelId: string
+  senderId: string
+  content: string
+  messageType: MessageType
+  parentId: string | null
+  isEdited: boolean
+  isDeleted: boolean
+  createdAt: string
+  updatedAt: string
+  // Joined
+  senderName?: string
+}
+
+// =============================================
+// CONTACT EVENT RSVP TYPES
+// =============================================
+
 export type ContactEventRsvpStatus = 'yes' | 'no' | 'maybe'
 
 export interface ContactEventRsvp {
