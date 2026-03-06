@@ -388,7 +388,7 @@ export interface ActivityLogEntry {
   createdAt: string
 }
 
-export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge' | 'team' | 'ai-context' | 'integrations' | 'petitions'
+export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge' | 'team' | 'ai-context' | 'integrations' | 'petitions' | 'channels'
 
 // =============================================
 // AI CHAT TYPES

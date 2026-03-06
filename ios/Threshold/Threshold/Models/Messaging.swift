@@ -92,3 +92,18 @@ struct CreateChannelResponse: Codable {
 struct DMResponse: Codable {
     let channelId: String
 }
+
+// MARK: - Teammates
+
+struct Teammate: Codable, Identifiable {
+    let userId: String
+    let name: String
+    let email: String
+    let role: String
+
+    var id: String { userId }
+}
+
+struct TeammatesResponse: Codable {
+    let teammates: [Teammate]
+}

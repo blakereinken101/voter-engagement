@@ -40,6 +40,11 @@ final class MessagingRepository {
         let response: DMResponse = try await client.request(MessagingEndpoints.startDM(userId: userId))
         return response.channelId
     }
+
+    func fetchTeammates() async throws -> [Teammate] {
+        let response: TeammatesResponse = try await client.request(MessagingEndpoints.teammates)
+        return response.teammates
+    }
 }
 
 private struct EmptyResponse: Codable {

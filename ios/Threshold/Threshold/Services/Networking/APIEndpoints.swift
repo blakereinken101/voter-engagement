@@ -215,6 +215,10 @@ enum MessagingEndpoints {
     static var stream: APIEndpoint {
         APIEndpoint(path: "/api/messaging/stream")
     }
+
+    static var teammates: APIEndpoint {
+        APIEndpoint(path: "/api/messaging/teammates")
+    }
 }
 
 // MARK: - Request Bodies

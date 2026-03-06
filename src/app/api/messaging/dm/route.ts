@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getPool } from '@/lib/db'
 import { getMessagingContext, genId } from '@/lib/messaging'
 import { handleAuthError } from '@/lib/auth'
+import { ADMIN_ROLES } from '@/types'
 
 /** POST /api/messaging/dm — start or get existing DM with another user */
 export async function POST(request: Request) {
@@ -31,6 +32,21 @@ export async function POST(request: Request) {
       )
       if (!adminCheck[0]?.is_platform_admin) {
         return NextResponse.json({ error: 'User is not in this campaign' }, { status: 400 })
+      }
+    }
+
+    // Volunteers can only DM people they share a channel with
+    const isPrivileged = ctx.isPlatformAdmin || ADMIN_ROLES.includes(ctx.role) || ctx.role === 'organizer'
+    if (!isPrivileged) {
+      const { rows: shared } = await pool.query(
+        `SELECT 1 FROM messaging_channel_members a
+         JOIN messaging_channel_members b ON a.channel_id = b.channel_id
+         WHERE a.user_id = $1 AND b.user_id = $2
+         LIMIT 1`,
+        [ctx.userId, targetUserId]
+      )
+      if (shared.length === 0) {
+        return NextResponse.json({ error: 'You can only message people on your team' }, { status: 403 })
       }
     }
 

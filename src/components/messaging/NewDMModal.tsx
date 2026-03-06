@@ -23,15 +23,10 @@ export default function NewDMModal({ onClose, onCreated }: Props) {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/admin/volunteers')
+        const res = await fetch('/api/messaging/teammates')
         if (res.ok) {
           const data = await res.json()
-          setMembers(data.volunteers?.map((v: { id: string; name: string; email: string; role: string }) => ({
-            userId: v.id,
-            name: v.name,
-            email: v.email,
-            role: v.role,
-          })) || [])
+          setMembers(data.teammates || [])
         }
       } catch {
         // silent

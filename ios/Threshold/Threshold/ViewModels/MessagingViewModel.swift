@@ -122,6 +122,19 @@ final class MessagingViewModel {
         }
     }
 
+    // MARK: - Teammates
+
+    var teammates: [Teammate] = []
+
+    @MainActor
+    func loadTeammates() async {
+        do {
+            teammates = try await repository.fetchTeammates()
+        } catch {
+            // silent — fall back to empty
+        }
+    }
+
     // MARK: - Real-time
 
     func addIncomingMessage(_ message: TeamMessage) {
