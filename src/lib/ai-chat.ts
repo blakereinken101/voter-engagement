@@ -1399,15 +1399,24 @@ export async function* streamChat(
       let currentToolName = ''
       let currentToolInput = ''
 
+      let insideThinkingBlock = false
+
       for await (const event of stream) {
         if (event.type === 'content_block_start') {
-          if (event.content_block.type === 'tool_use') {
+          if ((event.content_block as { type: string }).type === 'thinking') {
+            insideThinkingBlock = true
+          } else if (event.content_block.type === 'tool_use') {
+            insideThinkingBlock = false
             currentToolId = event.content_block.id
             currentToolName = event.content_block.name
             currentToolInput = ''
+          } else {
+            insideThinkingBlock = false
           }
         } else if (event.type === 'content_block_delta') {
-          if (event.delta.type === 'text_delta') {
+          if (insideThinkingBlock) {
+            // Skip thinking_delta, signature_delta — never yield internal reasoning
+          } else if (event.delta.type === 'text_delta') {
             fullText += event.delta.text
             anthropicTextYielded = true
             yield { type: 'text', text: event.delta.text }
@@ -1415,6 +1424,7 @@ export async function* streamChat(
             currentToolInput += event.delta.partial_json
           }
         } else if (event.type === 'content_block_stop') {
+          insideThinkingBlock = false
           if (currentToolId && currentToolName) {
             let parsedInput: Record<string, unknown> = {}
             try {

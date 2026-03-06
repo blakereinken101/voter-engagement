@@ -121,6 +121,13 @@ struct MatchCandidateCard: View {
                     Text("\(candidate.voterRecord.city), \(candidate.voterRecord.state) \(candidate.voterRecord.zip)")
                         .font(.caption)
                         .foregroundStyle(Color.vcSlate)
+
+                    if let birthYear = candidate.voterRecord.birthYear,
+                       let year = Int(birthYear) {
+                        Text("Age \(Calendar.current.component(.year, from: Date()) - year)")
+                            .font(.caption)
+                            .foregroundStyle(Color.vcSlate)
+                    }
                 }
 
                 Spacer()

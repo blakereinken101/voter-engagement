@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { Users, MessageCircle, Plus, ArrowRight } from 'lucide-react'
 
 interface ChatQuickActionsProps {
@@ -9,7 +10,7 @@ interface ChatQuickActionsProps {
   disabled?: boolean
 }
 
-export default function ChatQuickActions({ onSend, contactCount, contactedCount, disabled }: ChatQuickActionsProps) {
+export default React.memo(function ChatQuickActions({ onSend, contactCount, contactedCount, disabled }: ChatQuickActionsProps) {
   const hasContacts = contactCount > 0
   const hasEnoughContacts = contactCount >= 40
   const allContacted = hasContacts && contactedCount >= contactCount
@@ -69,4 +70,4 @@ export default function ChatQuickActions({ onSend, contactCount, contactedCount,
       ))}
     </div>
   )
-}
+})

@@ -1,9 +1,10 @@
 'use client'
 
+import React from 'react'
 import { UserPlus, Search, MessageCircle, CheckCircle, ShieldCheck, ShieldX, CalendarCheck, Calendar } from 'lucide-react'
 import type { ChatMessage } from '@/types'
 
-function ToolResultChip({ name, result }: { name: string; result: Record<string, unknown> }) {
+const ToolResultChip = React.memo(function ToolResultChip({ name, result }: { name: string; result: Record<string, unknown> }) {
   const icons: Record<string, React.ReactNode> = {
     add_contact: <UserPlus className="w-3 h-3" />,
     run_matching: <Search className="w-3 h-3" />,
@@ -60,14 +61,14 @@ function ToolResultChip({ name, result }: { name: string; result: Record<string,
       {labels[name] || name}
     </span>
   )
-}
+})
 
 interface ChatMessageBubbleProps {
   message: ChatMessage
   isStreaming?: boolean
 }
 
-export default function ChatMessageBubble({ message, isStreaming }: ChatMessageBubbleProps) {
+export default React.memo(function ChatMessageBubble({ message, isStreaming }: ChatMessageBubbleProps) {
   const isUser = message.role === 'user'
 
   return (
@@ -102,4 +103,4 @@ export default function ChatMessageBubble({ message, isStreaming }: ChatMessageB
       </div>
     </div>
   )
-}
+})

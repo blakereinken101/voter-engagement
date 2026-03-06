@@ -17,6 +17,8 @@ export default function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const hasAutoSent = useRef(false)
+  const streamBufferRef = useRef('')
+  const rafRef = useRef<number | null>(null)
   const { state, addPersonLocal, batchMatchResultsLocal, toggleContactedLocal, setContactOutcomeLocal, setSurveyResponsesLocal } = useAppContext()
 
   // Load chat history on mount
@@ -161,11 +163,19 @@ export default function ChatInterface() {
               const event = JSON.parse(data)
 
               if (event.type === 'text') {
-                setMessages(prev =>
-                  prev.map(m =>
-                    m.id === assistantId ? { ...m, content: m.content + event.text } : m,
-                  ),
-                )
+                streamBufferRef.current += event.text
+                if (!rafRef.current) {
+                  rafRef.current = requestAnimationFrame(() => {
+                    const buffered = streamBufferRef.current
+                    streamBufferRef.current = ''
+                    rafRef.current = null
+                    setMessages(prev =>
+                      prev.map(m =>
+                        m.id === assistantId ? { ...m, content: m.content + buffered } : m,
+                      ),
+                    )
+                  })
+                }
               } else if (event.type === 'tool_result') {
                 // Add tool result chip to the assistant message
                 setMessages(prev =>
@@ -192,6 +202,18 @@ export default function ChatInterface() {
               // Skip malformed JSON
             }
           }
+        }
+        // Flush any remaining buffered streaming text
+        if (streamBufferRef.current) {
+          if (rafRef.current) cancelAnimationFrame(rafRef.current)
+          const remaining = streamBufferRef.current
+          streamBufferRef.current = ''
+          rafRef.current = null
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantId ? { ...m, content: m.content + remaining } : m,
+            ),
+          )
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong')
