@@ -66,6 +66,7 @@ struct PeopleView: View {
     @Environment(AuthViewModel.self) private var auth
     @State private var viewMode: PeopleViewMode = .list
     @State private var showWizard = false
+    @State private var showQuickAdd = false
 
     enum PeopleViewMode: String, CaseIterable {
         case list = "List"
@@ -122,8 +123,17 @@ struct PeopleView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showWizard = true
+                    Menu {
+                        Button {
+                            showQuickAdd = true
+                        } label: {
+                            Label("Quick Add", systemImage: "bolt.fill")
+                        }
+                        Button {
+                            showWizard = true
+                        } label: {
+                            Label("Guided Wizard", systemImage: "person.badge.plus")
+                        }
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .foregroundStyle(Color.vcPurple)
@@ -132,6 +142,9 @@ struct PeopleView: View {
             }
             .fullScreenCover(isPresented: $showWizard) {
                 WizardView(isPresented: $showWizard)
+            }
+            .sheet(isPresented: $showQuickAdd) {
+                QuickAddView(isPresented: $showQuickAdd)
             }
         }
     }

@@ -388,7 +388,7 @@ export interface ActivityLogEntry {
   createdAt: string
 }
 
-export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge' | 'team' | 'ai-context' | 'integrations' | 'petitions' | 'channels'
+export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge' | 'team' | 'ai-context' | 'integrations' | 'petitions' | 'channels' | 'push' | 'support'
 
 // =============================================
 // AI CHAT TYPES
@@ -560,4 +560,107 @@ export interface ContactEventRsvp {
   notes?: string
   eventTitle?: string
   eventStartTime?: string
+}
+
+// =============================================
+// SUPPORT TYPES
+// =============================================
+
+export type TicketCategory = 'general' | 'technical' | 'billing' | 'account' | 'data' | 'feature-request'
+export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent'
+export type TicketStatus = 'open' | 'in-progress' | 'waiting-on-user' | 'resolved' | 'closed'
+
+export const TICKET_CATEGORIES: { id: TicketCategory; label: string }[] = [
+  { id: 'general', label: 'General' },
+  { id: 'technical', label: 'Technical' },
+  { id: 'billing', label: 'Billing' },
+  { id: 'account', label: 'Account' },
+  { id: 'data', label: 'Data' },
+  { id: 'feature-request', label: 'Feature Request' },
+]
+
+export const TICKET_PRIORITIES: { id: TicketPriority; label: string }[] = [
+  { id: 'low', label: 'Low' },
+  { id: 'normal', label: 'Normal' },
+  { id: 'high', label: 'High' },
+  { id: 'urgent', label: 'Urgent' },
+]
+
+export const TICKET_STATUSES: { id: TicketStatus; label: string }[] = [
+  { id: 'open', label: 'Open' },
+  { id: 'in-progress', label: 'In Progress' },
+  { id: 'waiting-on-user', label: 'Waiting on User' },
+  { id: 'resolved', label: 'Resolved' },
+  { id: 'closed', label: 'Closed' },
+]
+
+export interface KBArticle {
+  id: string
+  campaignId: string | null
+  title: string
+  slug: string
+  content: string
+  category: string
+  tags: string[]
+  isPublished: boolean
+  viewCount: number
+  helpfulCount: number
+  notHelpfulCount: number
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface SupportTicket {
+  id: string
+  campaignId: string
+  userId: string
+  assignedTo: string | null
+  subject: string
+  category: TicketCategory
+  priority: TicketPriority
+  status: TicketStatus
+  aiConversation: SupportChatMessage[] | null
+  aiSuggestedCategory: string | null
+  aiSuggestedPriority: string | null
+  resolvedAt: string | null
+  closedAt: string | null
+  createdAt: string
+  updatedAt: string
+  // Joined fields
+  userName?: string
+  userEmail?: string
+  assignedName?: string
+  messageCount?: number
+  lastMessageAt?: string
+}
+
+export interface SupportTicketMessage {
+  id: string
+  ticketId: string
+  senderId: string
+  content: string
+  isInternalNote: boolean
+  aiSuggested: boolean
+  createdAt: string
+  // Joined
+  senderName?: string
+  senderRole?: MembershipRole
+}
+
+export interface SupportChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: string
+}
+
+export interface SupportTicketEvent {
+  id: string
+  ticketId: string
+  actorId: string
+  eventType: string
+  oldValue: string | null
+  newValue: string | null
+  createdAt: string
+  actorName?: string
 }

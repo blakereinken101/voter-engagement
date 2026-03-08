@@ -275,3 +275,31 @@ struct PersonEntryRequest: Encodable {
     let gender: String?
     let category: String
 }
+
+// MARK: - Push Notification Endpoints
+
+enum PushEndpoints {
+    static func registerDevice(token: String) -> APIEndpoint {
+        struct Body: Encodable {
+            let deviceToken: String
+            let platform: String
+        }
+        return APIEndpoint(
+            path: "/api/push/subscribe",
+            method: .post,
+            body: Body(deviceToken: token, platform: "ios")
+        )
+    }
+
+    static func unregisterDevice(token: String) -> APIEndpoint {
+        struct Body: Encodable {
+            let deviceToken: String
+            let platform: String
+        }
+        return APIEndpoint(
+            path: "/api/push/unsubscribe",
+            method: .post,
+            body: Body(deviceToken: token, platform: "ios")
+        )
+    }
+}

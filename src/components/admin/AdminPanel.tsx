@@ -15,7 +15,9 @@ import VanIntegration from './VanIntegration'
 import PdiIntegration from './PdiIntegration'
 import PetitionDashboard from './PetitionDashboard'
 import ChannelManagement from './ChannelManagement'
-import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Sparkles, Link2, FileSignature, MessageCircle } from 'lucide-react'
+import SendPushNotification from './SendPushNotification'
+import SupportDashboard from './SupportDashboard'
+import { BarChart3, Users, Contact, Activity, Trophy, Download, Trash2, UserPlus, Sparkles, Link2, FileSignature, MessageCircle, Bell, LifeBuoy } from 'lucide-react'
 import clsx from 'clsx'
 
 const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
@@ -31,6 +33,8 @@ const TABS: { id: AdminTab; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'integrations', label: 'Integrations', Icon: Link2 },
   { id: 'petitions', label: 'Petitions', Icon: FileSignature },
   { id: 'channels', label: 'Channels', Icon: MessageCircle },
+  { id: 'push', label: 'Push', Icon: Bell },
+  { id: 'support', label: 'Support', Icon: LifeBuoy },
 ]
 
 export default function AdminPanel() {
@@ -103,6 +107,8 @@ export default function AdminPanel() {
         )}
         {activeTab === 'petitions' && <PetitionDashboard />}
         {activeTab === 'channels' && <ChannelManagement />}
+        {activeTab === 'push' && <SendPushNotification />}
+        {activeTab === 'support' && <SupportDashboard />}
       </div>
     </div>
   )

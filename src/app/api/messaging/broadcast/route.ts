@@ -99,6 +99,18 @@ export async function POST(request: Request) {
 
     notifyNewMessage(broadcastChannelId, message)
 
+    // Also send push notifications to offline users
+    try {
+      const { sendPushToCampaign } = await import('@/lib/push')
+      await sendPushToCampaign(ctx.campaignId, {
+        title: 'Campaign Announcement',
+        body: content.trim().substring(0, 200),
+        url: `/messaging/${broadcastChannelId}`,
+      })
+    } catch (pushErr) {
+      console.error('[broadcast] Push notification failed (non-fatal):', pushErr)
+    }
+
     return NextResponse.json({ message, broadcastChannelId }, { status: 201 })
   } catch (err) {
     const { error, status } = handleAuthError(err)

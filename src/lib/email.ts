@@ -288,6 +288,86 @@ export async function sendInvitationEmail(data: InvitationEmailData): Promise<vo
   }
 }
 
+// ── Support Ticket Notifications ─────────────────────────────────
+
+export async function sendTicketCreatedNotification(
+  adminEmail: string,
+  ticketSubject: string,
+  requesterName: string,
+  category: string,
+  priority: string,
+  ticketId: string,
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[email/dev] Ticket notification for ${adminEmail}: ${ticketSubject}`)
+    return
+  }
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const appUrl = getAppUrl()
+
+  const priorityColor = priority === 'urgent' ? '#ef4444' : priority === 'high' ? '#f97316' : '#7c3aed'
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold Support <${FROM_EMAIL}>`,
+    to: adminEmail,
+    subject: `[${priority.toUpperCase()}] New support ticket: ${ticketSubject}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="color: #1a1a2e; margin: 0 0 16px;">New Support Ticket</h2>
+        <div style="background: #f5f5ff; border-left: 4px solid ${priorityColor}; border-radius: 4px; padding: 16px 20px; margin-bottom: 20px;">
+          <h3 style="color: #1a1a2e; margin: 0 0 8px; font-size: 16px;">${escapeHtml(ticketSubject)}</h3>
+          <p style="color: #666; font-size: 14px; margin: 0 0 4px;">From: <strong>${escapeHtml(requesterName)}</strong></p>
+          <p style="color: #666; font-size: 14px; margin: 0;">Category: ${escapeHtml(category)} &middot; Priority: <span style="color: ${priorityColor}; font-weight: 600;">${escapeHtml(priority)}</span></p>
+        </div>
+        <a href="${appUrl}/dashboard" style="display: inline-block; background: #7c3aed; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View in Dashboard</a>
+        <p style="color: #999; font-size: 12px; margin-top: 24px;">You're receiving this because you're an admin for this campaign on Threshold.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send ticket notification:', error)
+    // Don't throw — ticket was created successfully, email is a nice-to-have
+  }
+}
+
+export async function sendTicketReplyNotification(
+  userEmail: string,
+  userName: string,
+  ticketSubject: string,
+  agentName: string,
+  replyPreview: string,
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.log(`[email/dev] Ticket reply notification for ${userEmail}: ${ticketSubject}`)
+    return
+  }
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+  const appUrl = getAppUrl()
+  const firstName = userName.split(' ')[0]
+
+  const { error } = await getResend().emails.send({
+    from: `Threshold Support <${FROM_EMAIL}>`,
+    to: userEmail,
+    subject: `Re: ${ticketSubject}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 40px 20px;">
+        <p style="color: #666; margin: 0 0 16px; font-size: 15px;">Hi ${escapeHtml(firstName)},</p>
+        <p style="color: #333; margin: 0 0 16px; font-size: 15px;"><strong>${escapeHtml(agentName)}</strong> responded to your support request:</p>
+        <div style="background: #f9fafb; border-left: 4px solid #7c3aed; border-radius: 4px; padding: 16px 20px; margin-bottom: 20px;">
+          <p style="color: #1a1a2e; font-size: 14px; margin: 0; white-space: pre-wrap;">${escapeHtml(replyPreview.slice(0, 500))}</p>
+        </div>
+        <a href="${appUrl}/dashboard" style="display: inline-block; background: #7c3aed; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">View Full Response</a>
+        <p style="color: #999; font-size: 12px; margin-top: 24px;">You're receiving this because you submitted a support request on Threshold.</p>
+      </div>
+    `,
+  })
+
+  if (error) {
+    console.error('[email] Failed to send ticket reply notification:', error)
+  }
+}
+
 // ── Shared Helpers ───────────────────────────────────────────────
 
 function getAppUrl(): string {

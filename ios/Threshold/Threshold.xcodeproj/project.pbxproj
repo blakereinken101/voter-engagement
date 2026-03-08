@@ -68,6 +68,8 @@
 		B3C4D5E6F7A8B9C0D1E2F3A4 /* MessagingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3B4C5D6E7F8A9B0C1D2E3F4 /* MessagingViewModel.swift */; };
 		B4C5D6E7F8A9B0C1D2E3F4A5 /* ChannelListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4B5C6D7E8F9A0B1C2D3E4F5 /* ChannelListView.swift */; };
 		B5C6D7E8F9A0B1C2D3E4F5A6 /* MessageThreadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5B6C7D8E9F0A1B2C3D4E5F6 /* MessageThreadView.swift */; };
+		D7B8C9E0F1A2B3C4D5E6F7A8 /* QuickAddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A7B8D9E0F1A2B3C4D5E6F7 /* QuickAddView.swift */; };
+		F9D0E1A2B3C4D5E6F7A8B9C0 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C9D0F1A2B3C4D5E6F7A8B9 /* PushNotificationManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -134,6 +136,9 @@
 		A3B4C5D6E7F8A9B0C1D2E3F4 /* MessagingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingViewModel.swift; sourceTree = "<group>"; };
 		A4B5C6D7E8F9A0B1C2D3E4F5 /* ChannelListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelListView.swift; sourceTree = "<group>"; };
 		A5B6C7D8E9F0A1B2C3D4E5F6 /* MessageThreadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageThreadView.swift; sourceTree = "<group>"; };
+		C6A7B8D9E0F1A2B3C4D5E6F7 /* QuickAddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddView.swift; sourceTree = "<group>"; };
+		E8C9D0F1A2B3C4D5E6F7A8B9 /* PushNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotificationManager.swift; sourceTree = "<group>"; };
+		A0E1F2B3C4D5E6A7B8C9D0E1 /* Threshold.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Threshold.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -172,6 +177,7 @@
 				D1597AEEAF8C76D9DC0B9683 /* Assets.xcassets */,
 				23288BE40D4974CD32987415 /* Info.plist */,
 				BBAAAAAAAAAAAAAAAAAAAAAAA /* PrivacyInfo.xcprivacy */,
+				A0E1F2B3C4D5E6A7B8C9D0E1 /* Threshold.entitlements */,
 				A4E6084B7D9A577AA319C92F /* App */,
 				C8E617178BD8AFED5DB9CA24 /* Config */,
 				DAD6394C8F61C02743A50359 /* Extensions */,
@@ -191,6 +197,7 @@
 				116EFC0C6EC46FABBC99E92A /* ContactListView.swift */,
 				47664838C0399F4BCD6AF639 /* MatchConfirmationView.swift */,
 				AFE51D5A09C680551D7AE591 /* PhoneBookPickerView.swift */,
+				C6A7B8D9E0F1A2B3C4D5E6F7 /* QuickAddView.swift */,
 				F12854BFBE20C7E1F5FA9CBF /* WizardView.swift */,
 			);
 			path = Contacts;
@@ -201,6 +208,7 @@
 			children = (
 				6ABAC2E1C6057F555414331A /* Networking */,
 				8A502492694410875930786D /* PhoneBook */,
+				E8C9D0F1A2B3C4D5E6F7A8B9 /* PushNotificationManager.swift */,
 				92269587D0A7CB8C458715C4 /* Repositories */,
 			);
 			path = Services;
@@ -498,6 +506,8 @@
 				26A6EC9FF68A4F8BD9E1305D /* NearbyVoter.swift in Sources */,
 				24791A6D5E8A9F4AD2A78E13 /* PhoneBookPickerView.swift in Sources */,
 				6DB4BE23F57C6DB6191A64FA /* PhoneBookService.swift in Sources */,
+				F9D0E1A2B3C4D5E6F7A8B9C0 /* PushNotificationManager.swift in Sources */,
+				D7B8C9E0F1A2B3C4D5E6F7A8 /* QuickAddView.swift in Sources */,
 				A3258152DA0B31637926B47B /* RolodexCardView.swift in Sources */,
 				B7CB0B960A88638CE7B7BC8D /* RolodexView.swift in Sources */,
 				4977F4774421476425EDBD20 /* SSEClient.swift in Sources */,
@@ -529,6 +539,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Threshold/Threshold.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
@@ -548,6 +559,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Threshold/Threshold.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";

@@ -25,6 +25,7 @@
     "@types/node": "^25.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "apns2": "^12.2.0",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
@@ -51,6 +52,7 @@
     "stripe": "^20.3.1",
     "twilio": "^5.12.2",
     "typescript": "^5.9.3",
+    "web-push": "^3.6.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -60,6 +62,7 @@
     "@types/natural": "^5.1.5",
     "@types/papaparse": "^5.5.2",
     "@types/pg": "^8.16.0",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.24",
     "eslint": "^10.0.0",
     "postcss": "^8.5.6",

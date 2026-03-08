@@ -1,7 +1,9 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct ThresholdApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var authVM = AuthViewModel()
     @State private var contactsVM = ContactsViewModel()
     @State private var chatVM = ChatViewModel()
@@ -16,6 +18,51 @@ struct ThresholdApp: App {
                 .environment(messagingVM)
                 .preferredColorScheme(.dark)
         }
+    }
+}
+
+// MARK: - App Delegate (Push Notifications)
+
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        UNUserNotificationCenter.current().delegate = self
+        return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        PushNotificationManager.shared.handleDeviceToken(deviceToken)
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        PushNotificationManager.shared.handleRegistrationError(error)
+    }
+
+    // Show notifications even when the app is in the foreground
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .badge, .sound])
+    }
+
+    // Handle notification tap
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        // Future: handle deep linking based on notification payload
+        completionHandler()
     }
 }
 
@@ -43,6 +90,13 @@ struct RootView: View {
             await sessionCheck
             _ = try? await delay
             minimumTimeElapsed = true
+        }
+        .onChange(of: auth.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated {
+                Task {
+                    await PushNotificationManager.shared.requestPermissionAndRegister()
+                }
+            }
         }
     }
 }

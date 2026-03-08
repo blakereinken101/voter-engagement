@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { getPool } from '@/lib/db'
 import { getSessionFromRequest } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
@@ -8,26 +8,32 @@ export async function POST(request: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
     const body = await request.json()
-    const { endpoint } = body
+    const { endpoint, deviceToken, platform = 'web' } = body
 
-    if (!endpoint) {
-      return NextResponse.json({ error: 'endpoint is required' }, { status: 400 })
-    }
+    const pool = getPool()
 
-    const db = await getDb()
-
-    // Safely match by parsing stored JSON rather than using LIKE (prevents injection)
-    const { rows: existing } = await db.query(
-      `SELECT id, subscription FROM push_subscriptions WHERE user_id = $1`,
-      [session.userId]
-    )
-    for (const row of existing) {
-      try {
-        const sub = JSON.parse(row.subscription as string)
-        if (sub.endpoint === endpoint) {
-          await db.query(`DELETE FROM push_subscriptions WHERE id = $1`, [row.id])
-        }
-      } catch { /* skip malformed rows */ }
+    if (platform === 'ios' && deviceToken) {
+      // iOS: delete by device token
+      await pool.query(
+        `DELETE FROM push_subscriptions WHERE user_id = $1 AND platform = 'ios' AND device_token = $2`,
+        [session.userId, deviceToken]
+      )
+    } else if (endpoint) {
+      // Web: match by parsing stored subscription JSON
+      const { rows: existing } = await pool.query(
+        `SELECT id, subscription FROM push_subscriptions WHERE user_id = $1 AND platform = 'web'`,
+        [session.userId]
+      )
+      for (const row of existing) {
+        try {
+          const sub = JSON.parse(row.subscription as string)
+          if (sub.endpoint === endpoint) {
+            await pool.query(`DELETE FROM push_subscriptions WHERE id = $1`, [row.id])
+          }
+        } catch { /* skip malformed rows */ }
+      }
+    } else {
+      return NextResponse.json({ error: 'endpoint or deviceToken is required' }, { status: 400 })
     }
 
     return NextResponse.json({ success: true })

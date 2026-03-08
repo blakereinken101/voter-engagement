@@ -10,6 +10,7 @@ struct HomeView: View {
     @Environment(ContactsViewModel.self) private var contacts
     @Environment(ChatViewModel.self) private var chat
     @State private var showWizard = false
+    @State private var showQuickAdd = false
     @State private var showPhoneBookPicker = false
     @State private var showCampaignPicker = false
     @State private var showMatchAlert = false
@@ -131,6 +132,9 @@ struct HomeView: View {
             .fullScreenCover(isPresented: $showWizard) {
                 WizardView(isPresented: $showWizard)
             }
+            .sheet(isPresented: $showQuickAdd) {
+                QuickAddView(isPresented: $showQuickAdd)
+            }
             .confirmationDialog("Switch Campaign", isPresented: $showCampaignPicker, titleVisibility: .visible) {
                 ForEach(auth.memberships, id: \.campaignId) { membership in
                     Button(membership.campaignName ?? membership.campaignId) {
@@ -211,7 +215,33 @@ struct HomeView: View {
             }
 
             VStack(spacing: 12) {
-                // Manual Entry
+                // Quick Add
+                Button {
+                    showQuickAdd = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bolt.fill")
+                            .font(.title3)
+                            .frame(width: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Quick Add")
+                                .font(.subheadline.bold())
+                            Text("Add one person at a time")
+                                .font(.caption)
+                                .foregroundStyle(Color.vcSlate)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.vcSlate)
+                    }
+                    .padding(14)
+                    .background(Color.vcPurple.opacity(0.15))
+                    .foregroundStyle(Color.vcPurpleLight)
+                    .cornerRadius(10)
+                }
+
+                // Guided Wizard
                 Button {
                     showWizard = true
                 } label: {
@@ -220,9 +250,9 @@ struct HomeView: View {
                             .font(.title3)
                             .frame(width: 32)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Manual Entry")
+                            Text("Guided Wizard")
                                 .font(.subheadline.bold())
-                            Text("Type in names one by one")
+                            Text("Walk through all relationship categories")
                                 .font(.caption)
                                 .foregroundStyle(Color.vcSlate)
                         }
@@ -439,17 +469,32 @@ struct HomeView: View {
     private var quickActions: some View {
         VStack(spacing: 12) {
             Button {
-                showWizard = true
+                showQuickAdd = true
             } label: {
                 HStack {
-                    Image(systemName: "plus.circle")
-                    Text("Manual Entry")
+                    Image(systemName: "bolt.fill")
+                    Text("Quick Add")
                     Spacer()
                     Image(systemName: "chevron.right")
                 }
                 .padding(14)
                 .background(Color.vcPurple.opacity(0.15))
                 .foregroundStyle(Color.vcPurpleLight)
+                .cornerRadius(10)
+            }
+
+            Button {
+                showWizard = true
+            } label: {
+                HStack {
+                    Image(systemName: "person.badge.plus")
+                    Text("Guided Wizard")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                }
+                .padding(14)
+                .background(Color.vcPurple.opacity(0.1))
+                .foregroundStyle(Color.vcPurpleLight.opacity(0.7))
                 .cornerRadius(10)
             }
 
