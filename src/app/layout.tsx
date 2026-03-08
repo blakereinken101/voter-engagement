@@ -35,17 +35,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             strategy="afterInteractive"
           />
         )}
-        {/* Google tag (gtag.js) */}
+        {/* Google tag (gtag.js) — Ads + Analytics */}
         <Script
           async
-          src="https://www.googletagmanager.com/gtag/js?id=AW-18002223213"
+          src="https://www.googletagmanager.com/gtag/js?id=G-PDF28V18FB"
           strategy="afterInteractive"
         />
-        <Script id="google-ads-gtag" strategy="afterInteractive">
+        <Script id="google-gtag" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
+            gtag('config', 'G-PDF28V18FB');
             gtag('config', 'AW-18002223213');
           `}
         </Script>
