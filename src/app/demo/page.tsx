@@ -1,12 +1,28 @@
 'use client'
+import { useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, Video } from 'lucide-react'
 import Cal from '@calcom/embed-react'
+import { persistGclid, trackDemoBooking } from '@/lib/google-ads'
 
 const CAL_LINK = process.env.NEXT_PUBLIC_CAL_LINK || 'thresholdvote/demo'
 
 export default function DemoPage() {
+  useEffect(() => {
+    // Store gclid from Google Ads click
+    persistGclid()
+
+    // Listen for Cal.com booking completion — redirect to thank-you page
+    const handleMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'CAL:booking_successful') {
+        trackDemoBooking()
+        window.location.href = '/demo/thank-you'
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
   return (
     <main className="min-h-screen cosmic-bg constellation flex flex-col">
       {/* Header */}

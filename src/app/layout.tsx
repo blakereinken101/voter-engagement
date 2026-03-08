@@ -4,6 +4,7 @@ import './globals.css'
 import { AppProvider } from '@/context/AppContext'
 import { AuthProvider } from '@/context/AuthContext'
 import ScrollToTop from '@/components/ScrollToTop'
+import HelpWidgetWrapper from '@/components/support/HelpWidgetWrapper'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -34,12 +35,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             strategy="afterInteractive"
           />
         )}
+        {process.env.NEXT_PUBLIC_GOOGLE_ADS_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-ads-gtag" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}');
+              `}
+            </Script>
+          </>
+        )}
       </head>
       <body className="bg-vc-bg text-white overflow-x-hidden">
         <ScrollToTop />
         <AuthProvider>
           <AppProvider>
             {children}
+            <HelpWidgetWrapper />
           </AppProvider>
         </AuthProvider>
       </body>
