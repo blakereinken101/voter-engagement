@@ -4,6 +4,7 @@ import { Check, ArrowRight, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { getStoredGclid } from '@/lib/google-ads'
 import type { EventsPlan } from '@/types/events'
 import { PLAN_PRICES } from '@/types/events'
 
@@ -79,7 +80,7 @@ export default function PricingCard({ plan, isPopular }: Props) {
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, gclid: getStoredGclid() }),
       })
       const data = await res.json()
       if (data.url) {

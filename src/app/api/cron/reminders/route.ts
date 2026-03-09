@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { sendEventReminderToHost, sendEventReminderToGuest } from '@/lib/email'
-import { sendSms, formatEventReminderSms } from '@/lib/sms'
+import { sendSms, formatEventReminderSms, sleep } from '@/lib/sms'
+import { sendPushToUsers } from '@/lib/push'
 import { getEventsSubscription } from '@/lib/events'
 
 /**
@@ -13,7 +14,7 @@ import { getEventsSubscription } from '@/lib/events'
  * - 24 hours before event (23.5h–24.5h window)
  * - 6 hours before event (5.5h–6.5h window)
  *
- * Sends both email and SMS (for opted-in recipients with phone numbers).
+ * Sends email, SMS (throttled for 10DLC compliance), and push notifications.
  */
 export async function GET(request: NextRequest) {
   // Verify cron secret
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     let emailsSent = 0
     let smsSent = 0
+    let pushSent = 0
 
     // Define reminder windows
     const windows: { type: '24h' | '6h'; minHours: number; maxHours: number }[] = [
@@ -194,7 +196,7 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Send SMS with deduplication
+        // Send SMS with deduplication and throttling (1.1s between sends for 10DLC compliance)
         const smsBody = formatEventReminderSms(
           event.title,
           event.start_time,
@@ -203,7 +205,11 @@ export async function GET(request: NextRequest) {
           event.slug
         )
 
+        let smsIndex = 0
+        let smsRateLimited = false
         for (const recipient of smsRecipients) {
+          if (smsRateLimited) break
+
           const logId = crypto.randomUUID()
           const { rowCount } = await db.query(
             `INSERT INTO event_reminder_log (id, event_id, reminder_type, recipient_email, channel)
@@ -214,18 +220,89 @@ export async function GET(request: NextRequest) {
 
           if (rowCount === 0) continue
 
-          try {
-            const sent = await sendSms(recipient.phone, smsBody)
-            if (sent) smsSent++
-          } catch (err) {
-            console.error(`[cron/reminders] Failed to send ${window.type} SMS to ${recipient.phone}:`, err)
+          // Throttle: 1.1s delay between SMS sends
+          if (smsIndex > 0) {
+            await sleep(1100)
+          }
+          smsIndex++
+
+          const result = await sendSms(recipient.phone, smsBody)
+
+          if (result.success) {
+            smsSent++
+          } else if (result.errorCategory === 'rate_limited') {
+            // Delete log entry so cron retries in 15 min
             await db.query('DELETE FROM event_reminder_log WHERE id = $1', [logId])
+            console.warn(`[cron/reminders] SMS rate limited after ${smsSent} sends. Stopping SMS for this event.`)
+            smsRateLimited = true
+          } else if (result.errorCategory === 'permanent') {
+            // Keep log entry — never retry permanent failures (bad number, opt-out)
+            console.warn(`[cron/reminders] Permanent SMS failure for ${recipient.identifier}: code=${result.errorCode}`)
+          } else {
+            // Transient error: delete log so it retries next cycle
+            await db.query('DELETE FROM event_reminder_log WHERE id = $1', [logId])
+            console.error(`[cron/reminders] Transient SMS failure for ${recipient.identifier}, will retry`)
+          }
+        }
+
+        // ── Push notifications ────────────────────────────────────────
+        // Send push to all authenticated RSVP users (parallel to email/SMS)
+        const pushUserIds: string[] = []
+
+        const { rows: pushRsvpRows } = await db.query(`
+          SELECT DISTINCT r.user_id
+          FROM event_rsvps r
+          WHERE r.event_id = $1 AND r.status IN ('going', 'maybe') AND r.user_id IS NOT NULL
+        `, [event.id])
+        for (const row of pushRsvpRows) {
+          pushUserIds.push(row.user_id)
+        }
+
+        // Add host
+        if (event.created_by && !pushUserIds.includes(event.created_by)) {
+          pushUserIds.push(event.created_by)
+        }
+
+        // Deduplicate push via reminder log
+        const eligiblePushUserIds: string[] = []
+        for (const userId of pushUserIds) {
+          const logId = crypto.randomUUID()
+          const { rowCount } = await db.query(
+            `INSERT INTO event_reminder_log (id, event_id, reminder_type, recipient_email, channel)
+             VALUES ($1, $2, $3, $4, 'push')
+             ON CONFLICT DO NOTHING`,
+            [logId, event.id, window.type, userId]
+          )
+          if (rowCount && rowCount > 0) {
+            eligiblePushUserIds.push(userId)
+          }
+        }
+
+        if (eligiblePushUserIds.length > 0) {
+          try {
+            const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
+            const timeLabel = window.type === '24h' ? 'tomorrow' : 'in 6 hours'
+            const pushResult = await sendPushToUsers(eligiblePushUserIds, {
+              title: `Event Reminder: ${event.title}`,
+              body: `Starts ${timeLabel}!`,
+              url: `${appUrl}/events/${event.slug}`,
+            })
+            pushSent += pushResult.sent
+          } catch (err) {
+            console.error(`[cron/reminders] Push notification error (non-fatal):`, err)
+            // Delete push log entries so they can retry
+            for (const userId of eligiblePushUserIds) {
+              await db.query(
+                `DELETE FROM event_reminder_log WHERE event_id = $1 AND reminder_type = $2 AND recipient_email = $3 AND channel = 'push'`,
+                [event.id, window.type, userId]
+              ).catch(() => {})
+            }
           }
         }
       }
     }
 
-    return NextResponse.json({ success: true, emailsSent, smsSent })
+    return NextResponse.json({ success: true, emailsSent, smsSent, pushSent })
   } catch (error) {
     console.error('[cron/reminders] Error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

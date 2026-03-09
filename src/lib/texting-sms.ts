@@ -1,4 +1,4 @@
-import { sendSms } from '@/lib/sms'
+import { sendSms, sleep } from '@/lib/sms'
 import { getPool } from '@/lib/db'
 import { normalizeToE164, isOptOutMessage, interpolateScript, mapContactRow } from '@/lib/texting'
 import type { TextCampaignContact } from '@/types/texting'
@@ -57,7 +57,8 @@ export async function sendTextCampaignMessage(
   )
 
   // Send via Twilio
-  const sent = await sendSms(normalized, body)
+  const result = await sendSms(normalized, body)
+  const sent = result.success
 
   if (sent) {
     await pool.query(
@@ -114,7 +115,8 @@ export async function sendTextCampaignReply(
     [messageId, campaignId, contactId, senderId, body]
   )
 
-  const sent = await sendSms(normalized, body)
+  const result = await sendSms(normalized, body)
+  const sent = result.success
 
   await pool.query(
     `UPDATE text_messages SET status = $1 WHERE id = $2`,
@@ -225,13 +227,18 @@ export async function sendBlastMessages(
     [campaignId, batchSize]
   )
 
-  for (const row of contactRows) {
-    const contact = mapContactRow(row) as TextCampaignContact
+  for (let i = 0; i < contactRows.length; i++) {
+    const contact = mapContactRow(contactRows[i]) as TextCampaignContact
 
     // Rotate through scripts
     const scriptIndex = (sent + failed + skipped) % scriptRows.length
     const script = scriptRows[scriptIndex]
     const messageBody = interpolateScript(script.body, contact)
+
+    // Throttle: 1.1s delay between sends for 10DLC compliance
+    if (i > 0) {
+      await sleep(1100)
+    }
 
     try {
       const result = await sendTextCampaignMessage(

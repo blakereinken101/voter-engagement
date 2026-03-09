@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { plan } = body
+    const { plan, gclid } = body
 
     if (!plan || !STRIPE_PRICES[plan]) {
       return NextResponse.json({ error: 'Invalid plan. Available plans: grassroots, growth' }, { status: 400 })
@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${origin}/events/manage?subscription=success`,
       cancel_url: `${origin}/events/pricing`,
-      metadata: { organizationId: orgId, plan },
+      metadata: { organizationId: orgId, plan, ...(gclid && { gclid }) },
       subscription_data: {
-        metadata: { organizationId: orgId, plan },
+        metadata: { organizationId: orgId, plan, ...(gclid && { gclid }) },
       },
     })
 

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupportContext, requireSupportAdmin } from '@/lib/support-context'
 import { handleAuthError } from '@/lib/auth'
 import { listTickets, createTicket } from '@/lib/support-tickets'
+import { sendTicketCreatedNotification } from '@/lib/email'
+import { notifyTicketEvent } from '@/lib/support-realtime'
+import { getPool } from '@/lib/db'
 import { ADMIN_ROLES } from '@/types'
 import type { TicketCategory, TicketPriority, TicketStatus } from '@/types'
 
@@ -48,6 +51,33 @@ export async function POST(request: NextRequest) {
       priority: priority || 'normal',
       aiConversation: aiConversation || undefined,
     })
+
+    // Notify admins via SSE
+    notifyTicketEvent(ctx.campaignId, ctx.userId, ticket.assignedTo, {
+      type: 'ticket_created',
+      ticketId: ticket.id,
+      subject: ticket.subject,
+      category: ticket.category,
+      priority: ticket.priority,
+    }).catch(err => console.error('[tickets] SSE notify error:', err))
+
+    // Send email notification to campaign admins (fire-and-forget)
+    const pool = getPool()
+    pool.query(
+      `SELECT u.email FROM users u
+       JOIN memberships m ON m.user_id = u.id
+       WHERE m.campaign_id = $1 AND m.is_active = true
+         AND m.role IN ('campaign_admin', 'org_owner')
+       LIMIT 5`,
+      [ctx.campaignId],
+    ).then(({ rows }) => {
+      for (const row of rows) {
+        sendTicketCreatedNotification(
+          row.email, ticket.subject, ctx.userName,
+          ticket.category, ticket.priority, ticket.id,
+        ).catch(() => {})
+      }
+    }).catch(() => {})
 
     return NextResponse.json({ ticket }, { status: 201 })
   } catch (error) {

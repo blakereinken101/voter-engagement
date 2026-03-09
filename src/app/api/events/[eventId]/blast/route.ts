@@ -3,7 +3,8 @@ import { getDb } from '@/lib/db'
 import { getSessionFromRequest } from '@/lib/auth'
 import { canManageEvent, getEventsSubscription } from '@/lib/events'
 import { sendEventBlast } from '@/lib/email'
-import { sendSms, formatEventBlastSms } from '@/lib/sms'
+import { sendSms, formatEventBlastSms, sleep } from '@/lib/sms'
+import { sendPushToUsers } from '@/lib/push'
 
 const MAX_BLASTS_PER_EVENT = 3
 
@@ -238,16 +239,44 @@ export async function POST(
         }
       }
 
-      // Send SMS
+      // Send SMS with throttling (1.1s between sends for 10DLC compliance)
       const smsBody = formatEventBlastSms(hostName, event.title, message.trim(), event.slug)
+      let smsIndex = 0
       for (const recipient of smsRecipients) {
-        try {
-          const sent = await sendSms(recipient.phone, smsBody)
-          if (sent) smsSent++
-        } catch (err) {
-          console.error(`[blast] Failed to send SMS to ${recipient.phone}:`, err)
+        if (smsIndex > 0) {
+          await sleep(1100)
+        }
+        smsIndex++
+        const result = await sendSms(recipient.phone, smsBody)
+        if (result.success) {
+          smsSent++
+        } else if (result.errorCategory === 'rate_limited') {
+          console.warn(`[blast] SMS rate limited after ${smsSent} sends. Stopping.`)
+          break
         }
       }
+    }
+
+    // ── Push notifications (fire-and-forget for authenticated users) ──
+    try {
+      const { rows: pushUserRows } = await db.query(`
+        SELECT DISTINCT r.user_id
+        FROM event_rsvps r
+        WHERE r.event_id = $1 AND r.status IN ('going', 'maybe') AND r.user_id IS NOT NULL
+      `, [eventId])
+      if (pushUserRows.length > 0) {
+        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://thresholdvote.com'
+        await sendPushToUsers(
+          pushUserRows.map(r => r.user_id),
+          {
+            title: `${hostName} sent a message about ${event.title}`,
+            body: message.trim().substring(0, 200),
+            url: `${appUrl}/events/${event.slug}`,
+          }
+        )
+      }
+    } catch (pushErr) {
+      console.error('[blast] Push notification failed (non-fatal):', pushErr)
     }
 
     // Record the blast

@@ -25,21 +25,79 @@ function normalizePhone(phone: string): string {
   return `+${digits}`
 }
 
-export async function sendSms(to: string, body: string): Promise<boolean> {
+// ── Types ────────────────────────────────────────────────────────
+
+export type SmsErrorCategory = 'permanent' | 'transient' | 'rate_limited'
+
+export interface SmsResult {
+  success: boolean
+  errorCode?: number
+  errorCategory?: SmsErrorCategory
+  errorMessage?: string
+}
+
+// ── Error classification ─────────────────────────────────────────
+
+/** Errors that should never be retried (bad number, opt-out, etc.) */
+const PERMANENT_ERROR_CODES = new Set([
+  21610, // Attempt to send to unsubscribed recipient
+  21611, // Source number not owned
+  21612, // Source number not messaging capable
+  21614, // Invalid 'To' phone number
+  21211, // Invalid 'To' phone number (alternate)
+  30003, // Unreachable destination handset
+  30005, // Unknown destination handset
+  30006, // Landline or unreachable carrier
+])
+
+/** Errors caused by rate/volume limits — stop batch and retry later */
+const RATE_LIMIT_ERROR_CODES = new Set([
+  30034, // Message Service daily message limit reached
+  30035, // Message Service concurrent message limit reached
+  30022, // US A2P 10DLC throughput limit exceeded
+])
+
+function classifyTwilioError(err: any): SmsErrorCategory {
+  const code = err?.code || err?.status
+  if (PERMANENT_ERROR_CODES.has(code)) return 'permanent'
+  if (RATE_LIMIT_ERROR_CODES.has(code)) return 'rate_limited'
+  if (err?.status === 429) return 'rate_limited'
+  return 'transient'
+}
+
+// ── Utilities ────────────────────────────────────────────────────
+
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// ── Core SMS sending ─────────────────────────────────────────────
+
+export async function sendSms(to: string, body: string): Promise<SmsResult> {
   const client = getClient()
   const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
   if (!client || !messagingServiceSid) {
     console.warn('[sms] Twilio not configured, skipping SMS')
-    return false
+    return { success: false, errorCategory: 'permanent', errorMessage: 'Twilio not configured' }
   }
 
-  await client.messages.create({
-    to: normalizePhone(to),
-    messagingServiceSid,
-    body,
-  })
-  return true
+  try {
+    await client.messages.create({
+      to: normalizePhone(to),
+      messagingServiceSid,
+      body,
+    })
+    return { success: true }
+  } catch (err: any) {
+    const errorCategory = classifyTwilioError(err)
+    const errorCode = err?.code || err?.status
+    const errorMessage = err?.message || 'Unknown Twilio error'
+    console.error(`[sms] Failed to send to ${to}: code=${errorCode} category=${errorCategory} msg=${errorMessage}`)
+    return { success: false, errorCode, errorCategory, errorMessage }
+  }
 }
+
+// ── Message formatters ───────────────────────────────────────────
 
 export function formatEventReminderSms(
   eventTitle: string,

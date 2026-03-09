@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useSearchParams } from 'next/navigation'
 import EventManageTable from '@/components/events/EventManageTable'
+import { trackConversion, getStoredGclid } from '@/lib/google-ads'
 import type { Event } from '@/types/events'
 import { FREE_EVENT_LIMIT } from '@/types/events'
 import { Plus, Lock, Sparkles, ArrowRight, Image, Upload, ArrowLeft } from 'lucide-react'
@@ -25,6 +26,14 @@ function EventManageContent() {
 
   // Product access is enforced by middleware — no client-side redirect guard needed
 
+  // Fire Google Ads conversion when returning from successful Stripe checkout
+  useEffect(() => {
+    if (searchParams.get('subscription') === 'success') {
+      const label = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL
+      if (label) trackConversion(label)
+    }
+  }, [searchParams])
+
   // Auto-trigger Stripe checkout if redirected here after signup with a plan
   useEffect(() => {
     const checkoutPlan = searchParams.get('checkout')
@@ -37,7 +46,7 @@ function EventManageContent() {
     fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan: checkoutPlan }),
+      body: JSON.stringify({ plan: checkoutPlan, gclid: getStoredGclid() }),
     })
       .then(res => res.json())
       .then(data => {
