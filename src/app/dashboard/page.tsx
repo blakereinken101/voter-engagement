@@ -16,11 +16,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { DashboardView } from '@/types'
 import ScanSheetPanel from '@/components/ScanSheetPanel'
-import { Download, Shield, LogOut, Camera, Users, MessageCircle, ThumbsUp, Clock, Sparkles, Table, Calendar, ArrowLeft, ChevronsUpDown, Star } from 'lucide-react'
+import { Download, Shield, LogOut, Camera, Users, MessageCircle, ThumbsUp, Clock, Sparkles, Table, Calendar, ArrowLeft, ChevronsUpDown, Star, Zap } from 'lucide-react'
 import { isInTargetUniverse } from '@/lib/voter-segments'
 
 export default function DashboardPage() {
-  const { state } = useAppContext()
+  const { state, runMatchingForUnmatched } = useAppContext()
   const { user, signOut, isAdmin, activeMembership, memberships, switchCampaign, campaignConfig: authConfig, isLoading: authLoading, hasEventsAccess, hasMessagingAccess } = useAuth()
 
   // Product access is enforced by middleware — no client-side redirect guard needed
@@ -47,6 +47,10 @@ export default function DashboardPage() {
         i.contacted && i.matchResult.bestMatch && isInTargetUniverse(i.matchResult.bestMatch, targetUniverseCfg)
       ).length
     : 0
+
+  // Unmatched contacts for Run Match button
+  const matchedIds = new Set(state.matchResults.map(r => r.personEntry.id))
+  const unmatchedCount = state.personEntries.filter(p => !matchedIds.has(p.id)).length
 
   // Derive initials from user name
   const userInitials = user?.name
@@ -186,6 +190,29 @@ export default function DashboardPage() {
             >
               <Download className="w-4 h-4" />
               Export
+            </button>
+          )}
+
+          {unmatchedCount > 0 && (
+            <button
+              onClick={runMatchingForUnmatched}
+              disabled={state.isLoading}
+              className="text-sm md:text-base text-white/60 hover:text-white px-5 py-2.5 rounded-btn glass hover:border-white/20 font-bold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {state.isLoading ? (
+                <>
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  Matching...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  Run Match
+                  <span className="bg-vc-coral/80 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
+                    {unmatchedCount}
+                  </span>
+                </>
+              )}
             </button>
           )}
 
