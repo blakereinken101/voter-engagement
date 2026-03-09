@@ -198,8 +198,8 @@ export default function LandingPage() {
       </section>
 
       {/* Photo divider 2 */}
-      <div className="relative h-56 md:h-80 overflow-hidden">
-        <Image src="/hero-2.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" style={{ objectPosition: 'center 50%' }} />
+      <div className="relative h-48 md:h-64 overflow-hidden">
+        <Image src="/hero-2.jpg" alt="" width={1600} height={600} className="w-full h-full object-cover" />
       </div>
 
       {/* Comparison table */}
@@ -293,7 +293,7 @@ export default function LandingPage() {
 
       {/* Photo divider 3 */}
       <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-organizing.jpg" alt="" width={1200} height={900} className="w-full h-full object-cover" style={{ objectPosition: 'center 25%' }} />
+        <Image src="/hero-organizing.jpg" alt="" width={1600} height={600} className="w-full h-full object-cover" />
       </div>
 
       {/* Events Platform — brief mention */}
