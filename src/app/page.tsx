@@ -101,7 +101,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="text-white px-6 py-24 md:py-32 relative overflow-hidden">
+      <section className="text-white px-6 py-28 md:py-36 relative overflow-hidden">
         {/* Background orbs */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-20 -left-20 w-96 h-96 bg-vc-purple/20 rounded-full blur-3xl animate-float" />
@@ -135,7 +135,7 @@ export default function LandingPage() {
       {/* Core Features */}
       <section
         ref={featuresRef}
-        className={`px-6 py-20 max-w-5xl mx-auto text-center opacity-0 ${featuresInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 py-28 max-w-5xl mx-auto text-center opacity-0 ${featuresInView ? 'animate-slide-up' : ''}`}
       >
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-vc-teal/10 border border-vc-teal/20 text-vc-teal text-sm mb-4 mx-auto">
           <Sparkles className="w-4 h-4" />
@@ -144,10 +144,10 @@ export default function LandingPage() {
         <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 text-center tracking-tight">
           The AI campaign coach that actually knows your race
         </h2>
-        <p className="text-white/50 text-center max-w-2xl mx-auto mb-14">
+        <p className="text-white/50 text-center max-w-2xl mx-auto mb-16">
           Threshold isn&rsquo;t generic campaign software &mdash; it&rsquo;s an AI assistant trained on your specific race, your issues, and your strategy. Messy real-world input goes in, clean structured data comes out. If your volunteers can text, they can use Threshold.
         </p>
-        <div className="grid md:grid-cols-3 gap-6 text-left">
+        <div className="grid md:grid-cols-3 gap-7 text-left">
           {[
             {
               icon: Settings,
@@ -197,15 +197,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo divider 2 */}
-      <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-2.jpg" alt="" width={1600} height={600} className="w-full h-full object-cover" />
+      {/* Photo moment — community organizing */}
+      <div className="relative h-56 md:h-72 overflow-hidden">
+        <Image src="/hero-2.jpg" alt="Community members connecting at a local gathering" fill className="object-cover object-center opacity-85" sizes="100vw" />
+        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-[#0A0E1A] to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0E1A] to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0A0E1A] to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0A0E1A] to-transparent" />
       </div>
 
       {/* Comparison table */}
       <section
         ref={compareRef}
-        className={`px-6 py-20 opacity-0 ${compareInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 py-28 opacity-0 ${compareInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-3xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 text-center tracking-tight">
@@ -266,7 +270,7 @@ export default function LandingPage() {
       {/* Why relational organizing */}
       <section
         ref={whyRef}
-        className={`text-white px-6 py-20 opacity-0 ${whyInView ? 'animate-slide-up' : ''}`}
+        className={`text-white px-6 py-28 opacity-0 ${whyInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-3xl mx-auto">
           <h2 className="font-display text-3xl md:text-4xl font-extrabold mb-4 text-center tracking-tight">
@@ -275,14 +279,14 @@ export default function LandingPage() {
           <p className="text-white/50 text-center max-w-xl mx-auto mb-10">
             Voters are far more likely to engage when asked by someone they know. Threshold gives every volunteer the tools and AI coaching to make that ask count.
           </p>
-          <div className="grid md:grid-cols-2 gap-5 text-left">
+          <div className="grid md:grid-cols-2 gap-6 text-left">
             {[
               'A personal ask from someone you trust is 10x more effective than a mailer or digital ad \u2014 and AI helps your volunteers make that ask confidently.',
               'Most people who skip elections aren\u2019t opposed to voting \u2014 they just need a nudge from someone they know. Your volunteers are that person.',
               'Your volunteers already have the relationships. Threshold\u2019s AI gives them voter file data, tailored talking points, and step-by-step coaching to make every contact count.',
               'Relational organizing scales with your people, not your ad spend. Every volunteer who joins multiplies your reach \u2014 and the AI makes each of them more effective.',
             ].map((text, i) => (
-              <div key={i} className="flex gap-4 items-start glass-dark rounded-card p-5">
+              <div key={i} className="flex gap-4 items-start glass-dark rounded-card p-6">
                 <CheckCircle className="w-5 h-5 text-vc-teal flex-shrink-0 mt-0.5" />
                 <p className="text-white/80 leading-relaxed">{text}</p>
               </div>
@@ -291,15 +295,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo divider 3 */}
-      <div className="relative h-48 md:h-64 overflow-hidden">
-        <Image src="/hero-organizing.jpg" alt="" width={1600} height={600} className="w-full h-full object-cover" />
+      {/* Photo moment — two scenes from the ground */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-[#0A0E1A] to-transparent z-10" />
+        <div className="flex flex-col md:flex-row gap-0.5">
+          <div className="relative h-52 md:h-64 md:flex-1 overflow-hidden">
+            <Image src="/hero-organizing.jpg" alt="Volunteers organizing in a neighborhood" fill className="object-cover object-center opacity-65" sizes="(min-width: 768px) 50vw, 100vw" />
+          </div>
+          <div className="relative h-52 md:h-64 md:flex-1 overflow-hidden">
+            <Image src="/hero-3.jpg" alt="Campaign meet-and-greet packed with supporters" fill className="object-cover object-top opacity-65" sizes="(min-width: 768px) 50vw, 100vw" />
+          </div>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0E1A] to-transparent z-10" />
       </div>
 
       {/* Events Platform — brief mention */}
       <section
         ref={eventsRef}
-        className={`px-6 py-10 opacity-0 ${eventsInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 py-16 opacity-0 ${eventsInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-white/40 text-sm leading-relaxed mb-3">
@@ -320,11 +333,11 @@ export default function LandingPage() {
       <section
         id="contact"
         ref={contactRef}
-        className={`px-6 pt-10 pb-20 opacity-0 ${contactInView ? 'animate-slide-up' : ''}`}
+        className={`px-6 pt-16 pb-28 opacity-0 ${contactInView ? 'animate-slide-up' : ''}`}
       >
         <div className="max-w-2xl mx-auto">
           {/* Demo CTA */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-14">
             <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
               Ready to see it in action?
             </h2>
@@ -431,7 +444,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="text-center py-6 border-t border-white/5 mt-auto">
+      <footer className="text-center py-8 border-t border-white/5 mt-auto">
         <Link href="/about" className="text-white/40 text-sm font-medium hover:text-white/60 transition-colors">
           About Threshold
         </Link>

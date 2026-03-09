@@ -30,24 +30,51 @@ body {
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 40% 10%, rgba(255,255,255,0.5) 0%, transparent 100%),
-    radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.25) 0%, transparent 100%),
-    radial-gradient(1px 1px at 70% 25%, rgba(255,255,255,0.35) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 85% 55%, rgba(255,255,255,0.4) 0%, transparent 100%),
-    radial-gradient(1px 1px at 15% 70%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 35% 85%, rgba(255,255,255,0.2) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 50% 60%, rgba(255,255,255,0.35) 0%, transparent 100%),
-    radial-gradient(1px 1px at 65% 75%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(1px 1px at 80% 90%, rgba(255,255,255,0.25) 0%, transparent 100%),
-    radial-gradient(1.5px 1.5px at 90% 10%, rgba(255,255,255,0.45) 0%, transparent 100%),
-    radial-gradient(1px 1px at 5% 50%, rgba(255,255,255,0.2) 0%, transparent 100%),
-    radial-gradient(1px 1px at 95% 40%, rgba(255,255,255,0.3) 0%, transparent 100%),
-    radial-gradient(2px 2px at 75% 65%, rgba(108, 60, 225, 0.6) 0%, transparent 100%),
-    radial-gradient(2px 2px at 20% 80%, rgba(20, 184, 166, 0.5) 0%, transparent 100%);
+    radial-gradient(1.5px 1.5px at 10% 15%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(2px 2px at 40% 10%, rgba(255,255,255,0.65) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 70% 25%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(2px 2px at 85% 55%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 15% 70%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px 1px at 35% 85%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 50% 60%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 65% 75%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(2px 2px at 90% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 5% 50%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 95% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    /* Additional stars for density */
+    radial-gradient(2px 2px at 18% 8%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(1px 1px at 32% 22%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 48% 30%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 62% 5%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1px 1px at 77% 38%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 8% 28%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(2px 2px at 92% 68%, rgba(255,255,255,0.65) 0%, transparent 100%),
+    radial-gradient(1px 1px at 43% 72%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1px 1px at 58% 88%, rgba(255,255,255,0.4) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 28% 55%, rgba(255,255,255,0.5) 0%, transparent 100%),
+    /* Colored accent stars */
+    radial-gradient(2px 2px at 75% 65%, rgba(108, 60, 225, 0.7) 0%, transparent 100%),
+    radial-gradient(2px 2px at 20% 80%, rgba(20, 184, 166, 0.6) 0%, transparent 100%),
+    radial-gradient(2px 2px at 45% 18%, rgba(139, 92, 246, 0.5) 0%, transparent 100%);
   pointer-events: none;
   z-index: -1;
+}
+.constellation::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 33% 12%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 67% 48%, rgba(255,255,255,0.75) 0%, transparent 100%),
+    radial-gradient(2px 2px at 88% 22%, rgba(255,255,255,0.8) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 12% 60%, rgba(255,255,255,0.7) 0%, transparent 100%),
+    radial-gradient(2px 2px at 52% 82%, rgba(255,255,255,0.75) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: -1;
+  animation: twinkle 5s ease-in-out infinite;
 }
 
 /* ─── Glass utilities ─────────────────────────────── */
