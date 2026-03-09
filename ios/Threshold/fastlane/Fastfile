@@ -23,7 +23,8 @@ platform :ios do
 
     match(
       type: "appstore",
-      readonly: true,
+      readonly: false,
+      force: true,
       api_key: lane_context[SharedValues::APP_STORE_CONNECT_API_KEY]
     )
   end
