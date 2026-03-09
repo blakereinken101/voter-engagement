@@ -197,13 +197,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo moment — community organizing */}
-      <div className="relative h-56 md:h-72 overflow-hidden">
-        <Image src="/hero-2.jpg" alt="Community members connecting at a local gathering" fill className="object-cover object-center opacity-85" sizes="100vw" />
-        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-[#0A0E1A] to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0E1A] to-transparent" />
-        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0A0E1A] to-transparent" />
-        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0A0E1A] to-transparent" />
+      {/* Photo moment — community organizing + indoor event */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-[#0A0E1A] to-transparent z-10" />
+        <div className="flex flex-col md:flex-row gap-0.5">
+          <div className="relative h-52 md:h-64 md:flex-1 overflow-hidden">
+            <Image src="/hero-2.jpg" alt="Community members connecting at a local gathering" fill className="object-cover object-center opacity-85" sizes="(min-width: 768px) 50vw, 100vw" />
+          </div>
+          <div className="relative h-52 md:h-64 md:flex-1 overflow-hidden">
+            <Image src="/hero-3.jpg" alt="Campaign meet-and-greet packed with supporters" fill className="object-cover object-top opacity-85" sizes="(min-width: 768px) 50vw, 100vw" />
+          </div>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0E1A] to-transparent z-10" />
       </div>
 
       {/* Comparison table */}
@@ -295,18 +300,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Photo moment — two scenes from the ground */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-[#0A0E1A] to-transparent z-10" />
-        <div className="flex flex-col md:flex-row gap-0.5">
-          <div className="relative h-52 md:h-64 md:flex-1 overflow-hidden">
-            <Image src="/hero-organizing.jpg" alt="Volunteers organizing in a neighborhood" fill className="object-cover object-center opacity-65" sizes="(min-width: 768px) 50vw, 100vw" />
-          </div>
-          <div className="relative h-52 md:h-64 md:flex-1 overflow-hidden">
-            <Image src="/hero-3.jpg" alt="Campaign meet-and-greet packed with supporters" fill className="object-cover object-top opacity-65" sizes="(min-width: 768px) 50vw, 100vw" />
-          </div>
-        </div>
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0E1A] to-transparent z-10" />
+      {/* Photo moment — neighborhood organizing */}
+      <div className="relative h-56 md:h-72 overflow-hidden">
+        <Image src="/hero-organizing.jpg" alt="Volunteers organizing in a neighborhood" fill className="object-cover object-center opacity-85" sizes="100vw" />
+        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-[#0A0E1A] to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0A0E1A] to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0A0E1A] to-transparent" />
+        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0A0E1A] to-transparent" />
       </div>
 
       {/* Events Platform — brief mention */}
