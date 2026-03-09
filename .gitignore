@@ -1,3 +1,6 @@
+# APNs keys
+*.p8
+
 # dependencies
 node_modules/
 .pnp

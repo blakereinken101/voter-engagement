@@ -15,11 +15,24 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://thresholdvote.com'),
   title: 'Threshold — Your Network Is Your Most Powerful Vote',
   description: 'Build your list. Find your people. Start conversations that move them to the polls.',
   icons: {
     icon: '/favicon.png',
     apple: '/apple-touch-icon.png',
+  },
+  openGraph: {
+    title: 'Threshold — Your Network Is Your Most Powerful Vote',
+    description: 'AI-powered relational organizing. Build your list, match to the voter file, and start conversations that move people to the polls.',
+    url: 'https://thresholdvote.com',
+    siteName: 'Threshold',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Threshold — Your Network Is Your Most Powerful Vote',
+    description: 'AI-powered relational organizing. Build your list, match to the voter file, and start conversations that move people to the polls.',
   },
 }
 

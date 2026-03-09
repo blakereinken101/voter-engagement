@@ -37,20 +37,28 @@ let apnsClient: any = null
 
 async function getApnsClient() {
   if (apnsClient) return apnsClient
+  const keyBase64 = process.env.APNS_KEY_BASE64
   const keyPath = process.env.APNS_KEY_PATH
   const keyId = process.env.APNS_KEY_ID
   const teamId = process.env.APNS_TEAM_ID
-  if (!keyPath || !keyId || !teamId) return null
-  if (!fs.existsSync(keyPath)) {
-    console.warn('[push] APNs key file not found:', keyPath)
+  if ((!keyBase64 && !keyPath) || !keyId || !teamId) return null
+
+  let signingKey: Buffer
+  if (keyBase64) {
+    signingKey = Buffer.from(keyBase64, 'base64')
+  } else if (keyPath && fs.existsSync(keyPath)) {
+    signingKey = fs.readFileSync(keyPath)
+  } else {
+    console.warn('[push] APNs key not found (no APNS_KEY_BASE64 or valid APNS_KEY_PATH)')
     return null
   }
+
   try {
     const { ApnsClient } = await import('apns2')
     apnsClient = new ApnsClient({
       team: teamId,
       keyId,
-      signingKey: fs.readFileSync(keyPath),
+      signingKey,
       defaultTopic: process.env.APNS_TOPIC || 'com.thresholdvote.app',
       host: process.env.NODE_ENV === 'production'
         ? 'api.push.apple.com'
