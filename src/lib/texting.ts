@@ -225,7 +225,7 @@ export function mapMessageRow(row: any): TextMessage {
     direction: row.direction,
     body: row.body,
     status: row.status,
-    twilioSid: row.twilio_sid,
+    providerSid: row.provider_sid,
     createdAt: row.created_at?.toISOString?.() || row.created_at,
   }
 }

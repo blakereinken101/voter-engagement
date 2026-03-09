@@ -75,7 +75,7 @@ export interface TextMessage {
   direction: MessageDirection
   body: string
   status: MessageStatus
-  twilioSid: string | null
+  providerSid: string | null
   createdAt: string
 }
 

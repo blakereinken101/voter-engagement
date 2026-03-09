@@ -1,13 +1,12 @@
-import twilio from 'twilio'
+import { Telnyx } from 'telnyx'
 
-let _client: ReturnType<typeof twilio> | null = null
+let _client: InstanceType<typeof Telnyx> | null = null
 
 function getClient() {
   if (!_client) {
-    const sid = process.env.TWILIO_ACCOUNT_SID
-    const token = process.env.TWILIO_AUTH_TOKEN
-    if (!sid || !token) return null
-    _client = twilio(sid, token)
+    const apiKey = process.env.TELNYX_API_KEY
+    if (!apiKey) return null
+    _client = new Telnyx({ apiKey })
   }
   return _client
 }
@@ -38,29 +37,36 @@ export interface SmsResult {
 
 // ── Error classification ─────────────────────────────────────────
 
+/**
+ * Telnyx error codes — mapped to the same categories as the old Twilio codes.
+ * See https://developers.telnyx.com/docs/messaging/troubleshooting
+ */
+
 /** Errors that should never be retried (bad number, opt-out, etc.) */
 const PERMANENT_ERROR_CODES = new Set([
-  21610, // Attempt to send to unsubscribed recipient
-  21611, // Source number not owned
-  21612, // Source number not messaging capable
-  21614, // Invalid 'To' phone number
-  21211, // Invalid 'To' phone number (alternate)
-  30003, // Unreachable destination handset
-  30005, // Unknown destination handset
-  30006, // Landline or unreachable carrier
+  40300, // Message blocked (spam/opt-out filtering)
+  40310, // Destination number invalid
+  40311, // Destination number not in service
+  40312, // Destination unreachable (landline)
+  40400, // Number not provisioned to messaging profile
+  40401, // Not capable of SMS
 ])
 
 /** Errors caused by rate/volume limits — stop batch and retry later */
 const RATE_LIMIT_ERROR_CODES = new Set([
-  30034, // Message Service daily message limit reached
-  30035, // Message Service concurrent message limit reached
-  30022, // US A2P 10DLC throughput limit exceeded
+  40003, // Rate limit exceeded
+  42900, // Too many requests
+  40350, // 10DLC throughput limit exceeded
 ])
 
-function classifyTwilioError(err: any): SmsErrorCategory {
-  const code = err?.code || err?.status
-  if (PERMANENT_ERROR_CODES.has(code)) return 'permanent'
-  if (RATE_LIMIT_ERROR_CODES.has(code)) return 'rate_limited'
+function classifyProviderError(err: any): SmsErrorCategory {
+  // Check structured API error codes from the response body
+  const bodyCode = err?.error?.errors?.[0]?.code
+  if (typeof bodyCode === 'number') {
+    if (PERMANENT_ERROR_CODES.has(bodyCode)) return 'permanent'
+    if (RATE_LIMIT_ERROR_CODES.has(bodyCode)) return 'rate_limited'
+  }
+  // Check HTTP status
   if (err?.status === 429) return 'rate_limited'
   return 'transient'
 }
@@ -75,23 +81,24 @@ export function sleep(ms: number): Promise<void> {
 
 export async function sendSms(to: string, body: string): Promise<SmsResult> {
   const client = getClient()
-  const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID
-  if (!client || !messagingServiceSid) {
-    console.warn('[sms] Twilio not configured, skipping SMS')
-    return { success: false, errorCategory: 'permanent', errorMessage: 'Twilio not configured' }
+  const messagingProfileId = process.env.TELNYX_MESSAGING_PROFILE_ID
+  if (!client || !messagingProfileId) {
+    console.warn('[sms] Telnyx not configured, skipping SMS')
+    return { success: false, errorCategory: 'permanent', errorMessage: 'Telnyx not configured' }
   }
 
   try {
-    await client.messages.create({
+    await client.messages.send({
       to: normalizePhone(to),
-      messagingServiceSid,
-      body,
+      messaging_profile_id: messagingProfileId,
+      text: body,
+      type: 'SMS',
     })
     return { success: true }
   } catch (err: any) {
-    const errorCategory = classifyTwilioError(err)
-    const errorCode = err?.code || err?.status
-    const errorMessage = err?.message || 'Unknown Twilio error'
+    const errorCategory = classifyProviderError(err)
+    const errorCode = err?.error?.errors?.[0]?.code || err?.status
+    const errorMessage = err?.error?.errors?.[0]?.detail || err?.message || 'Unknown Telnyx error'
     console.error(`[sms] Failed to send to ${to}: code=${errorCode} category=${errorCategory} msg=${errorMessage}`)
     return { success: false, errorCode, errorCategory, errorMessage }
   }

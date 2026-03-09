@@ -56,7 +56,7 @@ export async function sendTextCampaignMessage(
     [messageId, campaignId, contactId, senderId, body]
   )
 
-  // Send via Twilio
+  // Send via SMS provider
   const result = await sendSms(normalized, body)
   const sent = result.success
 
@@ -127,12 +127,12 @@ export async function sendTextCampaignReply(
 }
 
 /**
- * Handle an inbound SMS message from Twilio webhook.
+ * Handle an inbound SMS message from provider webhook.
  */
 export async function handleInboundMessage(
   fromPhone: string,
   body: string,
-  twilioSid: string,
+  providerSid: string,
 ): Promise<{ handled: boolean; optedOut?: boolean }> {
   const pool = getPool()
 
@@ -172,18 +172,18 @@ export async function handleInboundMessage(
     )
     // Record the inbound message
     await pool.query(
-      `INSERT INTO text_messages (id, text_campaign_id, contact_id, direction, body, status, twilio_sid)
+      `INSERT INTO text_messages (id, text_campaign_id, contact_id, direction, body, status, provider_sid)
        VALUES ($1, $2, $3, 'inbound', $4, 'received', $5)`,
-      [crypto.randomUUID(), campaignId, contactId, body, twilioSid]
+      [crypto.randomUUID(), campaignId, contactId, body, providerSid]
     )
     return { handled: true, optedOut: true }
   }
 
   // Record inbound message
   await pool.query(
-    `INSERT INTO text_messages (id, text_campaign_id, contact_id, direction, body, status, twilio_sid)
+    `INSERT INTO text_messages (id, text_campaign_id, contact_id, direction, body, status, provider_sid)
      VALUES ($1, $2, $3, 'inbound', $4, 'received', $5)`,
-    [crypto.randomUUID(), campaignId, contactId, body, twilioSid]
+    [crypto.randomUUID(), campaignId, contactId, body, providerSid]
   )
 
   // Update contact status to 'replied'

@@ -50,7 +50,7 @@
     "sharp": "^0.34.5",
     "stream-json": "^1.9.1",
     "stripe": "^20.3.1",
-    "twilio": "^5.12.2",
+    "telnyx": "^6.6.0",
     "typescript": "^5.9.3",
     "web-push": "^3.6.7",
     "xlsx": "^0.18.5"
