@@ -293,43 +293,6 @@ struct HomeView: View {
                     .cornerRadius(10)
                 }
 
-                // Match to Voter File
-                Button {
-                    Task {
-                        await contacts.runMatching(state: auth.campaignConfig?.state ?? "")
-                        showMatchAlert = true
-                    }
-                } label: {
-                    HStack(spacing: 12) {
-                        if contacts.isLoading {
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                                .tint(Color.vcGold)
-                                .frame(width: 32)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.title3)
-                                .frame(width: 32)
-                        }
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Match to Voter File")
-                                .font(.subheadline.bold())
-                            Text("Match your people to the voter file")
-                                .font(.caption)
-                                .foregroundStyle(Color.vcSlate)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(Color.vcSlate)
-                    }
-                    .padding(14)
-                    .background(Color.vcGold.opacity(0.15))
-                    .foregroundStyle(Color.vcGold)
-                    .cornerRadius(10)
-                }
-                .disabled(contacts.isLoading)
-
                 // AI Coach
                 Button {
                     selectedTab = 2

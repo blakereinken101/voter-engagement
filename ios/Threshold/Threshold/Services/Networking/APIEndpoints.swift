@@ -154,6 +154,7 @@ struct AdminContactInput: Encodable {
     let category: String
     let contactOutcome: String?
     let volunteerInterest: String?
+    let surveyResponses: [String: String]?
 }
 
 // MARK: - Messaging Endpoints

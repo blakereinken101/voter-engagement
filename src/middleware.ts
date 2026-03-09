@@ -41,17 +41,24 @@ const PLATFORM_ROUTES = ['/platform']
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Protected event routes must NOT be treated as public even though /events is public
+  const isProtectedEventsPath =
+    EVENTS_PROTECTED_ROUTES.some(r => pathname.startsWith(r)) ||
+    /^\/events\/[^/]+\/edit$/.test(pathname)
+
   // Allow public paths
   if (
-    pathname === '/' ||
-    pathname === '/about' ||
-    pathname === '/demo' ||
-    pathname === '/privacy' ||
-    pathname === '/terms' ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname.startsWith('/api/contact') ||
-    PUBLIC_PATHS.some(p => pathname.startsWith(p))
+    !isProtectedEventsPath && (
+      pathname === '/' ||
+      pathname === '/about' ||
+      pathname === '/demo' ||
+      pathname === '/privacy' ||
+      pathname === '/terms' ||
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/favicon') ||
+      pathname.startsWith('/api/contact') ||
+      PUBLIC_PATHS.some(p => pathname.startsWith(p))
+    )
   ) {
     return NextResponse.next()
   }

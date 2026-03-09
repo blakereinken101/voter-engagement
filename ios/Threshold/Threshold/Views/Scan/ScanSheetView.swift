@@ -14,6 +14,7 @@ struct ScanSheetView: View {
     @State private var error: String?
     @State private var showReview = false
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var scannedVolunteerName: String?
 
     var body: some View {
         NavigationStack {
@@ -24,6 +25,7 @@ struct ScanSheetView: View {
                     ScanReviewView(
                         contacts: $scannedContacts,
                         isAdmin: auth.isAdmin,
+                        scannedVolunteerName: scannedVolunteerName,
                         onImport: importContacts,
                         onAdminImport: adminImportContacts,
                         onDismiss: { showReview = false }
@@ -162,6 +164,7 @@ struct ScanSheetView: View {
             )
 
             let response: ScanSheetResponse = try await APIClient.shared.request(endpoint)
+            scannedVolunteerName = response.volunteerName
             let validOutcomes = Set(ContactOutcome.allCases.map(\.rawValue))
             let validVolunteer = Set(VolunteerInterest.allCases.map(\.rawValue))
             scannedContacts = response.contacts.enumerated().map { idx, c in
@@ -227,7 +230,8 @@ struct ScanSheetView: View {
                 zip: c.zip?.trimmingCharacters(in: .whitespaces),
                 category: c.category,
                 contactOutcome: c.contactOutcome,
-                volunteerInterest: c.volunteerInterest
+                volunteerInterest: c.volunteerInterest,
+                surveyResponses: c.surveyResponses
             )
         }
 
@@ -260,6 +264,7 @@ struct ScanSurveyQuestion: Encodable {
 }
 
 struct ScanSheetResponse: Codable {
+    let volunteerName: String?
     let contacts: [ScannedContactResponse]
 }
 
@@ -298,6 +303,7 @@ struct ScannedContact: Identifiable {
 struct ScanReviewView: View {
     @Binding var contacts: [ScannedContact]
     let isAdmin: Bool
+    let scannedVolunteerName: String?
     let onImport: () async -> Void
     let onAdminImport: (String) async -> Void
     let onDismiss: () -> Void
@@ -388,7 +394,8 @@ struct ScanReviewView: View {
                                     .foregroundStyle(contact.included ? Color.vcTeal : Color.vcSlate)
                             }
 
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                // Row 1: Name
                                 HStack(spacing: 6) {
                                     TextField("First", text: $contact.firstName)
                                         .font(.subheadline.weight(.medium))
@@ -406,10 +413,46 @@ struct ScanReviewView: View {
                                         .cornerRadius(6)
                                 }
 
-                                if let phone = contact.phone, !phone.isEmpty {
-                                    Text(phone)
-                                        .font(.caption)
-                                        .foregroundStyle(Color.vcSlate)
+                                // Row 2: Phone & Zip
+                                HStack(spacing: 6) {
+                                    TextField("Phone", text: Binding(
+                                        get: { contact.phone ?? "" },
+                                        set: { contact.phone = $0.isEmpty ? nil : $0 }
+                                    ))
+                                    .font(.caption)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color.white.opacity(0.05)).cornerRadius(6)
+
+                                    TextField("Zip", text: Binding(
+                                        get: { contact.zip ?? "" },
+                                        set: { contact.zip = $0.isEmpty ? nil : $0 }
+                                    ))
+                                    .font(.caption)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color.white.opacity(0.05)).cornerRadius(6)
+                                }
+
+                                // Row 3: Address & City
+                                HStack(spacing: 6) {
+                                    TextField("Address", text: Binding(
+                                        get: { contact.address ?? "" },
+                                        set: { contact.address = $0.isEmpty ? nil : $0 }
+                                    ))
+                                    .font(.caption)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color.white.opacity(0.05)).cornerRadius(6)
+
+                                    TextField("City", text: Binding(
+                                        get: { contact.city ?? "" },
+                                        set: { contact.city = $0.isEmpty ? nil : $0 }
+                                    ))
+                                    .font(.caption)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color.white.opacity(0.05)).cornerRadius(6)
                                 }
                             }
 
@@ -589,6 +632,15 @@ struct ScanReviewView: View {
             do {
                 let response: VolunteersResponse = try await APIClient.shared.request(AdminEndpoints.volunteers)
                 volunteers = response.volunteers
+
+                // Auto-match scanned volunteer name to a volunteer in the list
+                if let scannedName = scannedVolunteerName?.lowercased().trimmingCharacters(in: .whitespaces),
+                   !scannedName.isEmpty {
+                    if let match = volunteers.first(where: { $0.name.lowercased().contains(scannedName) || scannedName.contains($0.name.lowercased()) }) {
+                        selectedVolunteerId = match.id
+                        assignedVolunteerName = match.name
+                    }
+                }
             } catch {
                 // Silently fail — admin can still import as themselves
             }
