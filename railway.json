@@ -7,7 +7,7 @@
   "deploy": {
     "startCommand": "/app/ensure-voter-data.sh",
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 60,
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
