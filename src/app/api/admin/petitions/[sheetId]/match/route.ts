@@ -5,7 +5,7 @@ import { matchPeopleToVoterDb, matchPeopleToVoterFile } from '@/lib/matching'
 import { getDatasetForCampaign } from '@/lib/voter-db'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
 import { getVoterFile, NoVoterDataError } from '@/lib/mock-data'
-import { recalcPetitionerStats } from '@/lib/petition-utils'
+import { recalcPetitionerStats, computeWeightedValidity } from '@/lib/petition-utils'
 import { aiRerankMatches, applyAiReranking } from '@/lib/ai-rerank'
 import { isAIEnabled } from '@/lib/ai-chat'
 import { getAISettings } from '@/lib/ai-settings'
@@ -125,7 +125,11 @@ export async function POST(
     // Update each signature with match results.
     // Uses per-row updates for reliability (batch unnest had null-handling issues).
     const client = await db.connect()
+
+    // Collect signature statuses for weighted validity calculation
+    const sigStatuses: { match_status: string; match_score: number | null; user_confirmed: boolean }[] = []
     let matchedCount = 0
+    let validityRate = 0
 
     try {
       await client.query('BEGIN')
@@ -159,13 +163,10 @@ export async function POST(
           matchStatus = 'matched'
           matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
           matchScore = score || null
-          matchedCount++
         } else if (score >= 0.40) {
           matchStatus = 'ambiguous'
           matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
           matchScore = score || null
-          // Count ambiguous as partial match for validity
-          matchedCount++
         } else {
           matchStatus = 'unmatched'
           // Still store best match data for "best guess" display
@@ -175,6 +176,8 @@ export async function POST(
           }
         }
 
+        sigStatuses.push({ match_status: matchStatus, match_score: matchScore, user_confirmed: false })
+
         await client.query(`
           UPDATE petition_signatures
           SET match_status = $1, match_data = $2, match_score = $3, candidates_data = $4
@@ -182,9 +185,10 @@ export async function POST(
         `, [matchStatus, matchData, matchScore, candidatesData, sigId])
       }
 
-      const validityRate = signatures.length > 0
-        ? Math.round((matchedCount / signatures.length) * 1000) / 10
-        : 0
+      // Weighted validity: confirmed decisions count as 1/0, unconfirmed use match score
+      const weighted = computeWeightedValidity(sigStatuses)
+      matchedCount = weighted.matchedCount
+      validityRate = weighted.validityRate
 
       await client.query(`
         UPDATE petition_sheets
@@ -215,14 +219,14 @@ export async function POST(
       sheetId,
       totalSignatures: signatures.length,
       matchedCount,
-      validityRate: signatures.length > 0 ? Math.round((matchedCount / signatures.length) * 1000) / 10 : 0,
+      validityRate,
     }, ctx.campaignId)
 
     return NextResponse.json({
       success: true,
       totalSignatures: signatures.length,
       matchedCount,
-      validityRate: signatures.length > 0 ? Math.round((matchedCount / signatures.length) * 1000) / 10 : 0,
+      validityRate,
     })
   } catch (error: unknown) {
     if (error instanceof NoVoterDataError) {

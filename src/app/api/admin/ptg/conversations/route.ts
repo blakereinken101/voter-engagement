@@ -99,8 +99,8 @@ export async function GET(request: NextRequest) {
       LEFT JOIN action_items ai ON ai.contact_id = c.id
       LEFT JOIN users vol ON vol.id = c.user_id
       LEFT JOIN memberships vol_m ON vol_m.user_id = c.user_id AND vol_m.campaign_id = c.campaign_id
-      LEFT JOIN users org_u ON org_u.id = vol_m.invited_by
-      LEFT JOIN memberships org_m ON org_m.user_id = vol_m.invited_by AND org_m.campaign_id = c.campaign_id
+      LEFT JOIN users org_u ON org_u.id = vol_m.organizer_id
+      LEFT JOIN memberships org_m ON org_m.user_id = vol_m.organizer_id AND org_m.campaign_id = c.campaign_id
       LEFT JOIN turfs t ON t.id = c.turf_id
       WHERE ${where}
     `
@@ -141,8 +141,8 @@ export async function GET(request: NextRequest) {
       LEFT JOIN action_items ai ON ai.contact_id = c.id
       LEFT JOIN users vol ON vol.id = c.user_id
       LEFT JOIN memberships vol_m ON vol_m.user_id = c.user_id AND vol_m.campaign_id = c.campaign_id
-      LEFT JOIN users org_u ON org_u.id = vol_m.invited_by
-      LEFT JOIN memberships org_m ON org_m.user_id = vol_m.invited_by AND org_m.campaign_id = c.campaign_id
+      LEFT JOIN users org_u ON org_u.id = vol_m.organizer_id
+      LEFT JOIN memberships org_m ON org_m.user_id = vol_m.organizer_id AND org_m.campaign_id = c.campaign_id
       LEFT JOIN turfs t ON t.id = c.turf_id
       LEFT JOIN users entered_u ON entered_u.id = c.entered_by
       LEFT JOIN campaigns camp ON camp.id = c.campaign_id

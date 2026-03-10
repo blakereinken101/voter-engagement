@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
-import { recalcPetitionerStats } from '@/lib/petition-utils'
+import { recalcPetitionerStats, computeWeightedValidity } from '@/lib/petition-utils'
 
 /**
  * PATCH: Override a signature's match selection.
@@ -131,18 +131,12 @@ export async function PATCH(
         return NextResponse.json({ error: 'Provide candidateIndex or matchStatus' }, { status: 400 })
       }
 
-      // Recalculate sheet stats
+      // Recalculate sheet stats using weighted validity
       const { rows: sheetSigs } = await client.query(
-        `SELECT match_status FROM petition_signatures WHERE sheet_id = $1`,
+        `SELECT match_status, match_score, user_confirmed FROM petition_signatures WHERE sheet_id = $1`,
         [sheetId],
       )
-      const totalSigs = sheetSigs.length
-      const matchedCount = sheetSigs.filter(
-        (s: { match_status: string }) => s.match_status === 'matched' || s.match_status === 'ambiguous'
-      ).length
-      const validityRate = totalSigs > 0
-        ? Math.round((matchedCount / totalSigs) * 1000) / 10
-        : 0
+      const { validityRate, matchedCount } = computeWeightedValidity(sheetSigs)
 
       await client.query(`
         UPDATE petition_sheets

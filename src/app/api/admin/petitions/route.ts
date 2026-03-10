@@ -45,13 +45,18 @@ export async function GET(request: NextRequest) {
     `, [ctx.campaignId])
 
     // Get overall stats (exclude duplicates)
+    // Uses weighted average of per-sheet validity_rates so that match
+    // confidence (and admin confirmations) are reflected accurately.
     const { rows: statsRows } = await db.query(`
       SELECT
         COUNT(DISTINCT ps.id) as total_sheets,
         COALESCE(SUM(ps.total_signatures), 0) as total_signatures,
         COALESCE(SUM(ps.matched_count), 0) as total_matched,
         CASE WHEN SUM(ps.total_signatures) > 0
-          THEN ROUND(SUM(ps.matched_count)::numeric / SUM(ps.total_signatures) * 100, 1)
+          THEN ROUND(
+            SUM(ps.validity_rate * ps.total_signatures / 100.0)::numeric
+            / SUM(ps.total_signatures) * 100, 1
+          )
           ELSE 0
         END as overall_validity_rate
       FROM petition_sheets ps

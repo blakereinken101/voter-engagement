@@ -165,8 +165,8 @@ export async function POST(request: NextRequest) {
 
     // Create membership
     await db.query(
-      `INSERT INTO memberships (id, user_id, campaign_id, role, invited_by)
-       VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO memberships (id, user_id, campaign_id, role, invited_by, organizer_id)
+       VALUES ($1, $2, $3, $4, $5, $5)`,
       [crypto.randomUUID(), userId, invitation.campaign_id, invitation.role, invitation.invited_by]
     )
 

@@ -159,7 +159,7 @@ export async function PATCH(
         )
       } else {
         await db.query(
-          'INSERT INTO memberships (id, user_id, campaign_id, role, invited_by) VALUES ($1, $2, $3, $4, $5)',
+          'INSERT INTO memberships (id, user_id, campaign_id, role, invited_by, organizer_id) VALUES ($1, $2, $3, $4, $5, $5)',
           [crypto.randomUUID(), userId, campaignId, role, session.userId]
         )
       }

@@ -27,7 +27,7 @@ export async function GET() {
       FROM users u
       JOIN memberships m ON m.user_id = u.id AND m.campaign_id = $1
       WHERE m.role IN ('organizer', 'admin', 'owner')
-         OR EXISTS (SELECT 1 FROM memberships m2 WHERE m2.invited_by = u.id AND m2.campaign_id = $1)
+         OR EXISTS (SELECT 1 FROM memberships m2 WHERE m2.organizer_id = u.id AND m2.campaign_id = $1)
          OR EXISTS (SELECT 1 FROM turfs t WHERE t.organizer_id = u.id AND t.campaign_id = $1)
       ORDER BY u.name
     `, [ctx.campaignId])

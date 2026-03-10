@@ -5,26 +5,29 @@ import type { ConversationRow, ConversationFilters, ColumnConfig } from '@/types
 import ConversationsToolbar from './ConversationsToolbar'
 import ConversationsTable from './ConversationsTable'
 import ConversationsPager from './ConversationsPager'
+import PtgMetrics from './PtgMetrics'
 import { Loader2, MessageSquare } from 'lucide-react'
 
+const REFRESH_INTERVAL_MS = 60_000 // auto-refresh every 60 seconds
+
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { id: 'name', label: 'Name', visible: true, width: 180 },
-  { id: 'phone', label: 'Phone', visible: true, width: 130 },
-  { id: 'address', label: 'Address', visible: true, width: 200 },
-  { id: 'contactOutcome', label: 'Support', visible: true, width: 110 },
-  { id: 'notes', label: 'Notes', visible: true, width: 200 },
-  { id: 'volunteerName', label: 'Volunteer', visible: true, width: 140 },
-  { id: 'organizerName', label: 'Organizer', visible: true, width: 140 },
-  { id: 'region', label: 'Region', visible: true, width: 120 },
-  { id: 'timestamp', label: 'Date/Time', visible: true, width: 150 },
-  { id: 'entryMethod', label: 'Entry', visible: true, width: 80 },
-  { id: 'surveyResponses', label: 'Survey', visible: false, width: 200 },
-  { id: 'enteredBy', label: 'Entered By', visible: false, width: 120 },
-  { id: 'outreachMethod', label: 'Outreach', visible: false, width: 110 },
-  { id: 'volunteerInterest', label: 'Vol. Interest', visible: false, width: 100 },
-  { id: 'city', label: 'City', visible: false, width: 120 },
-  { id: 'zip', label: 'Zip', visible: false, width: 80 },
-  { id: 'turfName', label: 'Turf', visible: false, width: 140 },
+  { id: 'name', label: 'Name', visible: true, width: 160 },
+  { id: 'phone', label: 'Phone', visible: true, width: 115 },
+  { id: 'address', label: 'Address', visible: true, width: 160 },
+  { id: 'contactOutcome', label: 'Support', visible: true, width: 90 },
+  { id: 'notes', label: 'Notes', visible: true, width: 150 },
+  { id: 'volunteerName', label: 'Volunteer', visible: true, width: 120 },
+  { id: 'organizerName', label: 'Organizer', visible: true, width: 120 },
+  { id: 'region', label: 'Region', visible: true, width: 100 },
+  { id: 'timestamp', label: 'Date/Time', visible: true, width: 130 },
+  { id: 'entryMethod', label: 'Entry', visible: true, width: 70 },
+  { id: 'surveyResponses', label: 'Survey', visible: false, width: 180 },
+  { id: 'enteredBy', label: 'Entered By', visible: false, width: 110 },
+  { id: 'outreachMethod', label: 'Outreach', visible: false, width: 100 },
+  { id: 'volunteerInterest', label: 'Vol. Interest', visible: false, width: 90 },
+  { id: 'city', label: 'City', visible: false, width: 100 },
+  { id: 'zip', label: 'Zip', visible: false, width: 70 },
+  { id: 'turfName', label: 'Turf', visible: false, width: 120 },
 ]
 
 interface FilterOptions {
@@ -44,7 +47,12 @@ export default function PtgDashboard() {
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({ regions: [], organizers: [], volunteers: [], outcomes: [] })
   const [loading, setLoading] = useState(true)
   const [initialLoad, setInitialLoad] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const filtersRef = useRef(filters)
+  const pageRef = useRef(page)
+  filtersRef.current = filters
+  pageRef.current = page
 
   // Load filter options once
   useEffect(() => {
@@ -110,6 +118,15 @@ export default function PtgDashboard() {
     }, filters.search !== undefined ? 300 : 0)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [page, filters, fetchData])
+
+  // Auto-refresh every 60 seconds (table + metrics)
+  useEffect(() => {
+    const id = setInterval(() => {
+      fetchData(pageRef.current, filtersRef.current)
+      setRefreshKey(k => k + 1)
+    }, REFRESH_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [fetchData])
 
   // Reset page on filter change
   const handleFiltersChange = (f: ConversationFilters) => {
@@ -192,6 +209,8 @@ export default function PtgDashboard() {
           </div>
         </div>
       </div>
+
+      <PtgMetrics refreshKey={refreshKey} />
 
       <ConversationsToolbar
         filters={filters}

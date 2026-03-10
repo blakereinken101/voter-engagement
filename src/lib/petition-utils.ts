@@ -176,26 +176,71 @@ export async function recalcPetitionerStats(
   db: Pool,
   petitionerId: string,
 ): Promise<void> {
+  // Use weighted average of sheet validity_rates (weighted by total_signatures)
+  // so that confirmed decisions propagate correctly to petitioner-level stats.
   await db.query(`
     UPDATE petition_petitioners SET
       total_sheets = sub.sheet_count,
       total_signatures = sub.sig_count,
       matched_count = sub.match_count,
       validity_rate = CASE WHEN sub.sig_count > 0
-        THEN ROUND(sub.match_count::numeric / sub.sig_count * 100, 1)
+        THEN ROUND(sub.weighted_validity_sum / sub.sig_count, 1)
         ELSE 0
       END
     FROM (
       SELECT
         COUNT(DISTINCT ps.id) as sheet_count,
         COALESCE(SUM(ps.total_signatures), 0) as sig_count,
-        COALESCE(SUM(ps.matched_count), 0) as match_count
+        COALESCE(SUM(ps.matched_count), 0) as match_count,
+        COALESCE(SUM(ps.validity_rate * ps.total_signatures / 100.0), 0) * 100.0 as weighted_validity_sum
       FROM petition_sheets ps
       WHERE ps.petitioner_id = $1
         AND ps.is_duplicate = false
     ) sub
     WHERE petition_petitioners.id = $1
   `, [petitionerId])
+}
+
+// =============================================
+// WEIGHTED VALIDITY RATE
+// =============================================
+
+/**
+ * Compute a score-weighted validity rate from signature data.
+ *
+ * Until an admin manually confirms or rejects a signature, the match score
+ * itself is used as the weight (e.g. a 72% match contributes 0.72 instead of 1).
+ * Once an admin clicks Confirm or Not a Match, that decision is treated as
+ * definitive (1.0 or 0.0).
+ *
+ * Returns both the weighted validity rate (0–100) and the raw matchedCount
+ * (number of signatures that have *any* match, for display purposes).
+ */
+export function computeWeightedValidity(
+  signatures: { match_status: string; match_score: number | null; user_confirmed: boolean }[],
+): { validityRate: number; matchedCount: number } {
+  let weightedSum = 0
+  let matchedCount = 0
+
+  for (const sig of signatures) {
+    if (sig.user_confirmed && sig.match_status === 'matched') {
+      // Admin confirmed → fully valid
+      weightedSum += 1.0
+      matchedCount++
+    } else if (sig.user_confirmed && sig.match_status === 'unmatched') {
+      // Admin rejected → not valid (weight 0)
+    } else if (sig.match_status === 'matched' || sig.match_status === 'ambiguous') {
+      // Not yet confirmed — use match score as likelihood weight
+      const score = sig.match_score || 0
+      weightedSum += score
+      matchedCount++
+    }
+    // unmatched with no user override → weight 0
+  }
+
+  const total = signatures.length
+  const validityRate = total > 0 ? Math.round((weightedSum / total) * 1000) / 10 : 0
+  return { validityRate, matchedCount }
 }
 
 // =============================================
