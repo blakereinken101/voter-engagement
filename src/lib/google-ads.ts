@@ -12,6 +12,10 @@ declare global {
   }
 }
 
+const GCLID_KEY = 'gclid'
+const GCLID_TS_KEY = 'gclid_ts'
+const GCLID_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000 // 90 days
+
 /**
  * Extract the Google Click ID (gclid) from the URL.
  * Google Ads appends this when a user clicks an ad.
@@ -23,22 +27,24 @@ export function getGclid(): string | null {
 }
 
 /**
- * Store gclid in sessionStorage so it persists across page navigations.
- * Call this on initial page load.
+ * Store gclid in localStorage with a timestamp for 90-day attribution.
+ * Called globally from the root layout on every page load.
  */
 export function persistGclid(): void {
   const gclid = getGclid()
   if (gclid) {
     try {
-      sessionStorage.setItem('gclid', gclid)
+      localStorage.setItem(GCLID_KEY, gclid)
+      localStorage.setItem(GCLID_TS_KEY, Date.now().toString())
     } catch {
-      // sessionStorage unavailable
+      // localStorage unavailable
     }
   }
 }
 
 /**
- * Retrieve the stored gclid (from URL or sessionStorage).
+ * Retrieve the stored gclid (from URL or localStorage).
+ * Returns null if the stored gclid is older than 90 days.
  */
 export function getStoredGclid(): string | null {
   const urlGclid = getGclid()
@@ -46,7 +52,15 @@ export function getStoredGclid(): string | null {
 
   if (typeof window === 'undefined') return null
   try {
-    return sessionStorage.getItem('gclid')
+    const stored = localStorage.getItem(GCLID_KEY)
+    const ts = localStorage.getItem(GCLID_TS_KEY)
+    if (!stored || !ts) return null
+    if (Date.now() - Number(ts) > GCLID_MAX_AGE_MS) {
+      localStorage.removeItem(GCLID_KEY)
+      localStorage.removeItem(GCLID_TS_KEY)
+      return null
+    }
+    return stored
   } catch {
     return null
   }
@@ -76,5 +90,27 @@ export function trackDemoBooking(): void {
   const label = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL
   if (label) {
     trackConversion(label, 100)
+  }
+}
+
+/**
+ * Track an events platform signup conversion.
+ * Uses NEXT_PUBLIC_GOOGLE_ADS_EVENTS_CONVERSION_LABEL, falling back to the demo label.
+ */
+export function trackEventsSignup(): void {
+  const label = process.env.NEXT_PUBLIC_GOOGLE_ADS_EVENTS_CONVERSION_LABEL
+    || process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL
+  if (label) {
+    trackConversion(label, 35)
+  }
+}
+
+/**
+ * Track a contact form submission conversion.
+ */
+export function trackContactFormSubmit(): void {
+  const label = process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL
+  if (label) {
+    trackConversion(label, 10)
   }
 }

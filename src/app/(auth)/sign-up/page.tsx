@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { UserPlus, Check, X, Loader2, Globe, Mail, MessageSquare } from 'lucide-react'
+import { trackEventsSignup } from '@/lib/google-ads'
 
 function SignUpForm() {
   const router = useRouter()
@@ -216,6 +217,7 @@ function SignUpForm() {
       }
 
       if (data.requiresVerification) {
+        trackEventsSignup()
         router.push('/verify-code?product=events')
       }
     } catch {

@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { useRef, useEffect, useState, RefObject, FormEvent } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { ArrowRight, CheckCircle, Settings, Send, Calendar, Sparkles, Shield, Globe, MessageCircle, BookUser } from 'lucide-react'
+import { trackContactFormSubmit } from '@/lib/google-ads'
 
 function useInView(ref: RefObject<HTMLElement | null>, options?: IntersectionObserverInit) {
   const [isInView, setIsInView] = useState(false)
@@ -58,6 +59,7 @@ export default function LandingPage() {
       })
       if (!res.ok) throw new Error('Failed to send')
       setFormStatus('sent')
+      trackContactFormSubmit()
       setFormData({ name: '', email: '', organization: '', message: '' })
     } catch {
       setFormStatus('error')

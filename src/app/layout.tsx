@@ -5,6 +5,7 @@ import { AppProvider } from '@/context/AppContext'
 import { AuthProvider } from '@/context/AuthContext'
 import ScrollToTop from '@/components/ScrollToTop'
 import HelpWidgetWrapper from '@/components/support/HelpWidgetWrapper'
+import GclidCapture from '@/components/GclidCapture'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-vc-bg text-white overflow-x-hidden">
         <ScrollToTop />
+        <GclidCapture />
         <AuthProvider>
           <AppProvider>
             {children}
