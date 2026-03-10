@@ -93,22 +93,13 @@ export default function DemoPage() {
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
             Threshold is the AI campaign coach that helps volunteers work their personal networks &mdash; mapping contacts to the voter file, providing tailored talking points, and logging every conversation automatically.
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <button
-              onClick={() => document.getElementById('book-demo')?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
-            >
-              Book a Demo
-              <ArrowRight className="w-5 h-5" />
-            </button>
-            <Link
-              href="/sign-up?product=events"
-              className="inline-flex items-center gap-2 border border-white/15 text-white/70 font-bold font-display text-lg px-10 py-4 rounded-btn transition-all hover:bg-white/5 hover:text-white hover:border-white/25"
-            >
-              <Calendar className="w-5 h-5" />
-              Try Events Free
-            </Link>
-          </div>
+          <button
+            onClick={() => document.getElementById('book-demo')?.scrollIntoView({ behavior: 'smooth' })}
+            className="inline-flex items-center gap-2 bg-white text-vc-purple font-bold font-display text-lg px-10 py-4 rounded-btn transition-all shadow-lifted hover:shadow-glow-lg hover:-translate-y-0.5"
+          >
+            Book a Demo
+            <ArrowRight className="w-5 h-5" />
+          </button>
         </div>
       </section>
 
