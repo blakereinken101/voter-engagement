@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { FileSignature, ChevronDown, ChevronRight, Check, X, HelpCircle, Loader2, AlertTriangle, Users, ArrowRightLeft, Trash2 } from 'lucide-react'
+import { FileSignature, ChevronDown, ChevronRight, Check, X, HelpCircle, Loader2, AlertTriangle, Users, ArrowRightLeft, Trash2, RotateCcw } from 'lucide-react'
 
 // =============================================
 // TYPES
@@ -206,6 +206,29 @@ export default function PetitionDashboard() {
       }
     } catch (err) {
       console.error('[petitions] Error overriding match:', err)
+    } finally {
+      setSavingOverride(false)
+    }
+  }, [fetchSheets])
+
+  // Handle single-signature rematch
+  const handleRematch = useCallback(async (sheetId: string, sigId: string) => {
+    setSavingOverride(true)
+    try {
+      const res = await fetch(`/api/admin/petitions/${sheetId}/signatures/${sigId}/match`, {
+        method: 'POST',
+      })
+      if (res.ok) {
+        // Reload signatures for this sheet
+        const sigsRes = await fetch(`/api/admin/petitions?sheetId=${sheetId}`)
+        if (sigsRes.ok) {
+          const data = await sigsRes.json()
+          setSheetSignatures(prev => ({ ...prev, [sheetId]: data.signatures || [] }))
+        }
+        fetchSheets()
+      }
+    } catch (err) {
+      console.error('[petitions] Error rematching signature:', err)
     } finally {
       setSavingOverride(false)
     }
@@ -506,6 +529,21 @@ export default function PetitionDashboard() {
                                       >
                                         <X className="w-3 h-3" />
                                         Not a Match
+                                      </button>
+                                    )}
+                                    {/* Rematch — re-run matching for unmatched/ambiguous signatures */}
+                                    {(sig.match_status === 'unmatched' || sig.match_status === 'ambiguous' || (sig.user_confirmed && sig.match_status === 'unmatched')) && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleRematch(sheet.id, sig.id)
+                                        }}
+                                        disabled={savingOverride}
+                                        className="text-[10px] text-vc-purple-light/70 hover:text-vc-purple-light transition-colors flex items-center gap-1 px-2 py-1 rounded hover:bg-vc-purple/10"
+                                        title="Re-run matching for this signature"
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                        Rematch
                                       </button>
                                     )}
                                     {/* Swap candidates — show when there are alternatives */}

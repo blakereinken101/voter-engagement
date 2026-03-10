@@ -27,11 +27,12 @@ interface Props {
   onRejectMatch: (personId: string) => void
   onVolunteerInterest: (personId: string, interest: VolInterest) => void
   onSurveyChange: (personId: string, responses: Record<string, string>) => void
+  onRematch?: (personId: string) => void
 }
 
 export default function ContactItem({
   row, eventRsvps, onToggleContacted, onOutcomeSelect, onRecontact, onNotesChange,
-  onRemove, onConfirmMatch, onRejectMatch, onVolunteerInterest, onSurveyChange,
+  onRemove, onConfirmMatch, onRejectMatch, onVolunteerInterest, onSurveyChange, onRematch,
 }: Props) {
   const { person, matchResult, actionItem } = row
   const [expanded, setExpanded] = useState(false)
@@ -75,6 +76,7 @@ export default function ContactItem({
           matchResult={matchResult}
           onConfirmMatch={onConfirmMatch}
           onRejectMatch={onRejectMatch}
+          onRematch={onRematch}
         />
 
         {/* Outcome badge + volunteer interest (inline on this row when outcome exists) */}

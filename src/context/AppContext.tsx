@@ -313,6 +313,7 @@ interface AppContextValue {
   updateNote: (personId: string, notes: string) => void
   runMatching: () => Promise<void>
   runMatchingForUnmatched: () => Promise<void>
+  rematchPerson: (personId: string) => Promise<void>
   setVolunteerInterest: (personId: string, interest: 'yes' | 'no' | 'maybe') => void
   setSurveyResponses: (personId: string, responses: Record<string, string>) => void
   removePerson: (personId: string) => void
@@ -589,6 +590,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.selectedState, state.personEntries, state.matchResults, user])
 
+  const rematchPerson = useCallback(async (personId: string) => {
+    if (!state.selectedState) return
+    const person = state.personEntries.find(p => p.id === personId)
+    if (!person) return
+
+    dispatch({ type: 'SET_LOADING', payload: true })
+    try {
+      const response = await fetch('/api/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ people: [person], state: state.selectedState }),
+      })
+      if (!response.ok) throw new Error(`Matching failed: ${response.statusText}`)
+      const data = await response.json()
+      if (data.results?.length > 0) {
+        dispatch({ type: 'BATCH_MATCH_RESULTS', payload: data.results })
+        if (user) {
+          const result = data.results[0]
+          syncToServer(`/api/contacts/${result.personEntry.id}/match`, 'PUT', {
+            action: 'set_results',
+            status: result.status,
+            bestMatch: result.bestMatch,
+            candidates: result.candidates,
+            voteScore: result.voteScore,
+            segment: result.segment,
+            userConfirmed: result.userConfirmed,
+          })
+        }
+      }
+    } catch (err) {
+      dispatch({ type: 'SET_ERROR', payload: err instanceof Error ? err.message : 'Matching failed' })
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
+    }
+  }, [state.selectedState, state.personEntries, user])
+
   // Local-only dispatches — used by AI chat when tools already wrote to DB
   const addPersonLocal = useCallback((person: PersonEntry) => {
     dispatch({ type: 'ADD_PERSON', payload: person })
@@ -613,7 +650,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       state, dispatch, addPerson, confirmMatch, rejectMatch,
-      toggleContacted, setOutreachMethod, setContactOutcome, clearContact, updateNote, runMatching, runMatchingForUnmatched, setVolunteerInterest, setSurveyResponses, removePerson,
+      toggleContacted, setOutreachMethod, setContactOutcome, clearContact, updateNote, runMatching, runMatchingForUnmatched, rematchPerson, setVolunteerInterest, setSurveyResponses, removePerson,
       addPersonLocal, batchMatchResultsLocal, toggleContactedLocal, setContactOutcomeLocal, setSurveyResponsesLocal,
     }}>
       {children}

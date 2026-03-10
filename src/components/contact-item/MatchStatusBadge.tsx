@@ -4,25 +4,41 @@ import { PersonEntry, MatchResult, SafeVoterRecord } from '@/types'
 import { getRegistrationUrl } from '../VoterRegistrationLinks'
 import { useAuth } from '@/context/AuthContext'
 import defaultCampaignConfig from '@/lib/campaign-config'
-import { Share2, Check } from 'lucide-react'
+import { Share2, Check, Search, Loader2 } from 'lucide-react'
 
 interface Props {
   person: PersonEntry
   matchResult?: MatchResult
   onConfirmMatch: (personId: string, voterRecord: SafeVoterRecord) => void
   onRejectMatch: (personId: string) => void
+  onRematch?: (personId: string) => void
 }
 
-export default function MatchStatusBadge({ person, matchResult, onConfirmMatch, onRejectMatch }: Props) {
+export default function MatchStatusBadge({ person, matchResult, onConfirmMatch, onRejectMatch, onRematch }: Props) {
   const { campaignConfig: authConfig } = useAuth()
   const campaignConfig = authConfig || defaultCampaignConfig
   const [showCandidates, setShowCandidates] = useState(false)
   const [regLinkSent, setRegLinkSent] = useState(false)
+  const [rematching, setRematching] = useState(false)
 
   const status = matchResult?.status
 
   if (!matchResult) {
-    return <span className="text-[10px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">Not matched yet</span>
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">Not matched yet</span>
+        {onRematch && (
+          <button
+            onClick={async () => { setRematching(true); await onRematch(person.id); setRematching(false) }}
+            disabled={rematching}
+            className="text-[10px] font-bold text-vc-purple-light bg-vc-purple/10 px-2 py-0.5 rounded-full hover:bg-vc-purple/20 transition-colors inline-flex items-center gap-1"
+          >
+            {rematching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+            Search matches
+          </button>
+        )}
+      </div>
+    )
   }
 
   if (status === 'confirmed') {
@@ -33,6 +49,16 @@ export default function MatchStatusBadge({ person, matchResult, onConfirmMatch, 
     return (
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] font-bold text-white/60 bg-white/10 px-2 py-0.5 rounded-full">No match</span>
+        {onRematch && (
+          <button
+            onClick={async () => { setRematching(true); await onRematch(person.id); setRematching(false) }}
+            disabled={rematching}
+            className="text-[10px] font-bold text-vc-purple-light bg-vc-purple/10 px-2 py-0.5 rounded-full hover:bg-vc-purple/20 transition-colors inline-flex items-center gap-1"
+          >
+            {rematching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+            Search again
+          </button>
+        )}
         {!regLinkSent ? (
           <button
             onClick={async () => {

@@ -2,6 +2,154 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 import { recalcPetitionerStats, computeWeightedValidity } from '@/lib/petition-utils'
+import { matchPeopleToVoterDb, matchPeopleToVoterFile } from '@/lib/matching'
+import { getDatasetForCampaign } from '@/lib/voter-db'
+import { getCampaignConfig } from '@/lib/campaign-config.server'
+import { getVoterFile, NoVoterDataError } from '@/lib/mock-data'
+import type { PersonEntry } from '@/types'
+
+const PETITION_MATCH_OPTIONS = {
+  lowCutoff: 0.40,
+  mediumConfidenceThreshold: 0.60,
+}
+
+/**
+ * POST: Re-run algorithmic matching for a single signature.
+ * Resets user_confirmed and re-matches against the voter file.
+ */
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ sheetId: string; sigId: string }> },
+) {
+  try {
+    const ctx = await requireAdmin()
+    const db = await getDb()
+    const { sheetId, sigId } = await params
+
+    // Verify sheet
+    const { rows: sheetRows } = await db.query(
+      'SELECT id, petitioner_id FROM petition_sheets WHERE id = $1 AND campaign_id = $2',
+      [sheetId, ctx.campaignId],
+    )
+    if (sheetRows.length === 0) {
+      return NextResponse.json({ error: 'Sheet not found' }, { status: 404 })
+    }
+
+    // Load the signature
+    const { rows: sigRows } = await db.query(
+      'SELECT * FROM petition_signatures WHERE id = $1 AND sheet_id = $2',
+      [sigId, sheetId],
+    )
+    if (sigRows.length === 0) {
+      return NextResponse.json({ error: 'Signature not found' }, { status: 404 })
+    }
+
+    const sig = sigRows[0]
+
+    // Build PersonEntry for matching
+    const person: PersonEntry = {
+      id: sig.id,
+      firstName: sig.first_name,
+      lastName: sig.last_name,
+      address: sig.address || undefined,
+      city: sig.city || undefined,
+      zip: sig.zip || undefined,
+      category: 'who-did-we-miss' as const,
+    }
+
+    // Run matching
+    const assignment = await getDatasetForCampaign(ctx.campaignId)
+    let results
+    if (assignment) {
+      results = await matchPeopleToVoterDb([person], assignment.datasetId, PETITION_MATCH_OPTIONS, assignment.filters)
+    } else {
+      const campaignConfig = await getCampaignConfig(ctx.campaignId)
+      const state = campaignConfig.state || 'NC'
+      const voterFile = await getVoterFile(state, campaignConfig.voterFile)
+      results = await matchPeopleToVoterFile([person], voterFile, PETITION_MATCH_OPTIONS)
+    }
+
+    const result = results[0]
+    if (!result) {
+      return NextResponse.json({ error: 'Matching returned no result' }, { status: 500 })
+    }
+
+    // Determine new status
+    const topCandidate = result.candidates[0]
+    const score = topCandidate?.score || 0
+    let matchStatus: string
+    let matchData: string | null = null
+    let matchScore: number | null = null
+    let candidatesData: string | null = null
+
+    if (result.candidates.length > 0) {
+      candidatesData = JSON.stringify(result.candidates.map(c => ({
+        voterRecord: c.voterRecord,
+        score: c.score,
+        confidenceLevel: c.confidenceLevel,
+        matchedOn: c.matchedOn,
+      })))
+    }
+
+    if (score >= 0.70) {
+      matchStatus = 'matched'
+      matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
+      matchScore = score
+    } else if (score >= 0.40) {
+      matchStatus = 'ambiguous'
+      matchData = result.bestMatch ? JSON.stringify(result.bestMatch) : null
+      matchScore = score
+    } else {
+      matchStatus = 'unmatched'
+      if (result.bestMatch) {
+        matchData = JSON.stringify(result.bestMatch)
+        matchScore = score
+      }
+    }
+
+    // Update signature — reset user_confirmed
+    await db.query(`
+      UPDATE petition_signatures
+      SET match_status = $1, match_data = $2, match_score = $3, candidates_data = $4,
+          user_confirmed = false, confirmed_by = NULL
+      WHERE id = $5
+    `, [matchStatus, matchData, matchScore, candidatesData, sigId])
+
+    // Recalculate sheet stats
+    const { rows: sheetSigs } = await db.query(
+      'SELECT match_status, match_score, user_confirmed FROM petition_signatures WHERE sheet_id = $1',
+      [sheetId],
+    )
+    const { validityRate, matchedCount } = computeWeightedValidity(sheetSigs)
+    await db.query(
+      'UPDATE petition_sheets SET matched_count = $1, validity_rate = $2 WHERE id = $3',
+      [matchedCount, validityRate, sheetId],
+    )
+
+    // Recalculate petitioner stats if linked
+    const petitionerId = sheetRows[0].petitioner_id
+    if (petitionerId) {
+      await recalcPetitionerStats(db, petitionerId)
+    }
+
+    await logActivity(ctx.userId, 'petition_signature_rematched', {
+      sheetId, sigId, newStatus: matchStatus, newScore: matchScore,
+    }, ctx.campaignId)
+
+    return NextResponse.json({
+      success: true,
+      matchStatus,
+      matchScore,
+      candidateCount: result.candidates.length,
+    })
+  } catch (error: unknown) {
+    if (error instanceof NoVoterDataError) {
+      return NextResponse.json({ error: 'No voter data configured for this campaign.' }, { status: 422 })
+    }
+    const { error: msg, status } = handleAuthError(error)
+    return NextResponse.json({ error: msg }, { status })
+  }
+}
 
 /**
  * PATCH: Override a signature's match selection.

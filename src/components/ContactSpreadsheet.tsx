@@ -82,7 +82,7 @@ function ConversationGuide() {
 }
 
 export default function ContactSpreadsheet() {
-  const { state, toggleContacted, setContactOutcome, clearContact, updateNote, confirmMatch, rejectMatch, runMatchingForUnmatched, setVolunteerInterest, setSurveyResponses, removePerson } = useAppContext()
+  const { state, toggleContacted, setContactOutcome, clearContact, updateNote, confirmMatch, rejectMatch, runMatchingForUnmatched, rematchPerson, setVolunteerInterest, setSurveyResponses, removePerson } = useAppContext()
 
   const [intakeMode, setIntakeMode] = useState<IntakeMode>('manual')
   const [sortField, setSortField] = useState<SortField>('name')
@@ -302,6 +302,7 @@ export default function ContactSpreadsheet() {
                 onRemove={handleRemove}
                 onConfirmMatch={confirmMatch}
                 onRejectMatch={rejectMatch}
+                onRematch={rematchPerson}
                 onVolunteerInterest={handleVolunteerInterest}
                 onSurveyChange={setSurveyResponses}
               />
