@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getPool, isShuttingDown } from '@/lib/db'
+import { getPool } from '@/lib/db'
 import fs from 'fs'
 import path from 'path'
 
 export async function GET() {
-  // During graceful shutdown, tell Railway to stop routing traffic here
-  if (isShuttingDown()) {
-    return NextResponse.json(
-      { status: 'shutting_down', timestamp: new Date().toISOString() },
-      { status: 503 }
-    )
-  }
+  // Do NOT return 503 during shutdown — Railway handles traffic draining.
+  // If the old container fails its health check before the new one is ready,
+  // both containers are "unhealthy" simultaneously and the site goes down.
 
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data')
   const voterPath = path.join(dataDir, 'mecklenburg-voters-geo.json')
