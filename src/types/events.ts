@@ -159,8 +159,8 @@ export const PLAN_LIMITS: Record<EventsPlan, PlanLimits> = {
 }
 
 export const PLAN_PRICES: Record<EventsPlan, number> = {
-  grassroots: 49,
-  growth: 149,
+  grassroots: 35,
+  growth: 99,
   scale: 349,
 }
 

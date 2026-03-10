@@ -8,6 +8,11 @@ import { getStoredGclid } from '@/lib/google-ads'
 import type { EventsPlan } from '@/types/events'
 import { PLAN_PRICES } from '@/types/events'
 
+const OLD_PRICES: Partial<Record<EventsPlan, number>> = {
+  grassroots: 49,
+  growth: 149,
+}
+
 interface Props {
   plan: EventsPlan
   isPopular?: boolean
@@ -64,6 +69,7 @@ export default function PricingCard({ plan, isPopular }: Props) {
   const [loading, setLoading] = useState(false)
   const details = PLAN_DETAILS[plan]
   const price = PLAN_PRICES[plan]
+  const oldPrice = OLD_PRICES[plan]
   const isScale = plan === 'scale'
 
   async function handleCheckout() {
@@ -110,11 +116,14 @@ export default function PricingCard({ plan, isPopular }: Props) {
           <p className="text-sm text-white/50 mt-1">{details.description}</p>
         </div>
 
-        <div className="flex items-baseline gap-1">
+        <div className="flex items-baseline gap-2">
           {isScale ? (
             <span className="font-display text-2xl font-bold text-white">Custom Pricing</span>
           ) : (
             <>
+              {oldPrice && (
+                <span className="font-display text-lg text-white/40 line-through">${oldPrice}</span>
+              )}
               <span className="font-display text-4xl font-bold text-white">${price}</span>
               <span className="text-white/50">/month</span>
             </>
