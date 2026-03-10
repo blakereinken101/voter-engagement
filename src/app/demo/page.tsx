@@ -103,6 +103,43 @@ export default function DemoPage() {
         </div>
       </section>
 
+      {/* App Screenshots */}
+      <section className="px-6 py-14 md:py-20">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-white/40 text-xs uppercase tracking-[0.2em] font-bold mb-10">
+            From paper to voter file in seconds
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
+            <div className="w-48 sm:w-40 md:w-48 p-1.5 rounded-[2.2rem] bg-gradient-to-b from-white/20 via-vc-purple/30 to-white/10 shadow-[0_0_60px_rgba(139,92,246,0.3)]">
+              <div className="rounded-[1.8rem] overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/app-scan-start.png"
+                  alt="Scan a handwritten contact sheet with AI"
+                  className="w-full h-auto block"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-1">
+              <ArrowRight className="w-6 h-6 text-vc-purple-light rotate-90 sm:rotate-0" />
+              <span className="text-white/30 text-[10px] uppercase tracking-wider">AI extracts</span>
+            </div>
+            <div className="w-48 sm:w-40 md:w-48 p-1.5 rounded-[2.2rem] bg-gradient-to-b from-white/20 via-vc-purple/30 to-white/10 shadow-[0_0_60px_rgba(139,92,246,0.3)]">
+              <div className="rounded-[1.8rem] overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/app-scan-results.png"
+                  alt="Extracted contacts ready to import and match to voter file"
+                  className="w-full h-auto block"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Trust Bar */}
       <section className="border-y border-white/5 py-6">
         <div className="max-w-4xl mx-auto px-6 flex flex-wrap justify-center gap-x-10 gap-y-3 text-sm text-white/40">
