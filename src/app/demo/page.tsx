@@ -146,7 +146,6 @@ export default function DemoPage() {
           {[
             { icon: Brain, label: 'AI-powered coaching' },
             { icon: Shield, label: 'Private & secure' },
-            { icon: Globe, label: 'VoteBuilder-ready exports' },
             { icon: Users, label: 'Built by campaign organizers' },
           ].map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-2">
