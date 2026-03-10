@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
     !isProtectedEventsPath && (
       pathname === '/' ||
       pathname === '/about' ||
-      pathname === '/demo' ||
+      pathname.startsWith('/demo') ||
       pathname === '/privacy' ||
       pathname === '/terms' ||
       pathname.startsWith('/_next') ||
