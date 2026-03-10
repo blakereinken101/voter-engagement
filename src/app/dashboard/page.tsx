@@ -16,7 +16,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { DashboardView } from '@/types'
 import ScanSheetPanel from '@/components/ScanSheetPanel'
-import { Download, Shield, LogOut, Camera, Users, MessageCircle, ThumbsUp, Clock, Sparkles, Table, Calendar, ArrowLeft, ChevronsUpDown, Star, Zap } from 'lucide-react'
+import { Download, Shield, LogOut, Camera, Users, MessageCircle, ThumbsUp, Clock, Sparkles, Table, Calendar, ArrowLeft, ChevronsUpDown, Star, Zap, Target } from 'lucide-react'
 import { isInTargetUniverse } from '@/lib/voter-segments'
 
 export default function DashboardPage() {
@@ -154,17 +154,26 @@ export default function DashboardPage() {
             Rolodex
           </button>
           {isAdmin && (
-            <button
-              onClick={() => setView('admin')}
-              className={`text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
-                view === 'admin'
-                  ? 'bg-vc-purple text-white shadow-glow'
-                  : 'text-white/60 hover:text-white glass hover:border-white/20'
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              Admin
-            </button>
+            <>
+              <button
+                onClick={() => setView('admin')}
+                className={`text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+                  view === 'admin'
+                    ? 'bg-vc-purple text-white shadow-glow'
+                    : 'text-white/60 hover:text-white glass hover:border-white/20'
+                }`}
+              >
+                <Shield className="w-4 h-4" />
+                Admin
+              </button>
+              <Link
+                href="/dashboard/ptg"
+                className="text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 text-white/60 hover:text-white glass hover:border-white/20"
+              >
+                <Target className="w-4 h-4" />
+                PTG
+              </Link>
+            </>
           )}
           <button
             onClick={() => setShowScanSheet(true)}

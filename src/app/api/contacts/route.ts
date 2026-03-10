@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { id, firstName, lastName, phone, address, city, zip, age, ageRange, gender, category,
-            contactOutcome, volunteerInterest } = body
+            contactOutcome, volunteerInterest, entryMethod } = body
 
     if (!firstName || typeof firstName !== 'string' || !lastName || typeof lastName !== 'string' || !category || typeof category !== 'string') {
       return NextResponse.json({ error: 'firstName, lastName, and category are required' }, { status: 400 })
@@ -146,10 +146,12 @@ export async function POST(request: NextRequest) {
       const safeGender = (gender === 'M' || gender === 'F' || gender === '') ? gender : null
       const safeZip = typeof zip === 'string' ? zip.replace(/[^0-9]/g, '').slice(0, 5) : null
 
+      const safeEntryMethod = ['manual', 'scan', 'chatbot', 'import'].includes(entryMethod as string) ? entryMethod : 'manual'
+
       await client.query(`
-        INSERT INTO contacts (id, user_id, campaign_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      `, [contactId, ctx.userId, ctx.campaignId, sanitize(firstName, 50), sanitize(lastName, 50), sanitize(phone, 20) || null, sanitize(address, 200) || null, sanitize(city, 50) || null, safeZip || null, safeAge, sanitize(ageRange, 20) || null, safeGender || null, sanitize(category, 50)])
+        INSERT INTO contacts (id, user_id, campaign_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category, entry_method, entered_by)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $2)
+      `, [contactId, ctx.userId, ctx.campaignId, sanitize(firstName, 50), sanitize(lastName, 50), sanitize(phone, 20) || null, sanitize(address, 200) || null, sanitize(city, 50) || null, safeZip || null, safeAge, sanitize(ageRange, 20) || null, safeGender || null, sanitize(category, 50), safeEntryMethod])
 
       await client.query(`
         INSERT INTO match_results (id, contact_id, status)

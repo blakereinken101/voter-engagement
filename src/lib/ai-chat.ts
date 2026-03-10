@@ -693,8 +693,8 @@ async function executeAddContact(
   try {
     await client.query('BEGIN')
     await client.query(
-      `INSERT INTO contacts (id, user_id, campaign_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+      `INSERT INTO contacts (id, user_id, campaign_id, first_name, last_name, phone, address, city, zip, age, age_range, gender, category, entry_method, entered_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'chatbot', $2)`,
       [contactId, ctx.userId, ctx.campaignId, firstName, lastName,
        sanitize(input.phone, 20), sanitize(input.address, 200),
        sanitize(input.city, 50), safeZip, safeAge, null, safeGender, category],

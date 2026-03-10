@@ -184,7 +184,7 @@ export default function ScanReviewPage() {
       // Normal volunteer flow (unchanged)
       let count = 0
       for (const c of toImport) {
-        const initialActionData: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe' } = {}
+        const initialActionData: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe'; entryMethod?: string } = { entryMethod: 'scan' }
         if (c.contactOutcome) initialActionData.contactOutcome = c.contactOutcome
         if (c.volunteerInterest) initialActionData.volunteerInterest = c.volunteerInterest
 
@@ -199,7 +199,7 @@ export default function ScanReviewPage() {
             category: c.category,
           },
           undefined,
-          Object.keys(initialActionData).length > 0 ? initialActionData : undefined,
+          initialActionData,
         )
         count++
       }

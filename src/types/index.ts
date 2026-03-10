@@ -391,6 +391,80 @@ export interface ActivityLogEntry {
 export type AdminTab = 'summary' | 'volunteers' | 'contacts' | 'activity' | 'export' | 'leaderboard' | 'purge' | 'team' | 'ai-context' | 'integrations' | 'petitions' | 'channels' | 'push' | 'support'
 
 // =============================================
+// PTG — CONVERSATIONS SPREADSHEET TYPES
+// =============================================
+
+export interface Turf {
+  id: string
+  campaignId: string
+  name: string
+  description: string | null
+  organizerId: string | null
+  organizerName: string | null
+  region: string | null
+  createdAt: string
+}
+
+export interface ConversationRow {
+  contactId: string
+  firstName: string
+  lastName: string
+  phone: string | null
+  address: string | null
+  city: string | null
+  zip: string | null
+
+  actionItemId: string
+  contactOutcome: string | null
+  notes: string | null
+  surveyResponses: Record<string, string> | null
+  outreachMethod: string | null
+  contactedDate: string | null
+  volunteerInterest: string | null
+
+  volunteerName: string | null
+  volunteerId: string | null
+
+  organizerName: string | null
+  organizerId: string | null
+  turfName: string | null
+  region: string | null
+
+  entryMethod: 'manual' | 'scan' | 'chatbot' | 'import'
+  enteredByName: string | null
+  enteredBySelf: boolean
+  timestamp: string
+  timezone: string
+}
+
+export interface ConversationsResponse {
+  rows: ConversationRow[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface ConversationFilters {
+  search?: string
+  region?: string
+  organizerId?: string
+  volunteerId?: string
+  outcome?: string
+  entryMethod?: string
+  dateFrom?: string
+  dateTo?: string
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+}
+
+export interface ColumnConfig {
+  id: string
+  label: string
+  visible: boolean
+  width?: number
+}
+
+// =============================================
 // AI CHAT TYPES
 // =============================================
 

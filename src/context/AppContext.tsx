@@ -420,7 +420,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addPerson = useCallback((
     person: Omit<PersonEntry, 'id'>,
     autoMatchVoter?: SafeVoterRecord,
-    initialActionData?: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe' },
+    initialActionData?: { contactOutcome?: ContactOutcome; volunteerInterest?: 'yes' | 'no' | 'maybe'; entryMethod?: string },
   ) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     const entry = { ...person, id, phone: person.phone || undefined, createdAt: Date.now() }
