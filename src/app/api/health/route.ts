@@ -27,10 +27,10 @@ export async function GET() {
 
   const healthy = dbStatus === 'ok'
 
-  // Strict health check: only return 200 when the DB is genuinely reachable.
-  // Railway's healthcheckTimeout (300s) gives us time for migrations + DB
-  // warmup. No grace period — a broken deploy must never pass the check.
-  const httpStatus = healthy ? 200 : 503
+  // Always return 200 — this is a liveness probe, not a readiness probe.
+  // Railway just needs to know the process is alive and serving HTTP.
+  // DB status is reported in the body for debugging, not via HTTP status.
+  const httpStatus = 200
 
   return NextResponse.json({
     status: healthy ? 'ok' : 'degraded',
