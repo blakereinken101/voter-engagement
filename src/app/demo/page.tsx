@@ -245,9 +245,9 @@ export default function DemoPage() {
               {
                 icon: Calendar,
                 title: 'Events Platform',
-                desc: 'Beautiful shareable event pages with RSVPs, comment threads, email reminders, and team coordination \u2014 starting at just $35/mo.',
+                desc: 'Beautiful shareable event pages with RSVPs, comment threads, email reminders, and team coordination \u2014 included with relational package.',
                 color: 'bg-vc-purple/10 text-vc-purple-light',
-                badge: 'Now from $35/mo',
+                badge: 'Included',
               },
               {
                 icon: Sparkles,
