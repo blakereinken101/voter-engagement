@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenAI } from '@google/genai'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
-import { checkRateLimit } from '@/lib/rate-limit'
 import { isAIEnabled, isAnthropicEnabled } from '@/lib/ai-chat'
 import { getAISettings } from '@/lib/ai-settings'
 import { isGeminiEnabled } from '@/lib/gemini-provider'
@@ -389,19 +388,6 @@ export async function POST(request: NextRequest) {
     }
 
     const ctx = await getRequestContext()
-
-    // Rate limit: 10 scans per 15 minutes
-    const rateCheck = checkRateLimit(`scan-sheet:${ctx.userId}`, {
-      maxAttempts: 10,
-      windowMs: 15 * 60 * 1000,
-      blockDurationMs: 5 * 60 * 1000,
-    })
-    if (!rateCheck.allowed) {
-      return NextResponse.json(
-        { error: 'Too many scan requests. Please wait a moment.', retryAfter: rateCheck.retryAfterSeconds },
-        { status: 429 },
-      )
-    }
 
     let body: { image: string; mimeType: string; mode?: string; surveyQuestions?: { id: string; label: string; type: string; options?: string[] }[] }
     try {
