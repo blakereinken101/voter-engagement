@@ -3,38 +3,12 @@
 # Priority: get the server responding to health checks ASAP.
 #
 # Order:
-#   1. Database migrations (fail-fast — broken schema = don't start)
-#   2. Seed data (warn-only)
-#   3. Start server (so health checks pass immediately)
+#   1. Start server FIRST (so health checks pass immediately)
+#   2. Database migrations (in background, with timeout)
+#   3. Seed data (in background, warn-only)
 #   4. Download voter data in background (non-blocking)
 
-# ── Database migrations (fail-fast — do NOT start server with broken schema) ──
-echo "[startup] Running database migrations..."
-node node_modules/node-pg-migrate/bin/node-pg-migrate up \
-  --database-url-var DATABASE_URL \
-  --migrations-dir /app/migrations \
-  --no-lock
-MIGRATE_EXIT=$?
-
-if [ $MIGRATE_EXIT -ne 0 ]; then
-  echo "[startup] ERROR: Database migrations failed (exit code: $MIGRATE_EXIT)"
-  exit 1
-fi
-echo "[startup] Migrations complete."
-
-# ── Seed data (warn-only — server can start without seed data) ──
-echo "[startup] Running seed script..."
-node /app/scripts/seed.mjs
-SEED_EXIT=$?
-
-if [ $SEED_EXIT -ne 0 ]; then
-  echo "[startup] WARNING: Seed script failed (exit code: $SEED_EXIT)"
-  echo "[startup] Server will start anyway (seed data may be missing)."
-fi
-
 # ── Download voter data in background AFTER server starts ──
-# This way the server responds to health checks immediately while
-# the (potentially slow) voter file download happens asynchronously.
 download_voter_data() {
   DATA_DIR="${DATA_DIR:-/app/data}"
   VOTER_FILE="$DATA_DIR/mecklenburg-voters-geo.json"
@@ -76,9 +50,37 @@ download_voter_data() {
   echo "[voter-data] Voter file ready ($FINAL_SIZE bytes)"
 }
 
+# ── Run migrations and seed in background (non-blocking) ──
+run_migrations() {
+  echo "[startup] Running database migrations..."
+  timeout 120 node node_modules/node-pg-migrate/bin/node-pg-migrate up \
+    --database-url-var DATABASE_URL \
+    --migrations-dir /app/migrations \
+    --no-lock
+  MIGRATE_EXIT=$?
+
+  if [ $MIGRATE_EXIT -ne 0 ]; then
+    echo "[startup] WARNING: Migrations failed or timed out (exit code: $MIGRATE_EXIT)"
+    echo "[startup] Server is running — app may have issues until DB is reachable."
+  else
+    echo "[startup] Migrations complete."
+  fi
+
+  echo "[startup] Running seed script..."
+  timeout 60 node /app/scripts/seed.mjs
+  SEED_EXIT=$?
+
+  if [ $SEED_EXIT -ne 0 ]; then
+    echo "[startup] WARNING: Seed script failed (exit code: $SEED_EXIT)"
+  fi
+}
+
+# Start migrations in background (non-blocking — server starts immediately)
+run_migrations &
+
 # Start voter data download in background (non-blocking)
 download_voter_data &
 
-# ── Start the server (health checks can respond immediately) ──
+# ── Start the server FIRST (health checks can respond immediately) ──
 echo "[startup] Starting server..."
 exec node server.js
