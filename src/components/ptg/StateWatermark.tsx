@@ -256,18 +256,18 @@ export default function StateWatermark({ state }: { state?: string }) {
 
     return (
       <>
-        {/* Deep space background — darker atmosphere behind the mountain */}
+        {/* Deep space tint — subtle darkening so stars contrast better */}
         <div
-          className="absolute top-0 left-0 right-0 h-[440px] pointer-events-none"
+          className="absolute top-0 left-0 right-0 h-[440px] pointer-events-none -z-10"
           aria-hidden="true"
           style={{
-            background: 'linear-gradient(to bottom, rgba(3,4,12,0.95) 0%, rgba(6,8,20,0.9) 30%, rgba(8,10,22,0.7) 55%, rgba(10,14,26,0.4) 75%, transparent 100%)',
+            background: 'linear-gradient(to bottom, rgba(3,4,12,0.45) 0%, rgba(6,8,20,0.35) 30%, rgba(8,10,22,0.2) 55%, transparent 75%)',
           }}
         />
 
         {/* Nebula glow layers — very subtle color washes */}
         <div
-          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none"
+          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none -z-10"
           aria-hidden="true"
           style={{
             background: `
@@ -280,7 +280,7 @@ export default function StateWatermark({ state }: { state?: string }) {
 
         {/* Constellation star field */}
         <div
-          className="absolute top-0 left-0 right-0 h-[420px] pointer-events-none overflow-hidden"
+          className="absolute top-0 left-0 right-0 h-[420px] pointer-events-none overflow-hidden -z-10"
           aria-hidden="true"
           style={{
             maskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 95%)',
@@ -396,7 +396,7 @@ export default function StateWatermark({ state }: { state?: string }) {
 
         {/* Denali photo — full width with smooth edge fade, slightly more visible */}
         <div
-          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden"
+          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden -z-10"
           style={{
             opacity: 0.18,
             maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 45%, transparent 92%), linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',

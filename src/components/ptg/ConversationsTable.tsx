@@ -260,7 +260,7 @@ function CellContent({ row, col, onSave, onResolveMatch, organizers }: {
   switch (col.id) {
     case 'name':
       return (
-        <div className="flex gap-1">
+        <div className="flex gap-px">
           <EditableCell value={row.firstName} field="first_name" contactId={row.contactId} onSave={onSave} className="font-medium" />
           <EditableCell value={row.lastName} field="last_name" contactId={row.contactId} onSave={onSave} className="font-medium" />
         </div>
