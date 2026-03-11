@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         u.id as volunteer_id,
         u.name as volunteer_name,
         COALESCE(org_u.name, 'Unassigned') as organizer_name,
-        COALESCE(t_region.region, org_m.region, 'Unassigned') as region,
+        COALESCE(t.region, org_m.region, 'Unassigned') as region,
         COUNT(*) as contacts_rolodexed,
         COUNT(CASE WHEN ai.contact_outcome IS NOT NULL AND ai.contact_outcome != '' THEN 1 END) as conversations,
         COUNT(CASE WHEN ai.volunteer_interest = 'yes' THEN 1 END) as vol_interest_yes,
@@ -53,15 +53,10 @@ export async function GET(request: NextRequest) {
       LEFT JOIN action_items ai ON ai.contact_id = c.id
       LEFT JOIN memberships org_m ON org_m.user_id = m.organizer_id AND org_m.campaign_id = $1
       LEFT JOIN users org_u ON org_u.id = m.organizer_id
-      LEFT JOIN LATERAL (
-        SELECT COALESCE(t.region, org_m.region) as region
-        FROM contacts c2
-        LEFT JOIN turfs t ON t.id = c2.turf_id
-        WHERE c2.id = c.id
-      ) t_region ON true
+      LEFT JOIN turfs t ON t.id = c.turf_id
       WHERE c.campaign_id = $1
         AND c.created_at >= ${periodStart}
-      GROUP BY u.id, u.name, organizer_name, region
+      GROUP BY u.id, u.name, COALESCE(org_u.name, 'Unassigned'), COALESCE(t.region, org_m.region, 'Unassigned')
       HAVING COUNT(*) > 0
       ORDER BY conversations DESC, contacts_rolodexed DESC
     `, [ctx.campaignId, volRoles])

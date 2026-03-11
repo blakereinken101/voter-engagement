@@ -186,7 +186,9 @@ export default function PtgDashboard() {
       body: JSON.stringify({ contactId, field, value }),
     })
 
-    if (!res.ok) {
+    if (!res.ok || field === 'reassign_organizer') {
+      // Refetch on error to revert optimistic update, or on reassignment
+      // since organizer name/region come from joins and can't be updated optimistically
       fetchData(page, filters)
     }
   }

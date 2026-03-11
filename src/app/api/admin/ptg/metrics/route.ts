@@ -70,7 +70,7 @@ export async function GET() {
       LEFT JOIN turfs t ON t.id = c.turf_id
       LEFT JOIN memberships org_m ON org_m.user_id = m.organizer_id AND org_m.campaign_id = $1
       LEFT JOIN users org_u ON org_u.id = m.organizer_id
-      GROUP BY u.id, u.name, region, org_u.name
+      GROUP BY u.id, u.name, COALESCE(t.region, org_m.region), org_u.name
     `, [ctx.campaignId, volRoles, weekStartISO, todayStart])
 
     // Relational volunteer = total_contacts >= threshold
@@ -110,7 +110,7 @@ export async function GET() {
       LEFT JOIN memberships org_m ON org_m.user_id = m.organizer_id AND org_m.campaign_id = $1
       LEFT JOIN users org_u ON org_u.id = m.organizer_id
       WHERE c.campaign_id = $1
-      GROUP BY region, organizer_name
+      GROUP BY COALESCE(t.region, org_m.region, 'Unassigned'), COALESCE(org_u.name, 'Unassigned')
     `, [ctx.campaignId, volRoles, weekStartISO, todayStart])
 
     // ── Contacts Roladexed ──
@@ -128,7 +128,7 @@ export async function GET() {
       LEFT JOIN memberships org_m ON org_m.user_id = m.organizer_id AND org_m.campaign_id = $1
       LEFT JOIN users org_u ON org_u.id = m.organizer_id
       WHERE c.campaign_id = $1
-      GROUP BY region, organizer_name
+      GROUP BY COALESCE(t.region, org_m.region, 'Unassigned'), COALESCE(org_u.name, 'Unassigned')
     `, [ctx.campaignId, volRoles, weekStartISO, todayStart])
 
     // ── Aggregate helpers ──
