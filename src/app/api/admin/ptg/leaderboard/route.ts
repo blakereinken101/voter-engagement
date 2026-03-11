@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db'
 
 /**
  * GET /api/admin/ptg/leaderboard
- * Weekly (Mon–Sun) and daily leaderboards for volunteers.
+ * Weekly (Mon–Sun) and daily stats for volunteers.
  * Uses campaign timezone for day boundaries.
  * Params: period=weekly|daily
  */
@@ -26,14 +26,10 @@ export async function GET(request: NextRequest) {
     const volRoles = ['volunteer', 'organizer']
 
     // Calculate period start in campaign timezone
-    // For weekly: most recent Monday at 00:00 in campaign TZ
-    // For daily: today at 00:00 in campaign TZ
     let periodStart: string
     if (period === 'daily') {
-      // Today start in campaign timezone using AT TIME ZONE
       periodStart = `(DATE_TRUNC('day', NOW() AT TIME ZONE '${timezone}') AT TIME ZONE '${timezone}')`
     } else {
-      // Monday start of current week in campaign timezone
       periodStart = `(DATE_TRUNC('week', NOW() AT TIME ZONE '${timezone}') AT TIME ZONE '${timezone}')`
     }
 
@@ -43,7 +39,7 @@ export async function GET(request: NextRequest) {
         u.name as volunteer_name,
         COALESCE(org_u.name, 'Unassigned') as organizer_name,
         COALESCE(t.region, org_m.region, 'Unassigned') as region,
-        COUNT(*) as contacts_rolodexed,
+        COUNT(c.id) as contacts_rolodexed,
         COUNT(CASE WHEN ai.contact_outcome IS NOT NULL AND ai.contact_outcome != '' THEN 1 END) as conversations,
         COUNT(CASE WHEN ai.volunteer_interest = 'yes' THEN 1 END) as vol_interest_yes,
         COUNT(CASE WHEN ai.contact_outcome IN ('strong_support', 'lean_support') THEN 1 END) as supporters
@@ -57,14 +53,13 @@ export async function GET(request: NextRequest) {
       WHERE c.campaign_id = $1
         AND c.created_at >= ${periodStart}
       GROUP BY u.id, u.name, COALESCE(org_u.name, 'Unassigned'), COALESCE(t.region, org_m.region, 'Unassigned')
-      HAVING COUNT(*) > 0
-      ORDER BY conversations DESC, contacts_rolodexed DESC
+      HAVING COUNT(c.id) > 0
     `, [ctx.campaignId, volRoles])
 
-    const leaderboard = rows.map((r: Record<string, unknown>, i: number) => ({
-      rank: i + 1,
-      volunteerId: r.volunteer_id,
-      volunteerName: r.volunteer_name,
+    // Return raw aggregates — frontend handles grouping/sorting
+    const volunteers = rows.map((r: Record<string, unknown>) => ({
+      id: r.volunteer_id,
+      name: r.volunteer_name,
       organizerName: r.organizer_name,
       region: r.region,
       conversations: Number(r.conversations) || 0,
@@ -79,7 +74,7 @@ export async function GET(request: NextRequest) {
       periodLabel: period === 'daily'
         ? new Date().toLocaleDateString('en-US', { timeZone: timezone, weekday: 'long', month: 'short', day: 'numeric' })
         : `Week of ${getWeekStart(timezone)}`,
-      leaderboard,
+      volunteers,
     })
   } catch (error: unknown) {
     const { error: msg, status } = handleAuthError(error)
@@ -88,7 +83,6 @@ export async function GET(request: NextRequest) {
 }
 
 function getWeekStart(timezone: string): string {
-  // Get current Monday in the campaign timezone
   const now = new Date()
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
@@ -96,7 +90,6 @@ function getWeekStart(timezone: string): string {
     month: 'short',
     day: 'numeric',
   })
-  // Find the Monday
   const tzDay = new Date(now.toLocaleString('en-US', { timeZone: timezone }))
   const dayOfWeek = tzDay.getDay()
   const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
