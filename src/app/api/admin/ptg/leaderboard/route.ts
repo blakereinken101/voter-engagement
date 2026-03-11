@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         COUNT(c.id) as contacts_rolodexed,
         COUNT(CASE WHEN ai.contact_outcome IS NOT NULL AND ai.contact_outcome != '' THEN 1 END) as conversations,
         COUNT(CASE WHEN ai.volunteer_interest = 'yes' THEN 1 END) as vol_interest_yes,
-        COUNT(CASE WHEN ai.contact_outcome IN ('strong_support', 'lean_support') THEN 1 END) as supporters
+        COUNT(CASE WHEN ai.contact_outcome = 'supporter' THEN 1 END) as supporters
       FROM contacts c
       JOIN users u ON u.id = c.user_id
       JOIN memberships m ON m.user_id = c.user_id AND m.campaign_id = $1 AND m.role = ANY($2)

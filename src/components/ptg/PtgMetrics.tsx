@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Users, MessageSquare, BookOpen, UserCheck, UsersRound, Loader2 } from 'lucide-react'
 import MetricTooltip from './MetricTooltip'
+import clsx from 'clsx'
 
 interface MetricsData {
   threshold: number
@@ -157,17 +158,17 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
         {/* By Volunteer */}
         {data.byVolunteer && data.byVolunteer.length > 0 && (
           <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] overflow-hidden">
-            <div className="px-3 py-2 bg-white/[0.03] border-b border-white/[0.06]">
+            <div className="px-3 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
               <span className="text-xs font-bold text-white/60 uppercase tracking-widest">By Volunteer</span>
             </div>
             <div className="max-h-[300px] overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-[#0f0f19]">
-                  <tr className="text-white/50 text-[11px] uppercase tracking-wider">
-                    <th className="text-left px-3 py-1.5 font-bold">Volunteer</th>
-                    <th className="text-right px-2 py-1.5 font-bold">Daily</th>
-                    <th className="text-right px-2 py-1.5 font-bold">Weekly</th>
-                    <th className="text-right px-3 py-1.5 font-bold">Total</th>
+                <thead className="sticky top-0 bg-[#0f0f19] border-b border-white/[0.06]">
+                  <tr className="text-white/50 text-xs uppercase tracking-widest">
+                    <th className="text-left px-3 py-2 font-bold">Volunteer</th>
+                    <th className="text-right px-2 py-2 font-bold">Today</th>
+                    <th className="text-right px-2 py-2 font-bold">Weekly</th>
+                    <th className="text-right px-3 py-2 font-bold">Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -198,29 +199,29 @@ function BreakdownTable({ title, rows }: {
 }) {
   return (
     <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] overflow-hidden">
-      <div className="px-3 py-2 bg-white/[0.03] border-b border-white/[0.06]">
+      <div className="px-3 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
         <span className="text-xs font-bold text-white/60 uppercase tracking-widest">{title}</span>
       </div>
       <table className="w-full text-xs">
         <thead>
-          <tr className="text-white/50 text-[11px] uppercase tracking-wider">
-            <th className="text-left px-3 py-1.5 font-bold">{title.replace('By ', '')}</th>
-            <th className="text-right px-2 py-1.5 font-bold">Vols</th>
-            <th className="text-right px-2 py-1.5 font-bold">Active</th>
-            <th className="text-right px-2 py-1.5 font-bold">Daily</th>
-            <th className="text-right px-2 py-1.5 font-bold">Weekly</th>
-            <th className="text-right px-3 py-1.5 font-bold">Total</th>
+          <tr className="text-white/50 text-xs uppercase tracking-widest bg-[#0f0f19]/80">
+            <th className="text-left px-3 py-2 font-bold">{title.replace('By ', '')}</th>
+            <th className="text-right px-2 py-2 font-bold">Vols</th>
+            <th className="text-right px-2 py-2 font-bold">Active</th>
+            <th className="text-right px-2 py-2 font-bold">Today</th>
+            <th className="text-right px-2 py-2 font-bold">Weekly</th>
+            <th className="text-right px-3 py-2 font-bold">Total</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.label} className={i % 2 === 1 ? 'bg-white/[0.01]' : ''}>
-              <td className="px-3 py-1.5 text-white/80 font-medium truncate max-w-[120px]">{r.label}</td>
-              <td className="text-right px-2 py-1.5 text-white/60 tabular-nums">{r.vols}</td>
-              <td className="text-right px-2 py-1.5 text-emerald-400/70 tabular-nums font-medium">{r.active}</td>
-              <td className="text-right px-2 py-1.5 text-white/60 tabular-nums">{r.daily}</td>
-              <td className="text-right px-2 py-1.5 text-white/70 tabular-nums">{r.weekly}</td>
-              <td className="text-right px-3 py-1.5 text-white/80 tabular-nums font-medium">{r.total}</td>
+              <td className="px-3 py-2 text-white/80 font-medium truncate max-w-[120px]">{r.label}</td>
+              <td className="text-right px-2 py-2 text-white/60 tabular-nums">{r.vols}</td>
+              <td className="text-right px-2 py-2 text-emerald-400/70 tabular-nums font-medium">{r.active}</td>
+              <td className="text-right px-2 py-2 text-white/60 tabular-nums">{r.daily}</td>
+              <td className="text-right px-2 py-2 text-white/70 tabular-nums">{r.weekly}</td>
+              <td className="text-right px-3 py-2 text-white/80 tabular-nums font-medium">{r.total}</td>
             </tr>
           ))}
         </tbody>
@@ -252,61 +253,78 @@ function SummaryCard({
   singleValue?: number
   accent?: 'blue' | 'emerald'
 }) {
+  const isHighlight = label === 'Relational Conversations' || label === 'Contacts Rolodexed'
+
   if (singleValue !== undefined) {
     return (
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-3">
+      <div className={clsx(
+        'rounded-xl border p-4',
+        isHighlight
+          ? 'border-vc-blue/20 bg-white/[0.025] shadow-[0_0_20px_rgba(59,130,246,0.08)]'
+          : 'border-white/[0.08] bg-white/[0.015]'
+      )}>
         <div className="flex items-center gap-2 mb-2">
           <span className={accent === 'emerald' ? 'text-emerald-400' : 'text-vc-blue-light'}>{icon}</span>
           <div className="flex items-center">
-            <p className="text-xs font-bold text-white/80 leading-tight">{label}</p>
+            <p className="text-sm font-bold text-white/70 leading-tight">{label}</p>
             {tooltip && <MetricTooltip text={tooltip} />}
           </div>
         </div>
-        {sublabel && <p className="text-[11px] text-white/50 -mt-1 mb-1">{sublabel}</p>}
-        <p className="text-2xl font-bold text-white tabular-nums">{singleValue}</p>
+        {sublabel && <p className="text-xs text-white/50 -mt-1 mb-1">{sublabel}</p>}
+        <p className="text-4xl lg:text-5xl font-bold font-display text-white tabular-nums">{singleValue}</p>
       </div>
     )
   }
 
   if (weeklyOnly !== undefined) {
     return (
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-3">
+      <div className={clsx(
+        'rounded-xl border p-4',
+        isHighlight
+          ? 'border-vc-blue/20 bg-white/[0.025] shadow-[0_0_20px_rgba(59,130,246,0.08)]'
+          : 'border-white/[0.08] bg-white/[0.015]'
+      )}>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-emerald-400">{icon}</span>
           <div className="flex items-center">
-            <p className="text-xs font-bold text-white/80 leading-tight">{label}</p>
+            <p className="text-sm font-bold text-white/70 leading-tight">{label}</p>
             {tooltip && <MetricTooltip text={tooltip} />}
           </div>
         </div>
-        {sublabel && <p className="text-[11px] text-white/50 -mt-1 mb-1">{sublabel}</p>}
-        <p className="text-2xl font-bold text-emerald-400 tabular-nums">{weeklyOnly}</p>
-        <p className="text-[11px] text-white/50 mt-0.5">this week</p>
+        {sublabel && <p className="text-xs text-white/50 -mt-1 mb-1">{sublabel}</p>}
+        <p className="text-4xl lg:text-5xl font-bold font-display text-emerald-400 tabular-nums">{weeklyOnly}</p>
+        <p className="text-xs text-white/50 mt-0.5">this week</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-3">
+    <div className={clsx(
+      'rounded-xl border p-4',
+      isHighlight
+        ? 'border-vc-blue/20 bg-white/[0.025] shadow-[0_0_20px_rgba(59,130,246,0.08)]'
+        : 'border-white/[0.08] bg-white/[0.015]'
+    )}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-vc-blue-light">{icon}</span>
         <div className="flex items-center">
-          <p className="text-xs font-bold text-white/80 leading-tight">{label}</p>
+          <p className="text-sm font-bold text-white/70 leading-tight">{label}</p>
           {tooltip && <MetricTooltip text={tooltip} />}
         </div>
       </div>
-      {sublabel && <p className="text-[11px] text-white/50 -mt-1 mb-1">{sublabel}</p>}
+      {sublabel && <p className="text-xs text-white/50 -mt-1 mb-1">{sublabel}</p>}
       <div className="flex items-baseline gap-3">
         <div>
-          <p className="text-2xl font-bold text-white tabular-nums">{total ?? 0}</p>
-          <p className="text-[11px] text-white/50">total</p>
+          <p className="text-4xl lg:text-5xl font-bold font-display text-white tabular-nums">{total ?? 0}</p>
+          <p className="text-xs text-white/50">total</p>
         </div>
         <div className="border-l border-white/[0.06] pl-3">
-          <p className="text-sm font-bold text-white/70 tabular-nums">{weekly ?? 0}</p>
-          <p className="text-[11px] text-white/50">weekly</p>
+          <p className="text-lg font-bold text-white/70 tabular-nums">{weekly ?? 0}</p>
+          <p className="text-xs text-white/50">weekly</p>
         </div>
         <div>
-          <p className="text-sm font-bold text-white/60 tabular-nums">{daily ?? 0}</p>
-          <p className="text-[11px] text-white/50">daily</p>
+          <p className="text-lg font-bold text-white/60 tabular-nums">{daily ?? 0}</p>
+          <p className="text-xs text-white/50">today</p>
         </div>
       </div>
     </div>

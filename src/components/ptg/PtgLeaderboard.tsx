@@ -52,7 +52,7 @@ interface MetricDef {
 const METRICS: MetricDef[] = [
   { id: 'conversations', label: 'Conversations', short: 'Convos', tooltip: 'Number of voter conversations logged this period.', icon: MessageSquare, color: 'text-vc-blue-light', bg: 'bg-vc-blue-light/10', border: 'border-vc-blue-light/30' },
   { id: 'contactsRolodexed', label: 'Rolodexed', short: 'Rolodex', tooltip: 'Contacts added to the volunteer\'s personal rolodex.', icon: BookOpen, color: 'text-vc-teal', bg: 'bg-vc-teal/10', border: 'border-vc-teal/30' },
-  { id: 'supporters', label: 'Supporters', short: 'Support', tooltip: 'Contacts marked as supporters during outreach.', icon: ThumbsUp, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
+  { id: 'supporters', label: 'Positive IDs', short: 'Pos ID', tooltip: 'Contacts positively identified as supporters during outreach.', icon: ThumbsUp, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
   { id: 'volInterest', label: 'Volunteers', short: 'Vol Int', tooltip: 'Contacts who expressed interest in volunteering.', icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' },
 ]
 
@@ -177,7 +177,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                   period === 'daily' ? 'bg-white/15 text-white shadow-sm' : 'text-white/50 hover:text-white/70'
                 )}
               >
-                Daily
+                Today
               </button>
            </div>
         </div>
@@ -241,7 +241,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
         ) : !data || aggregatedData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <Trophy className="w-12 h-12 text-white/5 mb-3" />
-            <p className="text-white/50 font-medium">No activity recorded for this {period === 'weekly' ? 'week' : 'day'} yet.</p>
+            <p className="text-white/50 font-medium">No activity recorded {period === 'weekly' ? 'this week' : 'today'} yet.</p>
             <p className="text-white/40 text-xs mt-1">As volunteers log conversations this period, they will appear here ranked by their activity.</p>
           </div>
         ) : (

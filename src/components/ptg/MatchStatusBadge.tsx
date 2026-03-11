@@ -53,7 +53,7 @@ export default function MatchStatusBadge({ status, confidence, onResolve }: Prop
       onClick={isClickable ? onResolve : undefined}
       disabled={!isClickable}
       className={clsx(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide transition-all',
+        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide transition-all',
         config.bg,
         config.text,
         isClickable && 'cursor-pointer hover:brightness-125 hover:ring-1 hover:ring-current/20',
@@ -61,7 +61,7 @@ export default function MatchStatusBadge({ status, confidence, onResolve }: Prop
       )}
       title={isClickable ? 'Click to resolve match' : undefined}
     >
-      <Icon className="w-3 h-3" />
+      <Icon className="w-3.5 h-3.5" />
       {config.label}
       {key === 'ambiguous' && confidence && (
         <span className={clsx(

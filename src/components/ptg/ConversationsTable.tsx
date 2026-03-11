@@ -6,7 +6,7 @@ import EditableCell from './EditableCell'
 import MatchStatusBadge from './MatchStatusBadge'
 import OrganizerSelect from './OrganizerSelect'
 import clsx from 'clsx'
-import { ArrowUpDown, ArrowUp, ArrowDown, CheckSquare, Square, Users } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, CheckSquare, Square, Users, MessageSquare } from 'lucide-react'
 
 interface Props {
   rows: ConversationRow[]
@@ -126,14 +126,14 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
       <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.015] backdrop-blur-sm">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="bg-white/[0.04]">
+            <tr className="bg-[#0f0f19]">
               {visibleCols.map(col => (
                 <th
                   key={col.id}
                   onClick={() => toggleSort(col.id)}
                   className={clsx(
-                    'px-3 py-2.5 text-left text-[11px] font-bold text-white/50 uppercase tracking-wider border-b border-white/[0.08] whitespace-nowrap',
-                    col.id === 'name' && 'sticky left-0 z-10 bg-[#0d081a]/95 backdrop-blur min-w-[160px]',
+                    'px-3 py-3 text-left text-xs font-bold text-white/50 uppercase tracking-widest border-b-2 border-white/[0.08] whitespace-nowrap',
+                    col.id === 'name' && 'sticky left-0 z-10 bg-[#0f0f19] min-w-[160px]',
                     SORTABLE[col.id] && 'cursor-pointer group hover:text-white/70 select-none',
                   )}
                   style={col.width ? { minWidth: col.width } : undefined}
@@ -157,8 +157,14 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={visibleCols.length} className="px-4 py-16 text-center text-white/30">
-                  No conversations found matching your filters.
+                <td colSpan={visibleCols.length} className="px-4 py-20">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-white/10 flex items-center justify-center mb-4">
+                      <MessageSquare className="w-7 h-7 text-white/15" />
+                    </div>
+                    <p className="text-white/40 font-medium text-sm">No conversations found</p>
+                    <p className="text-white/25 text-xs mt-1 max-w-[280px]">Try adjusting your filters or date range to see matching conversations.</p>
+                  </div>
                 </td>
               </tr>
             ) : (
@@ -175,7 +181,7 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
                     <td
                       key={col.id}
                       className={clsx(
-                        'px-3 py-1.5',
+                        'px-3 py-2.5',
                         col.id === 'name' && 'sticky left-0 z-10 bg-[#0d081a]/95 backdrop-blur'
                       )}
                     >
@@ -206,7 +212,7 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
 
       {/* Floating bulk action bar */}
       {someSelected && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1a1025]/95 backdrop-blur-xl border border-vc-blue/30 shadow-xl shadow-black/30">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1a1025]/95 backdrop-blur-xl border border-vc-blue/30 shadow-2xl shadow-black/50 animate-slide-up">
           <span className="text-sm text-white/70 font-medium">
             {selectedIds.size} contact{selectedIds.size !== 1 ? 's' : ''} selected
             <span className="text-white/40 ml-1">({selectedVolunteerIds.size} volunteer{selectedVolunteerIds.size !== 1 ? 's' : ''})</span>
@@ -305,7 +311,7 @@ function CellContent({ row, col, onSave, onResolveMatch, organizers }: {
     case 'entryMethod':
       return (
         <span className={clsx(
-          'inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide',
+          'inline-flex px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide',
           row.entryMethod === 'scan' && 'bg-blue-500/15 text-blue-300',
           row.entryMethod === 'chatbot' && 'bg-purple-500/15 text-purple-300',
           row.entryMethod === 'manual' && 'bg-white/5 text-white/40',

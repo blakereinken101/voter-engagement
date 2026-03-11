@@ -64,7 +64,7 @@ export default function DashboardPage() {
       {/* Header — glass bar */}
       <header className="glass-dark border-b border-white/10 sticky top-0 z-50">
         {/* Top bar */}
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pt-3 md:pt-5 pb-2 md:pb-3 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 pt-3 md:pt-5 pb-2 md:pb-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="hover:opacity-80 transition-opacity">
               <Image src="/logo.png" alt="Threshold" width={800} height={448} className="h-14 md:h-28 w-auto" priority />
@@ -94,7 +94,7 @@ export default function DashboardPage() {
           {user && (
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="min-w-0 text-right">
-                <p className="text-sm md:text-base font-bold text-white leading-tight truncate">{user.name || 'Volunteer'}</p>
+                <p className="text-base md:text-xl font-bold text-white leading-tight truncate">{user.name || 'Volunteer'}</p>
                 {memberships.length > 1 ? (
                   <div className="relative">
                     <select
@@ -115,7 +115,7 @@ export default function DashboardPage() {
                   <p className="text-xs text-vc-purple-light leading-tight truncate">{campaignConfig.name}</p>
                 )}
               </div>
-              <div className="w-9 h-9 flex-shrink-0 rounded-full bg-vc-purple/30 ring-2 ring-vc-purple/50 flex items-center justify-center text-sm font-bold text-white">
+              <div className="w-10 h-10 flex-shrink-0 rounded-full bg-vc-purple/30 ring-2 ring-vc-purple/50 flex items-center justify-center text-sm font-bold text-white">
                 {userInitials}
               </div>
               <button
@@ -129,57 +129,63 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Nav bar */}
-        <div className="max-w-6xl mx-auto px-4 md:px-6 pb-3 md:pb-4 flex flex-wrap items-center gap-1.5 md:gap-3">
+        {/* Nav bar — primary tabs left, utility actions + stats right */}
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 pb-3 md:pb-4 flex flex-wrap items-center gap-1.5 md:gap-3">
+          {/* Primary navigation tabs */}
           <button
             onClick={() => setView('chat')}
-            className={`text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+            className={`text-base md:text-lg px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
               view === 'chat'
                 ? 'bg-vc-purple text-white shadow-glow'
                 : 'text-white/60 hover:text-white glass hover:border-white/20'
             }`}
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
             Chat
           </button>
           <button
             onClick={() => setView('contacts')}
-            className={`text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+            className={`text-base md:text-lg px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
               view === 'contacts'
                 ? 'bg-vc-purple text-white shadow-glow'
                 : 'text-white/60 hover:text-white glass hover:border-white/20'
             }`}
           >
-            <Table className="w-4 h-4" />
+            <Table className="w-4 h-4 md:w-5 md:h-5" />
             Rolodex
           </button>
           {isAdmin && (
             <>
               <button
                 onClick={() => setView('admin')}
-                className={`text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
+                className={`text-base md:text-lg px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 ${
                   view === 'admin'
                     ? 'bg-vc-purple text-white shadow-glow'
                     : 'text-white/60 hover:text-white glass hover:border-white/20'
                 }`}
               >
-                <Shield className="w-4 h-4" />
+                <Shield className="w-4 h-4 md:w-5 md:h-5" />
                 Admin
               </button>
               <Link
                 href="/dashboard/ptg"
-                className="text-sm md:text-base px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 text-white/60 hover:text-white glass hover:border-white/20"
+                className="text-base md:text-lg px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 text-white/60 hover:text-white glass hover:border-white/20"
               >
-                <Target className="w-4 h-4" />
+                <Target className="w-4 h-4 md:w-5 md:h-5" />
                 PTG
               </Link>
             </>
           )}
+
+          {/* Spacer to push utility actions right */}
+          <div className="hidden md:block flex-1" />
+
+          {/* Secondary utility actions */}
           <button
             onClick={() => setShowScanSheet(true)}
-            className="text-sm md:text-base text-white/60 hover:text-white transition-colors px-5 py-2.5 rounded-btn glass hover:border-white/20 flex items-center gap-2 font-bold"
+            className="text-base md:text-lg text-vc-blue-light hover:text-white transition-colors px-4 py-2.5 rounded-btn border border-vc-blue/25 hover:border-vc-blue/40 bg-vc-blue/10 hover:bg-vc-blue/15 flex items-center gap-2 font-bold"
           >
-            <Camera className="w-4 h-4" />
+            <Camera className="w-4 h-4 md:w-5 md:h-5" />
             Scan Sheet
           </button>
           {state.actionPlanState.length > 0 && (
@@ -195,27 +201,28 @@ export default function DashboardPage() {
                 const date = new Date().toISOString().slice(0, 10)
                 downloadCSV(csv, `threshold-${campaignConfig.id}-${date}.csv`)
               }}
-              className="text-sm md:text-base text-white/60 hover:text-white px-5 py-2.5 rounded-btn glass hover:border-white/20 font-bold transition-colors flex items-center gap-2"
+              className="text-base md:text-lg text-white/40 hover:text-white/70 px-4 py-2 rounded-btn border border-white/[0.08] hover:border-white/20 font-medium transition-colors flex items-center gap-2"
             >
               <Download className="w-4 h-4" />
               Export
             </button>
           )}
 
+          {/* Run Match — distinct CTA */}
           {unmatchedCount > 0 && (
             <button
               onClick={runMatchingForUnmatched}
               disabled={state.isLoading}
-              className="text-sm md:text-base text-white/60 hover:text-white px-5 py-2.5 rounded-btn glass hover:border-white/20 font-bold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-base md:text-lg px-5 py-2.5 rounded-btn font-bold transition-all flex items-center gap-2 bg-vc-teal/20 text-vc-teal border border-vc-teal/30 hover:bg-vc-teal/30 hover:border-vc-teal/50 shadow-[0_0_15px_rgba(20,184,166,0.15)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {state.isLoading ? (
                 <>
-                  <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-vc-teal border-t-transparent rounded-full" />
                   Matching...
                 </>
               ) : (
                 <>
-                  <Zap className="w-4 h-4" />
+                  <Zap className="w-4 h-4 md:w-5 md:h-5" />
                   Run Match
                   <span className="bg-vc-coral/80 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[1.25rem] text-center">
                     {unmatchedCount}
@@ -227,30 +234,30 @@ export default function DashboardPage() {
 
           {/* Stats — pushed right, hidden on small screens */}
           {view !== 'admin' && totalPeople > 0 && (
-            <div className="hidden md:flex flex-wrap items-center gap-4 text-sm md:text-base ml-auto font-display tabular-nums">
-              <span className="flex items-center gap-1.5 text-white/70">
-                <Users className="w-4 h-4" />
+            <div className="hidden md:flex flex-wrap items-center gap-5 text-lg md:text-xl ml-auto font-display tabular-nums">
+              <span className="flex items-center gap-2 text-white/70">
+                <Users className="w-5 h-5" />
                 <span className="text-white font-bold">{totalPeople}</span>
               </span>
-              <span className="flex items-center gap-1.5 text-vc-gold">
-                <MessageCircle className="w-4 h-4" />
+              <span className="flex items-center gap-2 text-vc-gold">
+                <MessageCircle className="w-5 h-5" />
                 <span className="font-bold">{contactedCount}</span>
               </span>
               {supporters > 0 && (
-                <span className="flex items-center gap-1.5 text-vc-teal">
-                  <ThumbsUp className="w-4 h-4" />
+                <span className="flex items-center gap-2 text-vc-teal">
+                  <ThumbsUp className="w-5 h-5" />
                   <span className="font-bold">{supporters}</span>
                 </span>
               )}
               {hasTargetConfig && targetsHit > 0 && (
-                <span className="flex items-center gap-1.5 text-vc-gold">
-                  <Star className="w-4 h-4 fill-vc-gold" />
+                <span className="flex items-center gap-2 text-vc-gold">
+                  <Star className="w-5 h-5 fill-vc-gold" />
                   <span className="font-bold">{targetsHit}</span>
                 </span>
               )}
               {followUps > 0 && (
-                <span className="flex items-center gap-1.5 text-white/60">
-                  <Clock className="w-4 h-4" />
+                <span className="flex items-center gap-2 text-white/60">
+                  <Clock className="w-5 h-5" />
                   <span className="font-bold">{followUps}</span>
                 </span>
               )}
@@ -260,7 +267,7 @@ export default function DashboardPage() {
 
         {/* Error */}
         {state.error && (
-          <div className="max-w-6xl mx-auto px-6 pb-3">
+          <div className="max-w-[1400px] mx-auto px-6 pb-3">
             <div className="bg-red-500/20 text-red-300 text-sm px-4 py-2.5 rounded-btn border border-red-500/30">
               {state.error}
             </div>
@@ -270,7 +277,7 @@ export default function DashboardPage() {
 
       {/* Personal stats + leaderboard — shown on contacts view */}
       {view === 'contacts' && totalPeople > 0 && (
-        <div className="max-w-6xl mx-auto w-full px-4 md:px-8 pt-4 space-y-3">
+        <div className="max-w-[1400px] mx-auto w-full px-4 md:px-8 pt-4 space-y-3">
           <ConversionStats />
           <VolunteerLeaderboard />
           <div className="grid md:grid-cols-3 gap-3">
@@ -282,7 +289,7 @@ export default function DashboardPage() {
       )}
 
       {/* Main content */}
-      <main className={`flex-1 max-w-6xl mx-auto w-full px-4 md:px-8 py-4 ${
+      <main className={`flex-1 max-w-[1400px] mx-auto w-full px-4 md:px-8 py-8 ${
         view === 'chat' ? 'min-h-0 flex flex-col overflow-hidden' : ''
       }`}>
         {view !== 'chat' && (

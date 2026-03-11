@@ -9,7 +9,7 @@ import ConversationsPager from './ConversationsPager'
 import PtgMetrics from './PtgMetrics'
 import PtgLeaderboard from './PtgLeaderboard'
 import ResolveMatchModal from './ResolveMatchModal'
-import { Loader2, MessageSquare, BarChart3, Trophy } from 'lucide-react'
+import { Loader2, MessageSquare, BarChart3, Trophy, Users } from 'lucide-react'
 import clsx from 'clsx'
 
 const REFRESH_INTERVAL_MS = 60_000 // auto-refresh every 60 seconds
@@ -231,17 +231,17 @@ export default function PtgDashboard() {
         </div>
       </div>
 
-      {/* Metrics / Leaderboard Tabs */}
-      <div className="flex items-center gap-1 border-b border-white/[0.06] -mb-1">
+      {/* Metrics / Leaderboard Tabs — pill-shaped segmented control */}
+      <div className="inline-flex p-1 rounded-xl bg-white/[0.04] border border-white/[0.08]">
         {TABS.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={clsx(
-              'flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-colors border-b-2 -mb-px',
+              'flex items-center gap-2 px-5 py-2.5 text-sm font-bold rounded-lg transition-all',
               activeTab === tab.id
-                ? 'text-white border-vc-blue-light'
-                : 'text-white/50 border-transparent hover:text-white/70',
+                ? 'bg-white/[0.12] text-white shadow-sm shadow-black/20'
+                : 'text-white/50 hover:text-white/70 hover:bg-white/[0.04]',
             )}
           >
             {tab.icon}
