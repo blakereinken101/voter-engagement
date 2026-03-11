@@ -102,7 +102,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
       result = data.volunteers.map(v => ({
         id: v.id,
         name: v.name,
-        subtitle: v.region || v.organizerName,
+        subtitle: v.organizerName || v.region,
         conversations: v.conversations,
         contactsRolodexed: v.contactsRolodexed,
         supporters: v.supporters,
@@ -112,12 +112,14 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
       }))
     } else {
       const key = entity === 'organizer' ? 'organizerName' : 'region'
-      const subtitleLabel = entity === 'organizer' ? 'Organizer' : 'Region'
+      const subtitleLabel = entity === 'region' ? 'Region' : ''
       const map = new Map<string, Omit<AggregatedEntry, 'rank'>>()
       data.volunteers.forEach(v => {
         const k = v[key] || 'Unassigned'
         if (!map.has(k)) {
-          map.set(k, { id: k, name: k, subtitle: subtitleLabel, conversations: 0, contactsRolodexed: 0, supporters: 0, volInterest: 0, shiftsCompleted: 0, recruited: 0 })
+          // For organizer rows, capture the region from the first volunteer seen
+          const subtitle = entity === 'organizer' ? (v.region || '') : subtitleLabel
+          map.set(k, { id: k, name: k, subtitle, conversations: 0, contactsRolodexed: 0, supporters: 0, volInterest: 0, shiftsCompleted: 0, recruited: 0 })
         }
         const entry = map.get(k)!
         entry.conversations += v.conversations
