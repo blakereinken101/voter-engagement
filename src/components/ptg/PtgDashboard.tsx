@@ -9,7 +9,7 @@ import ConversationsPager from './ConversationsPager'
 import PtgMetrics from './PtgMetrics'
 import PtgLeaderboard from './PtgLeaderboard'
 import ResolveMatchModal from './ResolveMatchModal'
-import { Loader2, MessageSquare, BarChart3, Trophy, Users } from 'lucide-react'
+import { Loader2, MessageSquare, BarChart3, Trophy, Users, TableProperties } from 'lucide-react'
 import clsx from 'clsx'
 
 const REFRESH_INTERVAL_MS = 60_000 // auto-refresh every 60 seconds
@@ -42,9 +42,10 @@ interface FilterOptions {
   outcomes: string[]
 }
 
-type TabId = 'metrics' | 'leaderboard'
+type TabId = 'spreadsheet' | 'metrics' | 'leaderboard'
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: 'spreadsheet', label: 'Spreadsheet', icon: <TableProperties className="w-3.5 h-3.5" /> },
   { id: 'metrics', label: 'Metrics', icon: <BarChart3 className="w-3.5 h-3.5" /> },
   { id: 'leaderboard', label: 'Leaderboard', icon: <Trophy className="w-3.5 h-3.5" /> },
 ]
@@ -62,7 +63,7 @@ export default function PtgDashboard() {
   const [initialLoad, setInitialLoad] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
   const [resolveContactId, setResolveContactId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<TabId>('metrics')
+  const [activeTab, setActiveTab] = useState<TabId>('spreadsheet')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const filtersRef = useRef(filters)
   const pageRef = useRef(page)
@@ -257,33 +258,37 @@ export default function PtgDashboard() {
       {activeTab === 'metrics' && <PtgMetrics refreshKey={refreshKey} />}
       {activeTab === 'leaderboard' && <PtgLeaderboard refreshKey={refreshKey} />}
 
-      <ConversationsToolbar
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        filterOptions={filterOptions}
-        columns={columns}
-        onColumnsChange={handleColumnsChange}
-        total={total}
-      />
+      {activeTab === 'spreadsheet' && (
+        <div className="space-y-4 animate-fade-in">
+          <ConversationsToolbar
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            filterOptions={filterOptions}
+            columns={columns}
+            onColumnsChange={handleColumnsChange}
+            total={total}
+          />
 
-      <div className={loading && !initialLoad ? 'opacity-50 pointer-events-none transition-opacity' : ''}>
-        <ConversationsTable
-          rows={rows}
-          columns={columns}
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          onSave={handleSave}
-          onResolveMatch={setResolveContactId}
-          organizers={filterOptions.organizers}
-        />
-      </div>
+          <div className={loading && !initialLoad ? 'opacity-50 pointer-events-none transition-opacity' : ''}>
+            <ConversationsTable
+              rows={rows}
+              columns={columns}
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onSave={handleSave}
+              onResolveMatch={setResolveContactId}
+              organizers={filterOptions.organizers}
+            />
+          </div>
 
-      <ConversationsPager
-        page={page}
-        pageSize={pageSize}
-        total={total}
-        onPageChange={setPage}
-      />
+          <ConversationsPager
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
 
       {resolveContactId && (
         <ResolveMatchModal

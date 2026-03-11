@@ -5,7 +5,7 @@ import { Users, MessageSquare, BookOpen, UserCheck, UsersRound, BarChart3 } from
 import MetricTooltip from './MetricTooltip'
 import clsx from 'clsx'
 
-type BreakdownView = 'contacts' | 'volunteers'
+type BreakdownView = 'contacts' | 'conversations' | 'volunteers'
 
 interface MetricsData {
   threshold: number
@@ -170,6 +170,17 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
             Contacts
           </button>
           <button
+            onClick={() => setBreakdownView('conversations')}
+            className={clsx(
+              'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+              breakdownView === 'conversations'
+                ? 'bg-white/[0.12] text-white shadow-sm'
+                : 'text-white/50 hover:text-white/70'
+            )}
+          >
+            Conversations
+          </button>
+          <button
             onClick={() => setBreakdownView('volunteers')}
             className={clsx(
               'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
@@ -284,9 +295,13 @@ function BreakdownTable({ title, rows, view }: {
   rows: { label: string; vols: number; active: number; daily: number; weekly: number; total: number; convDaily?: number; convWeekly?: number; convTotal?: number }[]
 }) {
   const isVolView = view === 'volunteers'
+  const isConvView = view === 'conversations'
+
   const maxTotal = isVolView
     ? Math.max(...rows.map(r => r.vols), 1)
-    : Math.max(...rows.map(r => r.total), 1)
+    : isConvView
+      ? Math.max(...rows.map(r => r.convTotal || 0), 1)
+      : Math.max(...rows.map(r => r.total), 1)
 
   return (
     <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] overflow-hidden">
@@ -313,47 +328,53 @@ function BreakdownTable({ title, rows, view }: {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.label} className={clsx(
-              'border-b border-white/[0.04] transition-colors hover:bg-white/[0.03]',
-              i % 2 === 0 ? 'bg-white/[0.015]' : 'bg-transparent'
-            )}>
-              <td className="px-3 py-2 text-white/90 font-medium truncate max-w-[120px]">{r.label}</td>
-              {isVolView ? (
-                <>
-                  <td className="text-right px-2 py-2 text-white/80 tabular-nums">{r.vols}</td>
-                  <td className="text-right px-2 py-2 text-emerald-400/90 tabular-nums font-medium">{r.active}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="w-16 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-emerald-400/40"
-                          style={{ width: `${(r.vols / maxTotal) * 100}%` }}
-                        />
+          {rows.map((r, i) => {
+            const dailyVal = isConvView ? (r.convDaily || 0) : r.daily
+            const weeklyVal = isConvView ? (r.convWeekly || 0) : r.weekly
+            const totalVal = isConvView ? (r.convTotal || 0) : r.total
+
+            return (
+              <tr key={r.label} className={clsx(
+                'border-b border-white/[0.04] transition-colors hover:bg-white/[0.03]',
+                i % 2 === 0 ? 'bg-white/[0.015]' : 'bg-transparent'
+              )}>
+                <td className="px-3 py-2 text-white/90 font-medium truncate max-w-[120px]">{r.label}</td>
+                {isVolView ? (
+                  <>
+                    <td className="text-right px-2 py-2 text-white/80 tabular-nums">{r.vols}</td>
+                    <td className="text-right px-2 py-2 text-emerald-400/90 tabular-nums font-medium">{r.active}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-400/40"
+                            style={{ width: `${(r.vols / maxTotal) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-white/90 tabular-nums font-bold min-w-[28px] text-right">{r.vols + r.active}</span>
                       </div>
-                      <span className="text-white/90 tabular-nums font-bold min-w-[28px] text-right">{r.vols + r.active}</span>
-                    </div>
-                  </td>
-                </>
-              ) : (
-                <>
-                  <td className="text-right px-2 py-2 text-white/70 tabular-nums">{r.daily}</td>
-                  <td className="text-right px-2 py-2 text-white/80 tabular-nums">{r.weekly}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center justify-end gap-2">
-                      <div className="w-16 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-vc-blue-light/40"
-                          style={{ width: `${(r.total / maxTotal) * 100}%` }}
-                        />
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <td className="text-right px-2 py-2 text-white/70 tabular-nums">{dailyVal}</td>
+                    <td className="text-right px-2 py-2 text-white/80 tabular-nums">{weeklyVal}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-end gap-2">
+                        <div className="w-16 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                          <div
+                            className={clsx("h-full rounded-full", isConvView ? "bg-vc-purple/40" : "bg-vc-blue-light/40")}
+                            style={{ width: `${(totalVal / maxTotal) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-white/90 tabular-nums font-bold min-w-[28px] text-right">{totalVal}</span>
                       </div>
-                      <span className="text-white/90 tabular-nums font-bold min-w-[28px] text-right">{r.total}</span>
-                    </div>
-                  </td>
-                </>
-              )}
-            </tr>
-          ))}
+                    </td>
+                  </>
+                )}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
