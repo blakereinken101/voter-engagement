@@ -93,6 +93,118 @@ const CITIES = {
   'Southeast': ['Juneau', 'Sitka', 'Ketchikan', 'Petersburg'],
 }
 
+// Alaska street names for mock voter records
+const AK_STREETS = ['Raspberry Rd', 'Northern Lights Blvd', 'Lake Otis Pkwy', 'Tudor Rd', 'Dimond Blvd', 'Spenard Rd', 'Old Seward Hwy', 'Boniface Pkwy', 'Jewel Lake Rd', 'Minnesota Dr', 'Fireweed Ln', 'Benson Blvd', 'DeBarr Rd', 'Muldoon Rd', 'Airport Heights Dr', 'Chena Hot Springs Rd', 'College Rd', 'Geist Rd', 'Johansen Expy', 'Peger Rd', 'Lathrop St', 'Knik-Goose Bay Rd', 'Bogard Rd', 'Palmer-Wasilla Hwy', 'Kenai Spur Hwy', 'Sterling Hwy', 'Egan Dr', 'Glacier Hwy', 'Mendenhall Loop Rd', 'Tongass Ave']
+const PARTIES = ['DEM', 'REP', 'UNF', 'NPA', 'LIB', 'GRN']
+const PARTY_WEIGHTS = [0.25, 0.30, 0.30, 0.08, 0.04, 0.03]
+const VOTER_STATUSES = ['Active', 'Inactive']
+const SEGMENTS = ['super-voter', 'sometimes-voter', 'rarely-voter']
+const SEGMENT_WEIGHTS = [0.30, 0.45, 0.25]
+
+function pickWeightedParty() {
+  const r = seededRandom()
+  let cumulative = 0
+  for (let i = 0; i < PARTIES.length; i++) {
+    cumulative += PARTY_WEIGHTS[i]
+    if (r < cumulative) return PARTIES[i]
+  }
+  return PARTIES[PARTIES.length - 1]
+}
+
+function pickWeightedSegment() {
+  const r = seededRandom()
+  let cumulative = 0
+  for (let i = 0; i < SEGMENTS.length; i++) {
+    cumulative += SEGMENT_WEIGHTS[i]
+    if (r < cumulative) return SEGMENTS[i]
+  }
+  return SEGMENTS[SEGMENTS.length - 1]
+}
+
+function generateVoteHistory() {
+  // Generate realistic vote history — super voters vote in most, rarely voters in few
+  const vals = ['Y', 'N', 'A', 'E', '']
+  return {
+    VH2024G: pick(chance(0.70) ? ['Y'] : vals),
+    VH2022G: pick(chance(0.55) ? ['Y'] : vals),
+    VH2020G: pick(chance(0.75) ? ['Y'] : vals),
+    VH2024P: pick(chance(0.30) ? ['Y'] : vals),
+    VH2022P: pick(chance(0.25) ? ['Y'] : vals),
+    VH2020P: pick(chance(0.35) ? ['Y'] : vals),
+  }
+}
+
+/**
+ * Generate a mock SafeVoterRecord that resembles the contact.
+ * For confirmed matches, the name/address closely match.
+ * For ambiguous candidates, names are similar but details differ.
+ */
+function generateMockVoterRecord(firstName, lastName, city, zip, isCloseMatch) {
+  const birthYear = String(randInt(1945, 2004))
+  const regYear = randInt(2000, 2024)
+  const voterAddress = isCloseMatch
+    ? `${randInt(100, 9999)} ${pick(AK_STREETS)}`
+    : `${randInt(100, 9999)} ${pick(AK_STREETS)}`
+
+  return {
+    first_name: isCloseMatch ? firstName : pick(C_FIRST),
+    last_name: isCloseMatch ? lastName : (chance(0.6) ? lastName : pick(C_LAST)),
+    birth_year: birthYear,
+    gender: pick(['M', 'F', 'U']),
+    residential_address: voterAddress,
+    city: isCloseMatch ? city : pick(['Anchorage', 'Fairbanks', 'Wasilla', 'Juneau', 'Kenai']),
+    state: 'AK',
+    zip: isCloseMatch ? zip : pick(['99501', '99502', '99503', '99701', '99645', '99801']),
+    party_affiliation: pickWeightedParty(),
+    registration_date: `${regYear}-${String(randInt(1, 12)).padStart(2, '0')}-${String(randInt(1, 28)).padStart(2, '0')}`,
+    voter_status: chance(0.90) ? 'Active' : 'Inactive',
+    ...generateVoteHistory(),
+  }
+}
+
+/**
+ * Generate a mock MatchCandidate with voterRecord, score, confidenceLevel, matchedOn.
+ */
+function generateMockCandidate(firstName, lastName, city, zip, isTopMatch) {
+  const score = isTopMatch
+    ? (0.80 + seededRandom() * 0.19)   // 0.80-0.99 for top match
+    : (0.55 + seededRandom() * 0.30)   // 0.55-0.85 for other candidates
+
+  const confidenceLevel = score >= 0.90 ? 'high'
+    : score >= 0.70 ? 'medium'
+    : score >= 0.55 ? 'low'
+    : 'very-low'
+
+  const matchedOn = ['exact-name']
+  if (chance(0.60)) matchedOn.push('city')
+  if (chance(0.40)) matchedOn.push('zip')
+  if (chance(0.20)) matchedOn.push('address')
+  if (chance(0.15)) matchedOn.push('age-range')
+
+  return {
+    voterRecord: generateMockVoterRecord(firstName, lastName, city, zip, isTopMatch),
+    score: Math.round(score * 100) / 100,
+    confidenceLevel,
+    matchedOn,
+  }
+}
+
+/**
+ * Compute a vote score from vote history in a voter record.
+ */
+function computeVoteScore(voterRecord) {
+  const elections = ['VH2024G', 'VH2022G', 'VH2020G', 'VH2024P', 'VH2022P', 'VH2020P']
+  let voted = 0
+  let total = 0
+  for (const e of elections) {
+    if (voterRecord[e] && voterRecord[e] !== '') {
+      total++
+      if (voterRecord[e] === 'Y' || voterRecord[e] === 'E') voted++
+    }
+  }
+  return total > 0 ? Math.round((voted / total) * 100) / 100 : 0.5
+}
+
 const CATEGORIES = ['friends', 'neighbors', 'coworkers', 'community', 'faith-community', 'school-pta', 'sports', 'hobby']
 const OUTCOMES = ['supporter', 'undecided', 'opposed', 'left-message', 'no-answer']
 const OUTCOME_WEIGHTS = [0.35, 0.25, 0.10, 0.15, 0.15]
@@ -331,9 +443,20 @@ async function main() {
     console.log(`  Created ${volIdx} volunteers across ${organizerIds.length} organizers`)
 
     // ── 7. Create contacts + action items (conversations) ────────────
+    // Check if match_results has the 'confidence' column (migration 014)
+    let hasConfidenceCol = false
+    try {
+      const { rows: colCheck } = await client.query(`
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'match_results' AND column_name = 'confidence'
+      `)
+      hasConfidenceCol = colCheck.length > 0
+    } catch { /* ignore */ }
+
     console.log('\nCreating contacts & conversations...')
     let contactCount = 0
     let convoCount = 0
+    const matchCounts = { confirmed: 0, ambiguous: 0, unmatched: 0, pending: 0 }
 
     await client.query('BEGIN')
     try {
@@ -352,8 +475,13 @@ async function main() {
             const city = pick(regionCities)
             const category = pick(CATEGORIES)
             const phone = `907-${randInt(200,999)}-${String(randInt(1000,9999))}`
-            const address = `${randInt(100, 9999)} ${pick(['Main', 'Spruce', 'Birch', 'Glacier', 'Moose', 'Eagle', 'Salmon', 'Northern Lights'])} ${pick(['St', 'Ave', 'Rd', 'Dr', 'Ln'])}`
+            const fullAddress = `${randInt(100, 9999)} ${pick(['Main', 'Spruce', 'Birch', 'Glacier', 'Moose', 'Eagle', 'Salmon', 'Northern Lights'])} ${pick(['St', 'Ave', 'Rd', 'Dr', 'Ln'])}`
             const zip = pick(['99501', '99502', '99503', '99504', '99507', '99508', '99577', '99645', '99654', '99669', '99611', '99801', '99835', '99901'])
+
+            // ~12% of contacts have incomplete addresses (no street address) — these stay pending
+            const hasIncompleteAddress = chance(0.12)
+            const address = hasIncompleteAddress ? null : fullAddress
+            const contactCity = hasIncompleteAddress && chance(0.5) ? null : city
 
             // Entry method: 70% manual, 15% scan, 10% chatbot, 5% import
             const entryRoll = seededRandom()
@@ -369,14 +497,85 @@ async function main() {
             await client.query(
               `INSERT INTO contacts (id, user_id, campaign_id, first_name, last_name, phone, address, city, zip, category, entry_method, entered_by, turf_id)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-              [contactId, vol.userId, CAMPAIGN_ID, firstName, lastName, phone, address, city, zip, category, entryMethod, enteredBy, turfId]
+              [contactId, vol.userId, CAMPAIGN_ID, firstName, lastName, phone, address, contactCity, zip, category, entryMethod, enteredBy, turfId]
             )
 
-            // Match result
-            await client.query(
-              `INSERT INTO match_results (id, contact_id, status) VALUES ($1, $2, 'pending')`,
-              [crypto.randomUUID(), contactId]
-            )
+            // Match result — realistic distribution:
+            //   ~45% confirmed (matched to voter file)
+            //   ~12% ambiguous (multiple candidates, needs manual resolution)
+            //   ~15% unmatched (no match in voter file)
+            //   ~28% pending (not yet matched — includes incomplete-address contacts)
+            const matchRoll = hasIncompleteAddress ? 1.0 : seededRandom() // incomplete addresses always stay pending
+            let matchStatus, bestMatchData, candidatesData, voteScore, segment, confidence, userConfirmed
+
+            if (matchRoll < 0.45) {
+              // CONFIRMED — high-confidence match to a voter record
+              matchStatus = 'confirmed'
+              const voterRecord = generateMockVoterRecord(firstName, lastName, city, zip, true)
+              bestMatchData = JSON.stringify(voterRecord)
+              voteScore = computeVoteScore(voterRecord)
+              segment = pickWeightedSegment()
+              confidence = 'high'
+              userConfirmed = 1
+              // Include the confirmed candidate + 0-1 runners-up
+              const topCandidate = generateMockCandidate(firstName, lastName, city, zip, true)
+              topCandidate.voterRecord = voterRecord
+              topCandidate.score = 0.90 + seededRandom() * 0.09
+              topCandidate.confidenceLevel = 'high'
+              const allCandidates = [topCandidate]
+              if (chance(0.35)) {
+                allCandidates.push(generateMockCandidate(firstName, lastName, city, zip, false))
+              }
+              candidatesData = JSON.stringify(allCandidates)
+            } else if (matchRoll < 0.57) {
+              // AMBIGUOUS — 2-3 candidates, needs manual pick
+              matchStatus = 'ambiguous'
+              const numCandidates = chance(0.6) ? 2 : 3
+              const allCandidates = []
+              for (let ci = 0; ci < numCandidates; ci++) {
+                allCandidates.push(generateMockCandidate(firstName, lastName, city, zip, ci === 0))
+              }
+              candidatesData = JSON.stringify(allCandidates)
+              // Top candidate as "best guess" but not user-confirmed
+              bestMatchData = JSON.stringify(allCandidates[0].voterRecord)
+              voteScore = computeVoteScore(allCandidates[0].voterRecord)
+              segment = null
+              confidence = allCandidates[0].score >= 0.80 ? 'medium' : 'low'
+              userConfirmed = 0
+            } else if (matchRoll < 0.72) {
+              // UNMATCHED — searched but no match found
+              matchStatus = 'unmatched'
+              bestMatchData = null
+              candidatesData = null
+              voteScore = null
+              segment = null
+              confidence = null
+              userConfirmed = 0
+            } else {
+              // PENDING — not yet matched (maybe newly entered, or needs more info)
+              matchStatus = 'pending'
+              bestMatchData = null
+              candidatesData = null
+              voteScore = null
+              segment = null
+              confidence = null
+              userConfirmed = 0
+            }
+
+            if (hasConfidenceCol) {
+              await client.query(
+                `INSERT INTO match_results (id, contact_id, status, best_match_data, candidates_data, vote_score, segment, confidence, user_confirmed)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                [crypto.randomUUID(), contactId, matchStatus, bestMatchData, candidatesData, voteScore, segment, confidence, userConfirmed]
+              )
+            } else {
+              await client.query(
+                `INSERT INTO match_results (id, contact_id, status, best_match_data, candidates_data, vote_score, segment, user_confirmed)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [crypto.randomUUID(), contactId, matchStatus, bestMatchData, candidatesData, voteScore, segment, userConfirmed]
+              )
+            }
+            matchCounts[matchStatus]++
 
             // Has this contact been contacted? Probability increases with time
             const contacted = chance(0.65) // 65% contacted
@@ -412,6 +611,7 @@ async function main() {
     }
 
     console.log(`  Created ${contactCount} contacts, ${convoCount} conversations`)
+    console.log(`  Match statuses: ${matchCounts.confirmed} confirmed, ${matchCounts.ambiguous} ambiguous, ${matchCounts.unmatched} unmatched, ${matchCounts.pending} pending`)
 
     // ── 8. Update PTG allocations with actual organizer IDs ──────────
     ptgConfig.allocations = buildAllocations(organizerIds, weeks)
