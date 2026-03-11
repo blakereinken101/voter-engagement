@@ -56,9 +56,9 @@ interface MetricDef {
 
 const METRICS: MetricDef[] = [
   { id: 'conversations', label: 'Conversations', short: 'Convos', tooltip: 'Number of voter conversations logged this period.', icon: MessageSquare, color: 'text-vc-blue-light', bg: 'bg-vc-blue-light/10', border: 'border-vc-blue-light/30' },
-  { id: 'contactsRolodexed', label: 'Rolodexed', short: 'Rolodex', tooltip: 'Contacts added to the volunteer\'s personal rolodex.', icon: BookOpen, color: 'text-vc-teal', bg: 'bg-vc-teal/10', border: 'border-vc-teal/30' },
-  { id: 'supporters', label: 'Positive IDs', short: 'Pos ID', tooltip: 'Contacts positively identified as supporters during outreach.', icon: ThumbsUp, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
-  { id: 'volInterest', label: 'Vol Yes', short: 'Vol Yes', tooltip: 'Contacts who said yes to volunteering.', icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' },
+  { id: 'contactsRolodexed', label: 'Added', short: 'Added', tooltip: 'Contacts added by the volunteer through the relational program.', icon: BookOpen, color: 'text-vc-teal', bg: 'bg-vc-teal/10', border: 'border-vc-teal/30' },
+  { id: 'supporters', label: 'Supporters IDed', short: 'Supporters', tooltip: 'Contacts identified as supporters during outreach.', icon: ThumbsUp, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
+  { id: 'volInterest', label: 'Vol. Recruits', short: 'Recruits', tooltip: 'Contacts who said yes to volunteering.', icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' },
   { id: 'shiftsCompleted', label: 'Shifts', short: 'Shifts', tooltip: 'Volunteer shifts completed (events attended).', icon: CalendarCheck, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30' },
   { id: 'recruited', label: 'Recruited', short: 'Recruited', tooltip: 'New volunteers recruited by this person.', icon: Users, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/30' },
 ]
@@ -353,7 +353,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                       )}>
                         {selectedVal.toLocaleString()}
                       </span>
-                      <span className="text-[10px] text-white/50">{selectedMetric.short}</span>
+                      <span className="text-xs text-white/60">{selectedMetric.short}</span>
                     </div>
 
                     {/* Desktop: all metrics */}

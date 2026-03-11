@@ -25,7 +25,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'region', label: 'Region', visible: true, width: 100 },
   { id: 'timestamp', label: 'Date/Time', visible: true, width: 130 },
   { id: 'matchStatus', label: 'Match', visible: true, width: 90 },
-  { id: 'entryMethod', label: 'Entry', visible: true, width: 70 },
+  { id: 'entryMethod', label: 'Source', visible: true, width: 70 },
   { id: 'surveyResponses', label: 'Survey', visible: false, width: 180 },
   { id: 'enteredBy', label: 'Entered By', visible: false, width: 110 },
   { id: 'outreachMethod', label: 'Outreach', visible: false, width: 100 },
@@ -188,6 +188,9 @@ export default function PtgDashboard() {
       body: JSON.stringify({ contactId, field, value }),
     })
 
+    // Always refresh metrics/leaderboard/timeseries after any edit
+    setRefreshKey(k => k + 1)
+
     if (!res.ok || field === 'reassign_organizer') {
       // Refetch on error to revert optimistic update, or on reassignment
       // since organizer name/region come from joins and can't be updated optimistically
@@ -225,8 +228,8 @@ export default function PtgDashboard() {
           <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
             Conversations
           </h2>
-          <div className="text-xs text-white/50 font-medium tracking-widest uppercase">
-            Relational Contact Sheet
+          <div className="text-xs text-white/60 font-medium">
+            Voter Contact Tracker
           </div>
         </div>
       </div>

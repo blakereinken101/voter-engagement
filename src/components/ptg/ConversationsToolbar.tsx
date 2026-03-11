@@ -110,7 +110,7 @@ export default function ConversationsToolbar({ filters, onFiltersChange, filterO
           <SlidersHorizontal className="w-3.5 h-3.5" />
           Filters
           {activeFilterCount > 0 && (
-            <span className="bg-vc-purple/30 text-vc-purple-light text-[10px] font-bold px-1.5 py-0.5 rounded-full">{activeFilterCount}</span>
+            <span className="bg-vc-purple/30 text-vc-purple-light text-xs font-bold px-1.5 py-0.5 rounded-full">{activeFilterCount}</span>
           )}
         </button>
 
@@ -164,7 +164,7 @@ export default function ConversationsToolbar({ filters, onFiltersChange, filterO
                 className="w-full text-left px-4 py-2.5 text-xs text-white/70 hover:bg-white/[0.06] transition-colors"
               >
                 <p className="font-semibold text-white/80">Export Raw Data</p>
-                <p className="text-[10px] text-white/30 mt-0.5">CSV with all contact rows (filtered)</p>
+                <p className="text-xs text-white/50 mt-0.5">CSV with all contact rows (filtered)</p>
               </button>
               <div className="border-t border-white/[0.06]" />
               <button
@@ -172,14 +172,14 @@ export default function ConversationsToolbar({ filters, onFiltersChange, filterO
                 className="w-full text-left px-4 py-2.5 text-xs text-white/70 hover:bg-white/[0.06] transition-colors"
               >
                 <p className="font-semibold text-white/80">Export Toplines by Day</p>
-                <p className="text-[10px] text-white/30 mt-0.5">Daily summary metrics for your PTG</p>
+                <p className="text-xs text-white/50 mt-0.5">Daily summary metrics for your PTG</p>
               </button>
             </div>
           )}
         </div>
 
         {/* Total count */}
-        <span className="text-xs text-white/30 tabular-nums ml-auto">
+        <span className="text-xs text-white/60 tabular-nums ml-auto">
           {total.toLocaleString()} conversation{total !== 1 ? 's' : ''}
         </span>
       </div>
@@ -212,7 +212,7 @@ export default function ConversationsToolbar({ filters, onFiltersChange, filterO
             options={filterOptions.outcomes.map(o => ({ value: o, label: o.replace('-', ' ') }))}
           />
           <FilterSelect
-            label="Entry"
+            label="Source"
             value={filters.entryMethod || ''}
             onChange={v => setFilter('entryMethod', v)}
             options={[
@@ -234,7 +234,7 @@ export default function ConversationsToolbar({ filters, onFiltersChange, filterO
             ]}
           />
           <div className="flex items-center gap-1.5">
-            <label className="text-[10px] text-white/30 uppercase tracking-wide font-semibold">From</label>
+            <label className="text-xs text-white/60 font-semibold">From</label>
             <input
               type="date"
               value={filters.dateFrom || ''}
@@ -243,7 +243,7 @@ export default function ConversationsToolbar({ filters, onFiltersChange, filterO
             />
           </div>
           <div className="flex items-center gap-1.5">
-            <label className="text-[10px] text-white/30 uppercase tracking-wide font-semibold">To</label>
+            <label className="text-xs text-white/60 font-semibold">To</label>
             <input
               type="date"
               value={filters.dateTo || ''}
@@ -265,7 +265,7 @@ function FilterSelect({ label, value, onChange, options }: {
 }) {
   return (
     <div className="flex items-center gap-1.5">
-      <label className="text-[10px] text-white/30 uppercase tracking-wide font-semibold shrink-0">{label}</label>
+      <label className="text-xs text-white/60 font-semibold shrink-0">{label}</label>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}

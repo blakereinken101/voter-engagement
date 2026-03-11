@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Users, MessageSquare, BookOpen, UserCheck, UsersRound } from 'lucide-react'
+import { Users, MessageSquare, BookOpen, UserCheck, UsersRound, BarChart3 } from 'lucide-react'
 import MetricTooltip from './MetricTooltip'
 import clsx from 'clsx'
+
+type BreakdownView = 'contacts' | 'volunteers'
 
 interface MetricsData {
   threshold: number
@@ -45,6 +47,7 @@ interface MetricsData {
 export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
   const [data, setData] = useState<MetricsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [breakdownView, setBreakdownView] = useState<BreakdownView>('contacts')
 
   const fetchMetrics = useCallback(async () => {
     try {
@@ -125,7 +128,7 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
         />
         <SummaryCard
           icon={<UserCheck className="w-4 h-4" />}
-          label="Active Rel. Volunteers"
+          label="Active Vols"
           tooltip="Relational volunteers with recent activity within the active window."
           sublabel={`${data.threshold}+ in ${data.activeWindowDays}d`}
           weeklyOnly={summary.activeRelationalVolunteers.weekly}
@@ -140,12 +143,44 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
         />
         <SummaryCard
           icon={<BookOpen className="w-4 h-4" />}
-          label="Contacts Rolodexed"
-          tooltip="Unique contacts added to the relational rolodex by volunteers."
+          label="Contacts Added"
+          tooltip="Unique contacts added by volunteers through the relational program."
           daily={summary.contactsRoladexed.daily}
           weekly={summary.contactsRoladexed.weekly}
           total={summary.contactsRoladexed.total}
         />
+      </div>
+
+      {/* Breakdown View Toggle */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <BarChart3 className="w-4 h-4 text-white/40" />
+          <span className="text-xs font-bold text-white/60">Breakdown</span>
+        </div>
+        <div className="inline-flex p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+          <button
+            onClick={() => setBreakdownView('contacts')}
+            className={clsx(
+              'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+              breakdownView === 'contacts'
+                ? 'bg-white/[0.12] text-white shadow-sm'
+                : 'text-white/50 hover:text-white/70'
+            )}
+          >
+            Contacts
+          </button>
+          <button
+            onClick={() => setBreakdownView('volunteers')}
+            className={clsx(
+              'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+              breakdownView === 'volunteers'
+                ? 'bg-white/[0.12] text-white shadow-sm'
+                : 'text-white/50 hover:text-white/70'
+            )}
+          >
+            Volunteers
+          </button>
+        </div>
       </div>
 
       {/* Breakdown Tables: 3-col grid */}
@@ -153,7 +188,8 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
         {/* By Region */}
         {data.byRegion.length > 0 && (
           <BreakdownTable
-            title="By Region"
+            title="By region"
+            view={breakdownView}
             rows={data.byRegion.map(r => ({
               label: r.region,
               vols: r.relationalVolunteers,
@@ -161,6 +197,9 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
               daily: r.contacts.daily,
               weekly: r.contacts.weekly,
               total: r.contacts.overall,
+              convDaily: r.conversations.daily,
+              convWeekly: r.conversations.weekly,
+              convTotal: r.conversations.overall,
             }))}
           />
         )}
@@ -168,7 +207,8 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
         {/* By Organizer */}
         {data.byOrganizer.length > 0 && (
           <BreakdownTable
-            title="By Organizer"
+            title="By organizer"
+            view={breakdownView}
             rows={data.byOrganizer.map(r => ({
               label: r.name,
               vols: r.relationalVolunteers,
@@ -176,6 +216,9 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
               daily: r.contacts.daily,
               weekly: r.contacts.weekly,
               total: r.contacts.overall,
+              convDaily: r.conversations.daily,
+              convWeekly: r.conversations.weekly,
+              convTotal: r.conversations.overall,
             }))}
           />
         )}
@@ -187,12 +230,12 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
           return (
           <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] overflow-hidden">
             <div className="px-3 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
-              <span className="text-xs font-bold text-white/60 uppercase tracking-widest">By Volunteer</span>
+              <span className="text-xs font-bold text-white/70">By volunteer</span>
             </div>
             <div className="max-h-[500px] overflow-y-auto">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-[#0f0f19] border-b-2 border-white/[0.08]">
-                  <tr className="text-white/60 text-xs uppercase tracking-widest">
+                  <tr className="text-white/60 text-xs">
                     <th className="text-left px-3 py-2.5 font-bold">Volunteer</th>
                     <th className="text-right px-2 py-2.5 font-bold">Today</th>
                     <th className="text-right px-2 py-2.5 font-bold">Weekly</th>
@@ -207,7 +250,7 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
                     )}>
                       <td className="px-3 py-2">
                         <p className="text-white/90 font-medium truncate max-w-[140px]">{v.name}</p>
-                        <p className="text-[11px] text-white/60 truncate">{v.region || v.organizerName}</p>
+                        <p className="text-xs text-white/60 truncate">{v.region || v.organizerName}</p>
                       </td>
                       <td className="text-right px-2 py-2 text-white/70 tabular-nums">{v.dailyContacts}</td>
                       <td className="text-right px-2 py-2 text-white/80 tabular-nums">{v.weeklyContacts}</td>
@@ -235,26 +278,38 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
   )
 }
 
-function BreakdownTable({ title, rows }: {
+function BreakdownTable({ title, rows, view }: {
   title: string
-  rows: { label: string; vols: number; active: number; daily: number; weekly: number; total: number }[]
+  view: BreakdownView
+  rows: { label: string; vols: number; active: number; daily: number; weekly: number; total: number; convDaily?: number; convWeekly?: number; convTotal?: number }[]
 }) {
-  const maxTotal = Math.max(...rows.map(r => r.total), 1)
+  const isVolView = view === 'volunteers'
+  const maxTotal = isVolView
+    ? Math.max(...rows.map(r => r.vols), 1)
+    : Math.max(...rows.map(r => r.total), 1)
 
   return (
     <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] overflow-hidden">
       <div className="px-3 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
-        <span className="text-xs font-bold text-white/60 uppercase tracking-widest">{title}</span>
+        <span className="text-xs font-bold text-white/70">{title}</span>
       </div>
       <table className="w-full text-xs">
         <thead>
-          <tr className="text-white/50 text-xs uppercase tracking-widest bg-[#0f0f19]/80">
-            <th className="text-left px-3 py-2 font-bold text-white/60">{title.replace('By ', '')}</th>
-            <th className="text-right px-2 py-2 font-bold text-white/60">Vols</th>
-            <th className="text-right px-2 py-2 font-bold text-white/60">Active</th>
-            <th className="text-right px-2 py-2 font-bold text-white/60">Today</th>
-            <th className="text-right px-2 py-2 font-bold text-white/60">Weekly</th>
-            <th className="text-right px-3 py-2 font-bold text-white/60">Total</th>
+          <tr className="text-white/60 text-xs bg-[#0f0f19]/80">
+            <th className="text-left px-3 py-2 font-bold text-white/70">{title.replace('By ', '').replace(/^\w/, c => c.toUpperCase())}</th>
+            {isVolView ? (
+              <>
+                <th className="text-right px-2 py-2 font-bold text-white/70">Relational</th>
+                <th className="text-right px-2 py-2 font-bold text-white/70">Active</th>
+                <th className="text-right px-3 py-2 font-bold text-white/70">Total Vols</th>
+              </>
+            ) : (
+              <>
+                <th className="text-right px-2 py-2 font-bold text-white/70">Today</th>
+                <th className="text-right px-2 py-2 font-bold text-white/70">Weekly</th>
+                <th className="text-right px-3 py-2 font-bold text-white/70">Total</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -264,21 +319,39 @@ function BreakdownTable({ title, rows }: {
               i % 2 === 0 ? 'bg-white/[0.015]' : 'bg-transparent'
             )}>
               <td className="px-3 py-2 text-white/90 font-medium truncate max-w-[120px]">{r.label}</td>
-              <td className="text-right px-2 py-2 text-white/80 tabular-nums">{r.vols}</td>
-              <td className="text-right px-2 py-2 text-emerald-400/90 tabular-nums font-medium">{r.active}</td>
-              <td className="text-right px-2 py-2 text-white/70 tabular-nums">{r.daily}</td>
-              <td className="text-right px-2 py-2 text-white/80 tabular-nums">{r.weekly}</td>
-              <td className="px-3 py-2">
-                <div className="flex items-center justify-end gap-2">
-                  <div className="w-16 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-vc-blue-light/40"
-                      style={{ width: `${(r.total / maxTotal) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-white/90 tabular-nums font-bold min-w-[28px] text-right">{r.total}</span>
-                </div>
-              </td>
+              {isVolView ? (
+                <>
+                  <td className="text-right px-2 py-2 text-white/80 tabular-nums">{r.vols}</td>
+                  <td className="text-right px-2 py-2 text-emerald-400/90 tabular-nums font-medium">{r.active}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="w-16 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-400/40"
+                          style={{ width: `${(r.vols / maxTotal) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-white/90 tabular-nums font-bold min-w-[28px] text-right">{r.vols + r.active}</span>
+                    </div>
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td className="text-right px-2 py-2 text-white/70 tabular-nums">{r.daily}</td>
+                  <td className="text-right px-2 py-2 text-white/80 tabular-nums">{r.weekly}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-end gap-2">
+                      <div className="w-16 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-vc-blue-light/40"
+                          style={{ width: `${(r.total / maxTotal) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-white/90 tabular-nums font-bold min-w-[28px] text-right">{r.total}</span>
+                    </div>
+                  </td>
+                </>
+              )}
             </tr>
           ))}
         </tbody>
@@ -310,7 +383,7 @@ function SummaryCard({
   singleValue?: number
   accent?: 'blue' | 'emerald'
 }) {
-  const isHighlight = label === 'Relational Conversations' || label === 'Contacts Rolodexed'
+  const isHighlight = label === 'Relational Conversations' || label === 'Contacts Added'
 
   if (singleValue !== undefined) {
     return (

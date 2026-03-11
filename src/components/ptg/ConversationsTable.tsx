@@ -278,7 +278,7 @@ function CellContent({ row, col, onSave, onResolveMatch, organizers }: {
     case 'notes':
       return <EditableCell value={row.notes} field="notes" contactId={row.contactId} onSave={onSave} type="textarea" />
     case 'volunteerName':
-      return <span className="text-white/50 text-sm truncate">{row.volunteerName || '—'}</span>
+      return <span className="text-white/70 text-sm truncate">{row.volunteerName || '—'}</span>
     case 'organizerName':
       return (
         <OrganizerSelect
@@ -290,9 +290,9 @@ function CellContent({ row, col, onSave, onResolveMatch, organizers }: {
         />
       )
     case 'turfName':
-      return <span className="text-white/50 text-sm truncate">{row.turfName || '—'}</span>
+      return <span className="text-white/70 text-sm truncate">{row.turfName || '—'}</span>
     case 'region':
-      return <span className="text-white/50 text-sm">{row.region || '—'}</span>
+      return <span className="text-white/70 text-sm">{row.region || '—'}</span>
     case 'matchStatus':
       return (
         <MatchStatusBadge
@@ -303,9 +303,9 @@ function CellContent({ row, col, onSave, onResolveMatch, organizers }: {
       )
     case 'timestamp':
       return (
-        <span className="text-white/50 text-xs tabular-nums whitespace-nowrap">
+        <span className="text-white/70 text-xs tabular-nums whitespace-nowrap">
           {row.timestamp ? formatTimestamp(row.timestamp, row.timezone) : '—'}
-          <span className="text-white/20 ml-1">{tzAbbrev(row.timezone)}</span>
+          <span className="text-white/40 ml-1">{tzAbbrev(row.timezone)}</span>
         </span>
       )
     case 'entryMethod':
@@ -322,7 +322,7 @@ function CellContent({ row, col, onSave, onResolveMatch, organizers }: {
       )
     case 'enteredBy':
       return (
-        <span className="text-white/40 text-xs">
+        <span className="text-white/60 text-xs">
           {row.enteredBySelf ? 'Self' : (row.enteredByName || '—')}
         </span>
       )
@@ -332,14 +332,14 @@ function CellContent({ row, col, onSave, onResolveMatch, organizers }: {
       return <EditableCell value={row.volunteerInterest} field="volunteer_interest" contactId={row.contactId} onSave={onSave} />
     case 'surveyResponses':
       if (!row.surveyResponses || Object.keys(row.surveyResponses).length === 0) {
-        return <span className="text-white/15 text-xs">—</span>
+        return <span className="text-white/40 text-xs">—</span>
       }
       return (
         <div className="flex flex-wrap gap-1">
           {Object.entries(row.surveyResponses).map(([q, a]) => (
-            <span key={q} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 text-[10px] text-white/50">
-              <span className="text-white/30 truncate max-w-[60px]">{q}:</span>
-              <span className="text-white/70">{a}</span>
+            <span key={q} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 text-xs text-white/60">
+              <span className="text-white/40 truncate max-w-[60px]">{q}:</span>
+              <span className="text-white/80">{a}</span>
             </span>
           ))}
         </div>

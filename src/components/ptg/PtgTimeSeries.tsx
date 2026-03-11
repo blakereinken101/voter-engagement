@@ -70,8 +70,8 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
   return (
     <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-4">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
-          Activity Over Time
+        <span className="text-xs font-bold text-white/70">
+          Activity over time
         </span>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg overflow-hidden border border-white/[0.08]">
@@ -80,7 +80,7 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
                 className={clsx(
-                  'px-2.5 py-1 text-[10px] font-bold transition-colors',
+                  'px-2.5 py-1 text-xs font-bold transition-colors',
                   period === p.value
                     ? 'bg-vc-purple/20 text-vc-purple-light'
                     : 'text-white/40 hover:text-white/60',
@@ -96,7 +96,7 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
                 key={g.value}
                 onClick={() => setGranularity(g.value)}
                 className={clsx(
-                  'px-2.5 py-1 text-[10px] font-bold transition-colors',
+                  'px-2.5 py-1 text-xs font-bold transition-colors',
                   granularity === g.value
                     ? 'bg-vc-purple/20 text-vc-purple-light'
                     : 'text-white/40 hover:text-white/60',
@@ -110,7 +110,7 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
       </div>
 
       {loading ? (
-        <div className="h-[200px] flex items-end gap-1 px-6 pb-4">
+        <div className="h-[260px] flex items-end gap-1 px-6 pb-4">
           {Array.from({ length: 20 }).map((_, i) => (
             <div
               key={i}
@@ -120,11 +120,11 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
           ))}
         </div>
       ) : data.length === 0 ? (
-        <div className="flex items-center justify-center h-[200px] text-white/40 text-xs">
+        <div className="flex items-center justify-center h-[260px] text-white/40 text-xs">
           No activity data for this period
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="colorConversations" x1="0" y1="0" x2="0" y2="1">
@@ -140,12 +140,12 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
             <XAxis
               dataKey="date"
               tickFormatter={formatTick}
-              tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+              tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }}
               axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+              tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 12 }}
               axisLine={false}
               tickLine={false}
             />
@@ -184,11 +184,11 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
       <div className="flex items-center justify-center gap-4 mt-2">
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-[#a78bfa]" />
-          <span className="text-[10px] text-white/50">Conversations</span>
+          <span className="text-xs text-white/60">Conversations</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-[#2dd4bf]" />
-          <span className="text-[10px] text-white/50">Contacts</span>
+          <span className="text-xs text-white/60">Contacts</span>
         </div>
       </div>
     </div>
