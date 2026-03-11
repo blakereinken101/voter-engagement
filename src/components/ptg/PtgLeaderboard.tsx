@@ -257,9 +257,9 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="min-w-[700px]">
+            <div className="min-w-[800px]">
               {/* Table Header */}
-              <div className="grid grid-cols-[44px_1fr_repeat(6,72px)] gap-1 px-3 py-3 text-xs font-bold text-white/60 uppercase tracking-wider border-b-2 border-white/[0.08] bg-black/30">
+              <div className="grid grid-cols-[44px_1fr_repeat(6,minmax(80px,1fr))] gap-3 px-4 py-3 text-xs font-bold text-white/60 uppercase tracking-wider border-b-2 border-white/[0.08] bg-black/30">
                 <div className="text-center">#</div>
                 <div className="text-sm">{ENTITIES.find(e => e.id === entity)?.label.slice(0, -1)}</div>
                 {METRICS.map(m => {
@@ -289,7 +289,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                   <div
                     key={entry.id}
                     className={clsx(
-                      'grid grid-cols-[44px_1fr_repeat(6,72px)] gap-1 items-center px-2 py-2 rounded-lg border transition-all',
+                      'grid grid-cols-[44px_1fr_repeat(6,minmax(80px,1fr))] gap-3 items-center px-3 py-2.5 rounded-lg border transition-all',
                       getRankStyle(entry.rank)
                     )}
                   >
@@ -320,7 +320,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                       return (
                         <div key={m.id} className="text-right flex flex-col items-end justify-center">
                           <span className={clsx(
-                            "text-sm tabular-nums font-bold",
+                            "text-base tabular-nums font-bold",
                             isSortedByThis
                               ? (val > 0 ? m.color : 'text-white/30')
                               : (val > 0 ? 'text-white/80' : 'text-white/15')

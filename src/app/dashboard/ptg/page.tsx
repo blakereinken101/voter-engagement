@@ -53,9 +53,11 @@ export default function PtgPage() {
       </div>
 
       {/* Main content — wider for spreadsheet */}
-      <div className="relative max-w-[1600px] mx-auto px-4 py-6">
+      <div className="relative isolate max-w-[1600px] mx-auto px-4 py-6">
         <StateWatermark state={campaignConfig?.state} />
-        <PtgDashboard />
+        <div className="relative z-10">
+          <PtgDashboard />
+        </div>
       </div>
 
       {/* Print styles */}

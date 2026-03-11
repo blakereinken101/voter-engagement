@@ -255,7 +255,7 @@ export default function StateWatermark({ state }: { state?: string }) {
     const brightStars = generateBrightStars()
 
     return (
-      <div className="absolute top-0 left-0 right-0 h-[440px] pointer-events-none -z-10 overflow-hidden" aria-hidden="true">
+      <div className="absolute top-0 left-0 right-0 h-[440px] pointer-events-none z-0 overflow-hidden" aria-hidden="true">
         {/* Constellation star field */}
         <div
           className="absolute top-0 left-0 right-0 h-[420px] pointer-events-none overflow-hidden"
