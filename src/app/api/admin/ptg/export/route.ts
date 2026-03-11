@@ -30,6 +30,16 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo = searchParams.get('dateTo') || ''
 
+    // Check if match_results has 'confidence' column (migration 014)
+    let hasConfidenceCol = false
+    try {
+      const { rows: colCheck } = await db.query(`
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'match_results' AND column_name = 'confidence'
+      `)
+      hasConfidenceCol = colCheck.length > 0
+    } catch { /* ignore */ }
+
     const conditions: string[] = ['c.campaign_id = $1']
     const params: unknown[] = [ctx.campaignId]
     let idx = 2
@@ -60,7 +70,7 @@ export async function GET(request: NextRequest) {
         COALESCE(t.region, org_m.region) as region,
         t.name as turf_name,
         COALESCE(c.entry_method, 'manual') as entry_method,
-        mr.status as match_status, mr.confidence as match_confidence,
+        mr.status as match_status, ${hasConfidenceCol ? 'mr.confidence' : 'NULL'} as match_confidence,
         mr.vote_score, mr.segment,
         COALESCE(ai.updated_at, c.created_at) as timestamp
       FROM contacts c

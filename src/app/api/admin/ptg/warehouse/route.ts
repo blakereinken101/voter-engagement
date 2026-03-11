@@ -18,6 +18,16 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(10000, Math.max(1, parseInt(searchParams.get('limit') || '1000')))
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
 
+    // Check if match_results has 'confidence' column (migration 014)
+    let hasConfidenceCol = false
+    try {
+      const { rows: colCheck } = await db.query(`
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'match_results' AND column_name = 'confidence'
+      `)
+      hasConfidenceCol = colCheck.length > 0
+    } catch { /* ignore */ }
+
     const conditions: string[] = ['c.campaign_id = $1']
     const params: unknown[] = [ctx.campaignId]
     let idx = 2
@@ -67,7 +77,7 @@ export async function GET(request: NextRequest) {
         t.name as turf_name,
         COALESCE(t.region, org_m.region) as region,
         mr.status as match_status,
-        mr.confidence as match_confidence,
+        ${hasConfidenceCol ? 'mr.confidence' : 'NULL'} as match_confidence,
         mr.vote_score,
         mr.segment,
         mr.best_match_data
