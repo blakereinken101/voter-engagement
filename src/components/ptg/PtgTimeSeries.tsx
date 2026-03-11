@@ -10,7 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { Loader2 } from 'lucide-react'
 import clsx from 'clsx'
 
 interface DataPoint {
@@ -71,7 +70,7 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
   return (
     <div className="rounded-xl border border-white/[0.08] bg-white/[0.015] p-4">
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+        <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
           Activity Over Time
         </span>
         <div className="flex items-center gap-2">
@@ -84,7 +83,7 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
                   'px-2.5 py-1 text-[10px] font-bold transition-colors',
                   period === p.value
                     ? 'bg-vc-purple/20 text-vc-purple-light'
-                    : 'text-white/30 hover:text-white/50',
+                    : 'text-white/40 hover:text-white/60',
                 )}
               >
                 {p.label}
@@ -100,7 +99,7 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
                   'px-2.5 py-1 text-[10px] font-bold transition-colors',
                   granularity === g.value
                     ? 'bg-vc-purple/20 text-vc-purple-light'
-                    : 'text-white/30 hover:text-white/50',
+                    : 'text-white/40 hover:text-white/60',
                 )}
               >
                 {g.label}
@@ -111,11 +110,17 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-[200px]">
-          <Loader2 className="w-4 h-4 text-vc-purple-light animate-spin" />
+        <div className="h-[200px] flex items-end gap-1 px-6 pb-4">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 bg-white/[0.05] rounded-t animate-pulse"
+              style={{ height: `${20 + Math.sin(i * 0.5) * 30 + Math.random() * 30}%` }}
+            />
+          ))}
         </div>
       ) : data.length === 0 ? (
-        <div className="flex items-center justify-center h-[200px] text-white/20 text-xs">
+        <div className="flex items-center justify-center h-[200px] text-white/40 text-xs">
           No activity data for this period
         </div>
       ) : (
@@ -135,12 +140,12 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
             <XAxis
               dataKey="date"
               tickFormatter={formatTick}
-              tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 10 }}
-              axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+              tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+              axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
               tickLine={false}
             />
             <YAxis
-              tick={{ fill: 'rgba(255,255,255,0.25)', fontSize: 10 }}
+              tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
             />
@@ -179,11 +184,11 @@ export default function PtgTimeSeries({ refreshKey }: { refreshKey: number }) {
       <div className="flex items-center justify-center gap-4 mt-2">
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-[#a78bfa]" />
-          <span className="text-[10px] text-white/30">Conversations</span>
+          <span className="text-[10px] text-white/50">Conversations</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-[#2dd4bf]" />
-          <span className="text-[10px] text-white/30">Contacts</span>
+          <span className="text-[10px] text-white/50">Contacts</span>
         </div>
       </div>
     </div>

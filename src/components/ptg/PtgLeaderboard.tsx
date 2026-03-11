@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Trophy, Loader2, MessageSquare, BookOpen, UserPlus, ThumbsUp, User, Users, MapPin, CalendarCheck } from 'lucide-react'
+import { Trophy, MessageSquare, BookOpen, UserPlus, ThumbsUp, User, Users, MapPin, CalendarCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MetricTooltip from './MetricTooltip'
 import clsx from 'clsx'
@@ -146,8 +146,8 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
     if (rank === 2) return 'bg-gray-300/15 text-gray-200 border-gray-300/30 shadow-[0_0_15px_rgba(209,213,219,0.1)] z-10 relative'
     if (rank === 3) return 'bg-orange-400/15 text-orange-300 border-orange-400/30 shadow-[0_0_15px_rgba(251,146,60,0.1)] z-10 relative'
     return index % 2 === 0
-      ? 'bg-white/[0.04] text-white/40 border-white/[0.08] hover:bg-white/[0.07]'
-      : 'bg-white/[0.015] text-white/40 border-white/[0.04] hover:bg-white/[0.05]'
+      ? 'bg-white/[0.04] text-white/60 border-white/[0.08] hover:bg-white/[0.07]'
+      : 'bg-white/[0.015] text-white/60 border-white/[0.04] hover:bg-white/[0.05]'
   }
 
   const getRankIcon = (rank: number) => {
@@ -249,21 +249,44 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
       {/* List Area */}
       <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden backdrop-blur-sm">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="w-6 h-6 text-amber-400/50 animate-spin" />
-            <span className="text-sm text-white/50 font-medium">Calculating rankings...</span>
+          <div className="p-1.5 space-y-0.5">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className={clsx(
+                  'grid items-center px-3 py-2.5 rounded-lg border gap-3',
+                  'grid-cols-[40px_1fr_80px] md:grid-cols-[44px_1fr_repeat(6,minmax(80px,1fr))]',
+                  i % 2 === 0 ? 'bg-white/[0.04] border-white/[0.08]' : 'bg-white/[0.015] border-white/[0.04]'
+                )}
+              >
+                <div className="flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-white/[0.06] animate-pulse" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="h-3.5 bg-white/[0.06] rounded animate-pulse" style={{ width: `${60 + Math.random() * 30}%` }} />
+                  <div className="h-2.5 w-20 bg-white/[0.04] rounded animate-pulse" />
+                </div>
+                <div className="md:hidden flex justify-end">
+                  <div className="h-4 w-8 bg-white/[0.06] rounded animate-pulse" />
+                </div>
+                {METRICS.map(m => (
+                  <div key={m.id} className="hidden md:flex justify-end">
+                    <div className="h-4 w-8 bg-white/[0.06] rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         ) : !data || aggregatedData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Trophy className="w-12 h-12 text-white/5 mb-3" />
-            <p className="text-white/50 font-medium">No activity recorded {period === 'weekly' ? 'this week' : 'today'} yet.</p>
-            <p className="text-white/40 text-xs mt-1">As volunteers log conversations this period, they will appear here ranked by their activity.</p>
+            <p className="text-white/60 font-medium">No activity recorded {period === 'weekly' ? 'this week' : 'today'} yet.</p>
+            <p className="text-white/50 text-xs mt-1">As volunteers log conversations this period, they will appear here ranked by their activity.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <div className="min-w-[800px]">
-              {/* Table Header */}
-              <div className="grid grid-cols-[44px_1fr_repeat(6,minmax(80px,1fr))] gap-3 px-4 py-3 text-xs font-bold text-white/60 uppercase tracking-wider border-b-2 border-white/[0.08] bg-black/30">
+          <div>
+              {/* Table Header — hidden on mobile, shown on md+ */}
+              <div className="hidden md:grid grid-cols-[44px_1fr_repeat(6,minmax(80px,1fr))] gap-3 px-4 py-3 text-xs font-bold text-white/60 uppercase tracking-wider border-b-2 border-white/[0.08] bg-black/30">
                 <div className="text-center">#</div>
                 <div className="text-sm">{ENTITIES.find(e => e.id === entity)?.label.slice(0, -1)}</div>
                 {METRICS.map(m => {
@@ -289,11 +312,15 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
 
               {/* Rows */}
               <div className="p-1.5 space-y-0.5">
-                {aggregatedData.map((entry, idx) => (
+                {aggregatedData.map((entry, idx) => {
+                  const selectedMetric = METRICS.find(m => m.id === metric)!
+                  const selectedVal = entry[metric]
+                  return (
                   <div
                     key={entry.id}
                     className={clsx(
-                      'grid grid-cols-[44px_1fr_repeat(6,minmax(80px,1fr))] gap-3 items-center px-3 py-2.5 rounded-lg border transition-all',
+                      'grid items-center px-3 py-2.5 rounded-lg border transition-all gap-3',
+                      'grid-cols-[40px_1fr_80px] md:grid-cols-[44px_1fr_repeat(6,minmax(80px,1fr))]',
                       getRankStyle(entry.rank, idx)
                     )}
                   >
@@ -313,16 +340,28 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                       )}>
                         {entry.name}
                       </p>
-                      <p className="text-xs text-white/50 truncate mt-0.5 font-medium">
+                      <p className="text-xs text-white/60 truncate mt-0.5 font-medium">
                         {entry.subtitle}
                       </p>
                     </div>
 
+                    {/* Mobile: only show the selected metric */}
+                    <div className="md:hidden text-right flex flex-col items-end justify-center">
+                      <span className={clsx(
+                        "text-base tabular-nums font-bold",
+                        selectedVal > 0 ? selectedMetric.color : 'text-white/30'
+                      )}>
+                        {selectedVal.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-white/50">{selectedMetric.short}</span>
+                    </div>
+
+                    {/* Desktop: all metrics */}
                     {METRICS.map(m => {
                       const val = entry[m.id]
                       const isSortedByThis = metric === m.id
                       return (
-                        <div key={m.id} className="text-right flex flex-col items-end justify-center">
+                        <div key={m.id} className="hidden md:flex text-right flex-col items-end justify-center">
                           <span className={clsx(
                             "text-base tabular-nums font-bold",
                             isSortedByThis
@@ -335,9 +374,9 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                       )
                     })}
                   </div>
-                ))}
+                  )
+                })}
               </div>
-            </div>
           </div>
         )}
       </div>
