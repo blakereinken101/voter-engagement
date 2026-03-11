@@ -163,83 +163,253 @@ const STATE_ICONS: Record<string, StateIcon> = {
   },
 }
 
+// Seeded PRNG for deterministic star placement (avoids hydration mismatch)
+function seededRandom(seed: number) {
+  let s = seed
+  return () => {
+    s = (s * 16807 + 0) % 2147483647
+    return (s - 1) / 2147483646
+  }
+}
+
+interface Star { x: number; y: number; r: number; opacity: number; color: string }
+interface BrightStar extends Star { brightest: boolean }
+
+/**
+ * Generates a dense, natural-looking star field.
+ * Uses a seeded PRNG so server & client render identically.
+ */
+function generateStarField(count: number): Star[] {
+  const rng = seededRandom(42)
+  const stars: Star[] = []
+  // Subtle color palette for realistic star colors
+  const colors = [
+    '#ffffff',   // pure white (most common)
+    '#ffffff',
+    '#ffffff',
+    '#fff8f0',   // warm white
+    '#fff8f0',
+    '#f0f0ff',   // cool blue-white
+    '#f0f0ff',
+    '#ffe8d0',   // warm yellow-white (rare)
+    '#e0e8ff',   // blue tint (rare)
+  ]
+
+  for (let i = 0; i < count; i++) {
+    const x = rng() * 1400
+    const y = rng() * 380
+    // Most stars are tiny — exponential distribution biased small
+    const sizeRoll = rng()
+    const r = sizeRoll < 0.6 ? 0.3 + rng() * 0.4        // 60% tiny (0.3-0.7)
+            : sizeRoll < 0.85 ? 0.6 + rng() * 0.5       // 25% small (0.6-1.1)
+            : sizeRoll < 0.95 ? 1.0 + rng() * 0.5        // 10% medium (1.0-1.5)
+            : 1.3 + rng() * 0.5                           // 5% larger (1.3-1.8)
+    // Dimmer overall, with size-correlated brightness
+    const baseOpacity = 0.1 + r * 0.12
+    const opacity = Math.min(baseOpacity + rng() * 0.15, 0.55)
+    const color = colors[Math.floor(rng() * colors.length)]
+    stars.push({ x, y, r, opacity, color })
+  }
+  return stars
+}
+
+/**
+ * Hand-placed bright stars with glow — the ones you'd actually notice in a real sky.
+ */
+function generateBrightStars(): BrightStar[] {
+  return [
+    // Prominent white stars
+    { x: 180, y: 32, r: 2.8, opacity: 0.85, color: '#ffffff', brightest: true },
+    { x: 520, y: 18, r: 3.2, opacity: 0.9,  color: '#fff8f0', brightest: true },
+    { x: 920, y: 28, r: 2.6, opacity: 0.8,  color: '#ffffff', brightest: true },
+    { x: 1250, y: 45, r: 2.5, opacity: 0.75, color: '#f0f0ff', brightest: true },
+    // Subtly tinted bright stars
+    { x: 350, y: 55, r: 2.4, opacity: 0.7, color: '#d8d0ff', brightest: false },   // lavender
+    { x: 680, y: 42, r: 2.6, opacity: 0.75, color: '#d0f0f0', brightest: false },  // pale teal
+    { x: 1050, y: 62, r: 2.3, opacity: 0.7, color: '#e8d8ff', brightest: false },  // soft purple
+    { x: 100, y: 85, r: 2.2, opacity: 0.65, color: '#ffffff', brightest: false },
+    { x: 430, y: 95, r: 2.5, opacity: 0.7,  color: '#fff8f0', brightest: false },
+    { x: 780, y: 78, r: 2.3, opacity: 0.65, color: '#d0e8ff', brightest: false },  // ice blue
+    { x: 1180, y: 90, r: 2.2, opacity: 0.6,  color: '#ffffff', brightest: false },
+    // Mid-sky bright stars
+    { x: 260, y: 140, r: 2.4, opacity: 0.65, color: '#fff8f0', brightest: false },
+    { x: 600, y: 120, r: 2.8, opacity: 0.75, color: '#ffffff', brightest: true },
+    { x: 880, y: 135, r: 2.2, opacity: 0.6,  color: '#d8d0ff', brightest: false },
+    { x: 1100, y: 150, r: 2.0, opacity: 0.55, color: '#ffffff', brightest: false },
+    // Lower sky — dimmer
+    { x: 150, y: 210, r: 2.0, opacity: 0.5, color: '#ffffff', brightest: false },
+    { x: 490, y: 195, r: 2.2, opacity: 0.55, color: '#d0f0f0', brightest: false },
+    { x: 730, y: 220, r: 2.0, opacity: 0.5, color: '#ffffff', brightest: false },
+    { x: 1000, y: 205, r: 1.8, opacity: 0.45, color: '#e8d8ff', brightest: false },
+  ]
+}
+
 export default function StateWatermark({ state }: { state?: string }) {
   if (!state) return null
   const upper = state.toUpperCase()
 
   // Alaska uses a real Denali photograph as watermark with constellation stars
   if (upper === 'AK') {
+    // Procedural star field — natural distribution with realistic properties
+    const stars = generateStarField(420)
+    const brightStars = generateBrightStars()
+
     return (
       <>
-        {/* Constellation star field behind Denali */}
+        {/* Deep space background — darker atmosphere behind the mountain */}
         <div
-          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden"
+          className="absolute top-0 left-0 right-0 h-[440px] pointer-events-none"
           aria-hidden="true"
           style={{
-            opacity: 0.6,
-            maskImage: 'linear-gradient(to bottom, black 20%, transparent 90%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, black 20%, transparent 90%)',
+            background: 'linear-gradient(to bottom, rgba(3,4,12,0.95) 0%, rgba(6,8,20,0.9) 30%, rgba(8,10,22,0.7) 55%, rgba(10,14,26,0.4) 75%, transparent 100%)',
+          }}
+        />
+
+        {/* Nebula glow layers — very subtle color washes */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none"
+          aria-hidden="true"
+          style={{
+            background: `
+              radial-gradient(ellipse 800px 200px at 25% 30%, rgba(88,60,180,0.06) 0%, transparent 70%),
+              radial-gradient(ellipse 600px 150px at 70% 20%, rgba(20,140,140,0.04) 0%, transparent 70%),
+              radial-gradient(ellipse 400px 120px at 50% 45%, rgba(100,60,200,0.03) 0%, transparent 70%)
+            `,
+          }}
+        />
+
+        {/* Constellation star field */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[420px] pointer-events-none overflow-hidden"
+          aria-hidden="true"
+          style={{
+            maskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 95%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 95%)',
           }}
         >
-          <svg className="w-full h-full" viewBox="0 0 1200 400" fill="none">
-            {/* Dense starfield */}
-            {[
-              [80,30,2.5],[180,60,1.5],[290,20,2],[370,80,1],[450,35,2.5],[530,55,1.5],[610,15,2],[720,70,1.5],
-              [800,25,2.5],[900,50,1],[980,40,2],[1060,65,1.5],[1140,20,2],[150,120,1.5],[260,95,2],[380,130,1],
-              [490,105,2.5],[600,140,1.5],[700,100,1],[830,135,2],[940,110,1.5],[1050,90,2],[120,180,1.5],
-              [230,160,2],[340,190,1],[460,170,2.5],[570,195,1],[680,165,1.5],[790,185,2],[910,155,1],
-              [1020,175,1.5],[1100,145,2],[50,240,1],[170,220,1.5],[300,250,1],[420,230,2],[550,260,1.5],
-              [650,235,1],[770,255,2],[880,225,1.5],[1000,245,1],[1110,215,1.5],
-              [100,75,1],[320,45,1.5],[500,85,1],[680,40,2],[850,75,1.5],[1020,30,1],[200,150,1],
-              [400,110,1.5],[620,125,1],[820,145,1.5],[1000,120,1],[70,300,1],[250,280,1.5],[440,310,1],
-              [630,290,1.5],[820,305,1],[990,285,1.5],
-            ].map(([cx, cy, r], i) => (
-              <circle key={i} cx={cx} cy={cy} r={r} fill="white" opacity={0.3 + (r as number) * 0.15} />
-            ))}
-            {/* Brighter accent stars */}
-            {[
-              [320,35,3,'rgba(139,92,246,0.7)'],[680,55,2.5,'rgba(20,184,166,0.6)'],[950,30,3,'rgba(108,60,225,0.7)'],
-              [150,100,2.5,'rgba(255,255,255,0.8)'],[500,75,3,'rgba(255,255,255,0.9)'],[850,90,2.5,'rgba(139,92,246,0.6)'],
-              [400,150,2,'rgba(20,184,166,0.5)'],[750,130,2.5,'rgba(255,255,255,0.7)'],[1050,110,2,'rgba(108,60,225,0.5)'],
-            ].map(([cx, cy, r, fill], i) => (
-              <circle key={`a${i}`} cx={cx as number} cy={cy as number} r={r as number} fill={fill as string} />
-            ))}
-            {/* Constellation lines connecting stars */}
-            <g stroke="rgba(255,255,255,0.08)" strokeWidth="0.5">
-              <line x1="320" y1="35" x2="500" y2="75" />
-              <line x1="500" y1="75" x2="680" y2="55" />
-              <line x1="680" y1="55" x2="850" y2="90" />
-              <line x1="150" y1="100" x2="320" y2="35" />
-              <line x1="850" y1="90" x2="950" y2="30" />
-              <line x1="400" y1="150" x2="500" y2="75" />
-              <line x1="750" y1="130" x2="680" y2="55" />
-            </g>
-            {/* Milky way band — very subtle */}
-            <ellipse cx="600" cy="120" rx="500" ry="60" fill="url(#milkyway)" opacity="0.06" />
+          <svg className="w-full h-full" viewBox="0 0 1400 420" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
+              {/* Glow filter for bright stars */}
+              <filter id="starGlow" x="-300%" y="-300%" width="700%" height="700%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              {/* Stronger glow for the brightest stars */}
+              <filter id="starGlowBright" x="-400%" y="-400%" width="900%" height="900%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur1" />
+                <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur2" />
+                <feMerge>
+                  <feMergeNode in="blur1" />
+                  <feMergeNode in="blur2" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+              {/* Milky way gradient */}
               <radialGradient id="milkyway">
                 <stop offset="0%" stopColor="white" stopOpacity="1" />
                 <stop offset="100%" stopColor="white" stopOpacity="0" />
               </radialGradient>
+              {/* Warm star color */}
+              <radialGradient id="warmStar" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#fffaf0" />
+                <stop offset="100%" stopColor="#fffaf0" stopOpacity="0" />
+              </radialGradient>
+              {/* Cool star color */}
+              <radialGradient id="coolStar" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#e0e8ff" />
+                <stop offset="100%" stopColor="#e0e8ff" stopOpacity="0" />
+              </radialGradient>
             </defs>
+
+            {/* Milky way band — subtle luminous band across the sky */}
+            <ellipse cx="700" cy="140" rx="650" ry="80" fill="url(#milkyway)" opacity="0.035" />
+            <ellipse cx="680" cy="135" rx="400" ry="45" fill="url(#milkyway)" opacity="0.025" />
+
+            {/* Faint background stars — hundreds of tiny points */}
+            {stars.map((s, i) => (
+              <circle
+                key={`s${i}`}
+                cx={s.x}
+                cy={s.y}
+                r={s.r}
+                fill={s.color}
+                opacity={s.opacity}
+              />
+            ))}
+
+            {/* Medium-bright stars with subtle color variation */}
+            {[
+              [120,45,1.8,0.65,'#fff'],[245,80,1.6,0.55,'#e8e0ff'],[380,28,1.9,0.6,'#fff'],
+              [510,68,1.7,0.55,'#ffe8d0'],[640,22,2,0.65,'#fff'],[770,58,1.8,0.55,'#e0f0ff'],
+              [890,35,1.7,0.6,'#fff'],[1020,72,1.9,0.55,'#ffe8d0'],[1150,40,1.8,0.6,'#e8e0ff'],
+              [1280,25,1.7,0.55,'#fff'],[60,110,1.6,0.5,'#fff'],[200,135,1.8,0.55,'#e0f0ff'],
+              [340,105,1.7,0.5,'#fff'],[480,145,1.9,0.55,'#ffe8d0'],[620,115,1.6,0.5,'#fff'],
+              [760,140,1.8,0.55,'#e8e0ff'],[900,100,1.7,0.5,'#fff'],[1040,130,1.6,0.55,'#fff'],
+              [1180,108,1.8,0.5,'#e0f0ff'],[1320,145,1.7,0.55,'#ffe8d0'],
+              [170,195,1.6,0.45,'#fff'],[310,175,1.7,0.5,'#fff'],[450,210,1.6,0.45,'#e0f0ff'],
+              [590,185,1.8,0.5,'#fff'],[730,205,1.7,0.45,'#ffe8d0'],[870,180,1.6,0.5,'#fff'],
+              [1010,200,1.7,0.45,'#e8e0ff'],[1150,190,1.6,0.5,'#fff'],
+            ].map(([cx, cy, r, op, fill], i) => (
+              <circle key={`m${i}`} cx={cx as number} cy={cy as number} r={r as number} fill={fill as string} opacity={op as number} />
+            ))}
+
+            {/* Bright glowing stars — the ones that really pop */}
+            <g filter="url(#starGlow)">
+              {brightStars.filter(s => !s.brightest).map((s, i) => (
+                <circle key={`b${i}`} cx={s.x} cy={s.y} r={s.r} fill={s.color} opacity={s.opacity} />
+              ))}
+            </g>
+
+            {/* Brightest stars — extra glow and larger */}
+            <g filter="url(#starGlowBright)">
+              {brightStars.filter(s => s.brightest).map((s, i) => (
+                <circle key={`bb${i}`} cx={s.x} cy={s.y} r={s.r} fill={s.color} opacity={s.opacity} />
+              ))}
+            </g>
+
+            {/* Constellation lines — barely visible threads connecting bright stars */}
+            <g stroke="rgba(180,190,255,0.06)" strokeWidth="0.4" strokeLinecap="round">
+              <line x1="350" y1="30" x2="510" y2="68" />
+              <line x1="510" y1="68" x2="640" y2="22" />
+              <line x1="640" y1="22" x2="770" y2="58" />
+              <line x1="770" y1="58" x2="890" y2="35" />
+              <line x1="200" y1="135" x2="350" y2="30" />
+              <line x1="890" y1="35" x2="1020" y2="72" />
+              <line x1="480" y1="145" x2="510" y2="68" />
+              <line x1="760" y1="140" x2="770" y2="58" />
+            </g>
+
+            {/* Sparse star clusters — tiny groupings that mimic real sky patterns */}
+            {[
+              [300,55],[302,58],[305,54],[298,52],[304,60],
+              [850,42],[853,45],[848,40],[855,38],[851,47],
+              [550,125],[553,128],[548,122],[556,126],[551,130],
+              [1100,75],[1103,78],[1098,72],[1105,76],[1101,80],
+            ].map(([cx, cy], i) => (
+              <circle key={`cl${i}`} cx={cx} cy={cy} r={0.6 + Math.random() * 0.4} fill="white" opacity={0.25 + Math.random() * 0.2} />
+            ))}
           </svg>
         </div>
-        {/* Denali photo — full width with smooth edge fade */}
+
+        {/* Denali photo — full width with smooth edge fade, slightly more visible */}
         <div
-          className="absolute top-0 left-0 right-0 h-[380px] pointer-events-none overflow-hidden"
+          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden"
           style={{
-            opacity: 0.14,
-            maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 50%, transparent 95%), linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 50%, transparent 95%)',
+            opacity: 0.18,
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 45%, transparent 92%), linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 45%, transparent 92%), linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
             maskComposite: 'intersect',
-            WebkitMaskComposite: 'destination-in',
+            WebkitMaskComposite: 'destination-in' as string,
           }}
         >
           {/* Photo: Patrick Federi / Unsplash (free license) */}
           <img
             src="/denali-watermark.jpg"
             alt=""
-            className="w-full h-full object-cover object-[center_40%] grayscale brightness-[1.3]"
+            className="w-full h-full object-cover object-[center_40%] grayscale brightness-[1.2] contrast-[1.1]"
             aria-hidden="true"
           />
         </div>

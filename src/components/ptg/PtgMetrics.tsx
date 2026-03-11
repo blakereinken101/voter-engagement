@@ -325,12 +325,12 @@ function SummaryCard({
           <p className="text-xs text-white/50">total</p>
         </div>
         <div className="border-l border-white/[0.06] pl-3">
-          <p className="text-lg font-bold text-white/70 tabular-nums">{weekly ?? 0}</p>
-          <p className="text-xs text-white/50">weekly</p>
+          <p className={clsx("text-lg font-bold tabular-nums", (weekly ?? 0) > 0 ? "text-white/70" : "text-white/20")}>{weekly ?? 0}</p>
+          <p className="text-xs text-white/40">weekly</p>
         </div>
         <div>
-          <p className="text-lg font-bold text-white/60 tabular-nums">{daily ?? 0}</p>
-          <p className="text-xs text-white/50">today</p>
+          <p className={clsx("tabular-nums", (daily ?? 0) > 0 ? "text-lg font-bold text-white/60" : "text-sm font-medium text-white/15")}>{daily ?? 0}</p>
+          <p className={clsx("text-xs", (daily ?? 0) > 0 ? "text-white/40" : "text-white/20")}>today</p>
         </div>
       </div>
     </div>
