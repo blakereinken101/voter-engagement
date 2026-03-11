@@ -161,26 +161,29 @@ export default function PtgMetrics({ refreshKey }: { refreshKey: number }) {
             <div className="px-3 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
               <span className="text-xs font-bold text-white/60 uppercase tracking-widest">By Volunteer</span>
             </div>
-            <div className="max-h-[300px] overflow-y-auto">
+            <div className="max-h-[500px] overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-[#0f0f19] border-b border-white/[0.06]">
-                  <tr className="text-white/50 text-xs uppercase tracking-widest">
-                    <th className="text-left px-3 py-2 font-bold">Volunteer</th>
-                    <th className="text-right px-2 py-2 font-bold">Today</th>
-                    <th className="text-right px-2 py-2 font-bold">Weekly</th>
-                    <th className="text-right px-3 py-2 font-bold">Total</th>
+                <thead className="sticky top-0 bg-[#0f0f19] border-b-2 border-white/[0.08]">
+                  <tr className="text-white/60 text-xs uppercase tracking-widest">
+                    <th className="text-left px-3 py-2.5 font-bold">Volunteer</th>
+                    <th className="text-right px-2 py-2.5 font-bold">Today</th>
+                    <th className="text-right px-2 py-2.5 font-bold">Weekly</th>
+                    <th className="text-right px-3 py-2.5 font-bold">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.byVolunteer.slice(0, 50).map((v, i) => (
-                    <tr key={v.id} className={i % 2 === 1 ? 'bg-white/[0.01]' : ''}>
-                      <td className="px-3 py-1.5">
-                        <p className="text-white/70 font-medium truncate max-w-[120px]">{v.name}</p>
-                        <p className="text-[11px] text-white/50 truncate">{v.organizerName}</p>
+                    <tr key={v.id} className={clsx(
+                      'border-b border-white/[0.04] transition-colors hover:bg-white/[0.03]',
+                      i % 2 === 0 ? 'bg-white/[0.015]' : 'bg-transparent'
+                    )}>
+                      <td className="px-3 py-2">
+                        <p className="text-white/90 font-medium truncate max-w-[140px]">{v.name}</p>
+                        <p className="text-[11px] text-white/50 truncate">{v.region || v.organizerName}</p>
                       </td>
-                      <td className="text-right px-2 py-1.5 text-white/60 tabular-nums">{v.dailyContacts}</td>
-                      <td className="text-right px-2 py-1.5 text-white/70 tabular-nums">{v.weeklyContacts}</td>
-                      <td className="text-right px-3 py-1.5 text-white/70 tabular-nums font-medium">{v.totalContacts}</td>
+                      <td className="text-right px-2 py-2 text-white/60 tabular-nums">{v.dailyContacts}</td>
+                      <td className="text-right px-2 py-2 text-white/80 tabular-nums">{v.weeklyContacts}</td>
+                      <td className="text-right px-3 py-2 text-white/90 tabular-nums font-bold">{v.totalContacts}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -215,13 +218,16 @@ function BreakdownTable({ title, rows }: {
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.label} className={i % 2 === 1 ? 'bg-white/[0.01]' : ''}>
-              <td className="px-3 py-2 text-white/80 font-medium truncate max-w-[120px]">{r.label}</td>
-              <td className="text-right px-2 py-2 text-white/60 tabular-nums">{r.vols}</td>
-              <td className="text-right px-2 py-2 text-emerald-400/70 tabular-nums font-medium">{r.active}</td>
+            <tr key={r.label} className={clsx(
+              'border-b border-white/[0.04] transition-colors hover:bg-white/[0.03]',
+              i % 2 === 0 ? 'bg-white/[0.015]' : 'bg-transparent'
+            )}>
+              <td className="px-3 py-2 text-white/90 font-medium truncate max-w-[120px]">{r.label}</td>
+              <td className="text-right px-2 py-2 text-white/70 tabular-nums">{r.vols}</td>
+              <td className="text-right px-2 py-2 text-emerald-400/80 tabular-nums font-medium">{r.active}</td>
               <td className="text-right px-2 py-2 text-white/60 tabular-nums">{r.daily}</td>
-              <td className="text-right px-2 py-2 text-white/70 tabular-nums">{r.weekly}</td>
-              <td className="text-right px-3 py-2 text-white/80 tabular-nums font-medium">{r.total}</td>
+              <td className="text-right px-2 py-2 text-white/80 tabular-nums">{r.weekly}</td>
+              <td className="text-right px-3 py-2 text-white/90 tabular-nums font-bold">{r.total}</td>
             </tr>
           ))}
         </tbody>

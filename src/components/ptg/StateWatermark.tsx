@@ -167,25 +167,83 @@ export default function StateWatermark({ state }: { state?: string }) {
   if (!state) return null
   const upper = state.toUpperCase()
 
-  // Alaska uses a real Denali photograph as watermark
+  // Alaska uses a real Denali photograph as watermark with constellation stars
   if (upper === 'AK') {
     return (
-      <div
-        className="absolute top-0 right-0 w-[500px] h-[340px] pointer-events-none overflow-hidden"
-        style={{
-          opacity: 0.12,
-          maskImage: 'linear-gradient(to bottom, black 30%, transparent 90%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, black 30%, transparent 90%)',
-        }}
-      >
-        {/* Photo: Patrick Federi / Unsplash (free license) */}
-        <img
-          src="/denali-watermark.jpg"
-          alt=""
-          className="w-full h-full object-cover object-center grayscale brightness-150"
+      <>
+        {/* Constellation star field behind Denali */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden"
           aria-hidden="true"
-        />
-      </div>
+          style={{
+            opacity: 0.6,
+            maskImage: 'linear-gradient(to bottom, black 20%, transparent 90%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 20%, transparent 90%)',
+          }}
+        >
+          <svg className="w-full h-full" viewBox="0 0 1200 400" fill="none">
+            {/* Dense starfield */}
+            {[
+              [80,30,2.5],[180,60,1.5],[290,20,2],[370,80,1],[450,35,2.5],[530,55,1.5],[610,15,2],[720,70,1.5],
+              [800,25,2.5],[900,50,1],[980,40,2],[1060,65,1.5],[1140,20,2],[150,120,1.5],[260,95,2],[380,130,1],
+              [490,105,2.5],[600,140,1.5],[700,100,1],[830,135,2],[940,110,1.5],[1050,90,2],[120,180,1.5],
+              [230,160,2],[340,190,1],[460,170,2.5],[570,195,1],[680,165,1.5],[790,185,2],[910,155,1],
+              [1020,175,1.5],[1100,145,2],[50,240,1],[170,220,1.5],[300,250,1],[420,230,2],[550,260,1.5],
+              [650,235,1],[770,255,2],[880,225,1.5],[1000,245,1],[1110,215,1.5],
+              [100,75,1],[320,45,1.5],[500,85,1],[680,40,2],[850,75,1.5],[1020,30,1],[200,150,1],
+              [400,110,1.5],[620,125,1],[820,145,1.5],[1000,120,1],[70,300,1],[250,280,1.5],[440,310,1],
+              [630,290,1.5],[820,305,1],[990,285,1.5],
+            ].map(([cx, cy, r], i) => (
+              <circle key={i} cx={cx} cy={cy} r={r} fill="white" opacity={0.3 + (r as number) * 0.15} />
+            ))}
+            {/* Brighter accent stars */}
+            {[
+              [320,35,3,'rgba(139,92,246,0.7)'],[680,55,2.5,'rgba(20,184,166,0.6)'],[950,30,3,'rgba(108,60,225,0.7)'],
+              [150,100,2.5,'rgba(255,255,255,0.8)'],[500,75,3,'rgba(255,255,255,0.9)'],[850,90,2.5,'rgba(139,92,246,0.6)'],
+              [400,150,2,'rgba(20,184,166,0.5)'],[750,130,2.5,'rgba(255,255,255,0.7)'],[1050,110,2,'rgba(108,60,225,0.5)'],
+            ].map(([cx, cy, r, fill], i) => (
+              <circle key={`a${i}`} cx={cx as number} cy={cy as number} r={r as number} fill={fill as string} />
+            ))}
+            {/* Constellation lines connecting stars */}
+            <g stroke="rgba(255,255,255,0.08)" strokeWidth="0.5">
+              <line x1="320" y1="35" x2="500" y2="75" />
+              <line x1="500" y1="75" x2="680" y2="55" />
+              <line x1="680" y1="55" x2="850" y2="90" />
+              <line x1="150" y1="100" x2="320" y2="35" />
+              <line x1="850" y1="90" x2="950" y2="30" />
+              <line x1="400" y1="150" x2="500" y2="75" />
+              <line x1="750" y1="130" x2="680" y2="55" />
+            </g>
+            {/* Milky way band — very subtle */}
+            <ellipse cx="600" cy="120" rx="500" ry="60" fill="url(#milkyway)" opacity="0.06" />
+            <defs>
+              <radialGradient id="milkyway">
+                <stop offset="0%" stopColor="white" stopOpacity="1" />
+                <stop offset="100%" stopColor="white" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+          </svg>
+        </div>
+        {/* Denali photo — full width with smooth edge fade */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[380px] pointer-events-none overflow-hidden"
+          style={{
+            opacity: 0.14,
+            maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 50%, transparent 95%), linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 50%, transparent 95%)',
+            maskComposite: 'intersect',
+            WebkitMaskComposite: 'destination-in',
+          }}
+        >
+          {/* Photo: Patrick Federi / Unsplash (free license) */}
+          <img
+            src="/denali-watermark.jpg"
+            alt=""
+            className="w-full h-full object-cover object-[center_40%] grayscale brightness-[1.3]"
+            aria-hidden="true"
+          />
+        </div>
+      </>
     )
   }
 

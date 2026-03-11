@@ -6,6 +6,8 @@ import { getDb } from '@/lib/db'
  * GET /api/admin/ptg/leaderboard
  * Weekly (Mon–Sun) and daily stats for volunteers.
  * Uses campaign timezone for day boundaries.
+ * Includes: conversations, contacts rolodexed, supporters (positive IDs),
+ *           volunteer interest (vol yes), shifts completed, recruited.
  * Params: period=weekly|daily
  */
 export async function GET(request: NextRequest) {
@@ -33,6 +35,7 @@ export async function GET(request: NextRequest) {
       periodStart = `(DATE_TRUNC('week', NOW() AT TIME ZONE '${timezone}') AT TIME ZONE '${timezone}')`
     }
 
+    // ── Main contact-based metrics ──
     const { rows } = await db.query(`
       SELECT
         u.id as volunteer_id,
@@ -42,7 +45,8 @@ export async function GET(request: NextRequest) {
         COUNT(c.id) as contacts_rolodexed,
         COUNT(CASE WHEN ai.contact_outcome IS NOT NULL AND ai.contact_outcome != '' THEN 1 END) as conversations,
         COUNT(CASE WHEN ai.volunteer_interest = 'yes' THEN 1 END) as vol_interest_yes,
-        COUNT(CASE WHEN ai.contact_outcome = 'supporter' THEN 1 END) as supporters
+        COUNT(CASE WHEN ai.contact_outcome = 'supporter' THEN 1 END) as supporters,
+        COUNT(CASE WHEN ai.recruited_date IS NOT NULL AND ai.recruited_date >= ${periodStart}::text THEN 1 END) as recruited
       FROM contacts c
       JOIN users u ON u.id = c.user_id
       JOIN memberships m ON m.user_id = c.user_id AND m.campaign_id = $1 AND m.role = ANY($2)
@@ -56,6 +60,25 @@ export async function GET(request: NextRequest) {
       HAVING COUNT(c.id) > 0
     `, [ctx.campaignId, volRoles])
 
+    // ── Shifts completed (event RSVPs with status 'going') ──
+    let shiftsMap: Record<string, number> = {}
+    try {
+      const { rows: shiftRows } = await db.query(`
+        SELECT er.user_id, COUNT(DISTINCT er.event_id) as shifts
+        FROM event_rsvps er
+        JOIN events e ON e.id = er.event_id
+        JOIN memberships m ON m.user_id = er.user_id AND m.campaign_id = $1 AND m.role = ANY($2)
+        WHERE er.status = 'going'
+          AND e.start_time >= ${periodStart}
+        GROUP BY er.user_id
+      `, [ctx.campaignId, volRoles])
+      shiftsMap = Object.fromEntries(
+        shiftRows.map((r: Record<string, unknown>) => [r.user_id as string, Number(r.shifts) || 0])
+      )
+    } catch {
+      // event_rsvps table may not exist in all environments
+    }
+
     // Return raw aggregates — frontend handles grouping/sorting
     const volunteers = rows.map((r: Record<string, unknown>) => ({
       id: r.volunteer_id,
@@ -66,7 +89,12 @@ export async function GET(request: NextRequest) {
       contactsRolodexed: Number(r.contacts_rolodexed) || 0,
       supporters: Number(r.supporters) || 0,
       volInterest: Number(r.vol_interest_yes) || 0,
+      shiftsCompleted: shiftsMap[r.volunteer_id as string] || 0,
+      recruited: Number(r.recruited) || 0,
     }))
+
+    // Build human-readable date range
+    const dateRange = buildDateRange(period, timezone)
 
     return NextResponse.json({
       period,
@@ -74,6 +102,7 @@ export async function GET(request: NextRequest) {
       periodLabel: period === 'daily'
         ? new Date().toLocaleDateString('en-US', { timeZone: timezone, weekday: 'long', month: 'short', day: 'numeric' })
         : `Week of ${getWeekStart(timezone)}`,
+      dateRange,
       volunteers,
     })
   } catch (error: unknown) {
@@ -96,4 +125,28 @@ function getWeekStart(timezone: string): string {
   const monday = new Date(tzDay)
   monday.setDate(monday.getDate() - mondayOffset)
   return formatter.format(monday)
+}
+
+function buildDateRange(period: string, timezone: string): string {
+  const now = new Date()
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', {
+    timeZone: timezone,
+    month: 'short',
+    day: 'numeric',
+  })
+
+  if (period === 'daily') {
+    return `Today, ${fmt(now)}`
+  }
+
+  // Weekly: Mon – Sun
+  const tzDay = new Date(now.toLocaleString('en-US', { timeZone: timezone }))
+  const dayOfWeek = tzDay.getDay()
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const monday = new Date(tzDay)
+  monday.setDate(monday.getDate() - mondayOffset)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+
+  return `${fmt(monday)} – ${fmt(sunday)}`
 }

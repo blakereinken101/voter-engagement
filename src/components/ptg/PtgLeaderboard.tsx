@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Trophy, Loader2, MessageSquare, BookOpen, UserPlus, ThumbsUp, User, Users, MapPin } from 'lucide-react'
+import { Trophy, Loader2, MessageSquare, BookOpen, UserPlus, ThumbsUp, User, Users, MapPin, CalendarCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import MetricTooltip from './MetricTooltip'
 import clsx from 'clsx'
 
-type Metric = 'conversations' | 'contactsRolodexed' | 'supporters' | 'volInterest'
+type Metric = 'conversations' | 'contactsRolodexed' | 'supporters' | 'volInterest' | 'shiftsCompleted' | 'recruited'
 type Entity = 'volunteer' | 'organizer' | 'region'
 
 interface VolunteerStat {
@@ -18,12 +18,15 @@ interface VolunteerStat {
   contactsRolodexed: number
   supporters: number
   volInterest: number
+  shiftsCompleted: number
+  recruited: number
 }
 
 interface LeaderboardData {
   period: string
   timezone: string
   periodLabel: string
+  dateRange: string
   volunteers: VolunteerStat[]
 }
 
@@ -35,6 +38,8 @@ interface AggregatedEntry {
   contactsRolodexed: number
   supporters: number
   volInterest: number
+  shiftsCompleted: number
+  recruited: number
   rank: number
 }
 
@@ -53,7 +58,9 @@ const METRICS: MetricDef[] = [
   { id: 'conversations', label: 'Conversations', short: 'Convos', tooltip: 'Number of voter conversations logged this period.', icon: MessageSquare, color: 'text-vc-blue-light', bg: 'bg-vc-blue-light/10', border: 'border-vc-blue-light/30' },
   { id: 'contactsRolodexed', label: 'Rolodexed', short: 'Rolodex', tooltip: 'Contacts added to the volunteer\'s personal rolodex.', icon: BookOpen, color: 'text-vc-teal', bg: 'bg-vc-teal/10', border: 'border-vc-teal/30' },
   { id: 'supporters', label: 'Positive IDs', short: 'Pos ID', tooltip: 'Contacts positively identified as supporters during outreach.', icon: ThumbsUp, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
-  { id: 'volInterest', label: 'Volunteers', short: 'Vol Int', tooltip: 'Contacts who expressed interest in volunteering.', icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' },
+  { id: 'volInterest', label: 'Vol Yes', short: 'Vol Yes', tooltip: 'Contacts who said yes to volunteering.', icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' },
+  { id: 'shiftsCompleted', label: 'Shifts', short: 'Shifts', tooltip: 'Volunteer shifts completed (events attended).', icon: CalendarCheck, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/30' },
+  { id: 'recruited', label: 'Recruited', short: 'Recruited', tooltip: 'New volunteers recruited by this person.', icon: Users, color: 'text-purple-400', bg: 'bg-purple-400/10', border: 'border-purple-400/30' },
 ]
 
 const ENTITIES: { id: Entity; label: string; icon: LucideIcon }[] = [
@@ -95,11 +102,13 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
       result = data.volunteers.map(v => ({
         id: v.id,
         name: v.name,
-        subtitle: `${v.organizerName} · ${v.region}`,
+        subtitle: v.region || v.organizerName,
         conversations: v.conversations,
         contactsRolodexed: v.contactsRolodexed,
         supporters: v.supporters,
         volInterest: v.volInterest,
+        shiftsCompleted: v.shiftsCompleted || 0,
+        recruited: v.recruited || 0,
       }))
     } else {
       const key = entity === 'organizer' ? 'organizerName' : 'region'
@@ -108,13 +117,15 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
       data.volunteers.forEach(v => {
         const k = v[key] || 'Unassigned'
         if (!map.has(k)) {
-          map.set(k, { id: k, name: k, subtitle: subtitleLabel, conversations: 0, contactsRolodexed: 0, supporters: 0, volInterest: 0 })
+          map.set(k, { id: k, name: k, subtitle: subtitleLabel, conversations: 0, contactsRolodexed: 0, supporters: 0, volInterest: 0, shiftsCompleted: 0, recruited: 0 })
         }
         const entry = map.get(k)!
         entry.conversations += v.conversations
         entry.contactsRolodexed += v.contactsRolodexed
         entry.supporters += v.supporters
         entry.volInterest += v.volInterest
+        entry.shiftsCompleted += (v.shiftsCompleted || 0)
+        entry.recruited += (v.recruited || 0)
       })
       result = Array.from(map.values())
     }
@@ -136,12 +147,12 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
   }
 
   const getRankIcon = (rank: number) => {
-    if (rank <= 3) return <Trophy className={clsx('w-3.5 h-3.5 drop-shadow-md', rank === 1 && 'text-amber-300', rank === 2 && 'text-gray-300', rank === 3 && 'text-orange-300')} />
-    return <span className="text-[11px] tabular-nums font-bold">{rank}</span>
+    if (rank <= 3) return <Trophy className={clsx('w-4 h-4 drop-shadow-md', rank === 1 && 'text-amber-300', rank === 2 && 'text-gray-300', rank === 3 && 'text-orange-300')} />
+    return <span className="text-xs tabular-nums font-bold">{rank}</span>
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -151,8 +162,8 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
           <div>
             <h3 className="text-lg font-bold text-white tracking-tight">Leaderboard</h3>
             {data && (
-              <p className="text-xs text-white/60 font-medium">
-                {data.periodLabel} &middot; {data.timezone.replace('America/', '').replace('_', ' ')}
+              <p className="text-sm text-white/60 font-medium">
+                {data.dateRange || data.periodLabel}
               </p>
             )}
           </div>
@@ -164,7 +175,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
               <button
                 onClick={() => setPeriod('weekly')}
                 className={clsx(
-                  'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+                  'px-4 py-2 text-sm font-bold rounded-md transition-all',
                   period === 'weekly' ? 'bg-white/15 text-white shadow-sm' : 'text-white/50 hover:text-white/70'
                 )}
               >
@@ -173,7 +184,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
               <button
                 onClick={() => setPeriod('daily')}
                 className={clsx(
-                  'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
+                  'px-4 py-2 text-sm font-bold rounded-md transition-all',
                   period === 'daily' ? 'bg-white/15 text-white shadow-sm' : 'text-white/50 hover:text-white/70'
                 )}
               >
@@ -184,7 +195,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
       </div>
 
       {/* Nav Tabs */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-black/20 p-2 rounded-xl border border-white/[0.05]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-black/20 p-2 rounded-xl border border-white/[0.05]">
 
          {/* Entity Tabs */}
          <div className="flex gap-1 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
@@ -195,7 +206,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                  key={e.id}
                  onClick={() => setEntity(e.id)}
                  className={clsx(
-                   "flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap",
+                   "flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-lg transition-all whitespace-nowrap",
                    entity === e.id
                      ? "bg-white/10 text-white shadow-sm"
                      : "text-white/50 hover:text-white/70 hover:bg-white/5"
@@ -234,23 +245,23 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
       {/* List Area */}
       <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl overflow-hidden backdrop-blur-sm">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="w-6 h-6 text-amber-400/50 animate-spin" />
             <span className="text-sm text-white/50 font-medium">Calculating rankings...</span>
           </div>
         ) : !data || aggregatedData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex flex-col items-center justify-center py-20 text-center">
             <Trophy className="w-12 h-12 text-white/5 mb-3" />
             <p className="text-white/50 font-medium">No activity recorded {period === 'weekly' ? 'this week' : 'today'} yet.</p>
             <p className="text-white/40 text-xs mt-1">As volunteers log conversations this period, they will appear here ranked by their activity.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <div className="min-w-[540px]">
+            <div className="min-w-[700px]">
               {/* Table Header */}
-              <div className="grid grid-cols-[50px_1fr_80px_80px_80px_80px] gap-2 px-4 py-3 text-[11px] font-bold text-white/50 uppercase tracking-widest border-b border-white/[0.05] bg-black/20">
-                <div className="text-center">Rank</div>
-                <div>{ENTITIES.find(e => e.id === entity)?.label.slice(0, -1)}</div>
+              <div className="grid grid-cols-[44px_1fr_repeat(6,72px)] gap-1 px-3 py-3 text-xs font-bold text-white/60 uppercase tracking-wider border-b-2 border-white/[0.08] bg-black/30">
+                <div className="text-center">#</div>
+                <div className="text-sm">{ENTITIES.find(e => e.id === entity)?.label.slice(0, -1)}</div>
                 {METRICS.map(m => {
                   const Icon = m.icon
                   return (
@@ -262,8 +273,8 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                         metric === m.id ? m.color : "hover:text-white/70"
                       )}
                     >
-                      <Icon className={clsx("w-3 h-3 transition-transform", metric === m.id && "scale-110")} />
-                      <span className={clsx(metric === m.id && "underline underline-offset-4 decoration-2 decoration-current/30")}>
+                      <Icon className={clsx("w-3.5 h-3.5 transition-transform", metric === m.id && "scale-110")} />
+                      <span className={clsx("text-xs", metric === m.id && "underline underline-offset-4 decoration-2 decoration-current/30")}>
                         {m.short}
                       </span>
                       <MetricTooltip text={m.tooltip} />
@@ -273,25 +284,25 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
               </div>
 
               {/* Rows */}
-              <div className="p-2 space-y-1">
+              <div className="p-1.5 space-y-0.5">
                 {aggregatedData.map((entry) => (
                   <div
                     key={entry.id}
                     className={clsx(
-                      'grid grid-cols-[50px_1fr_80px_80px_80px_80px] gap-2 items-center px-2 py-2.5 rounded-lg border transition-all',
+                      'grid grid-cols-[44px_1fr_repeat(6,72px)] gap-1 items-center px-2 py-2 rounded-lg border transition-all',
                       getRankStyle(entry.rank)
                     )}
                   >
                     <div className="flex items-center justify-center">
                        <div className={clsx(
-                         "flex items-center justify-center w-7 h-7 rounded-full border",
+                         "flex items-center justify-center w-8 h-8 rounded-full border",
                          entry.rank <= 3 ? "border-current/30 bg-black/20" : "border-white/10 bg-white/5"
                        )}>
                          {getRankIcon(entry.rank)}
                        </div>
                     </div>
 
-                    <div className="min-w-0 pr-4">
+                    <div className="min-w-0 pr-2">
                       <p className={clsx(
                         'text-sm font-bold truncate leading-tight',
                         entry.rank <= 3 ? 'text-white' : 'text-white/90',
@@ -309,10 +320,10 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                       return (
                         <div key={m.id} className="text-right flex flex-col items-end justify-center">
                           <span className={clsx(
-                            "text-[13px] tabular-nums font-bold",
+                            "text-sm tabular-nums font-bold",
                             isSortedByThis
                               ? (val > 0 ? m.color : 'text-white/30')
-                              : (val > 0 ? 'text-white/70' : 'text-white/10')
+                              : (val > 0 ? 'text-white/80' : 'text-white/15')
                           )}>
                             {val.toLocaleString()}
                           </span>
