@@ -139,11 +139,13 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
       .map((item, index) => ({ ...item, rank: index + 1 }))
   }, [data, entity, metric])
 
-  const getRankStyle = (rank: number) => {
+  const getRankStyle = (rank: number, index: number) => {
     if (rank === 1) return 'bg-amber-400/15 text-amber-300 border-amber-400/30 shadow-[0_0_15px_rgba(251,191,36,0.15)] z-10 relative'
     if (rank === 2) return 'bg-gray-300/15 text-gray-200 border-gray-300/30 shadow-[0_0_15px_rgba(209,213,219,0.1)] z-10 relative'
     if (rank === 3) return 'bg-orange-400/15 text-orange-300 border-orange-400/30 shadow-[0_0_15px_rgba(251,146,60,0.1)] z-10 relative'
-    return 'bg-white/[0.02] text-white/40 border-white/[0.05] hover:bg-white/[0.04]'
+    return index % 2 === 0
+      ? 'bg-white/[0.04] text-white/40 border-white/[0.08] hover:bg-white/[0.07]'
+      : 'bg-white/[0.015] text-white/40 border-white/[0.04] hover:bg-white/[0.05]'
   }
 
   const getRankIcon = (rank: number) => {
@@ -285,12 +287,12 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
 
               {/* Rows */}
               <div className="p-1.5 space-y-0.5">
-                {aggregatedData.map((entry) => (
+                {aggregatedData.map((entry, idx) => (
                   <div
                     key={entry.id}
                     className={clsx(
                       'grid grid-cols-[44px_1fr_repeat(6,minmax(80px,1fr))] gap-3 items-center px-3 py-2.5 rounded-lg border transition-all',
-                      getRankStyle(entry.rank)
+                      getRankStyle(entry.rank, idx)
                     )}
                   >
                     <div className="flex items-center justify-center">

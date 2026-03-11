@@ -265,6 +265,8 @@ export default function StateWatermark({ state }: { state?: string }) {
           }}
         >
           <svg className="w-full h-full" viewBox="0 0 1400 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Dark sky fill — behind stars */}
+            <rect width="1400" height="420" fill="rgba(4,6,18,0.55)" />
             <defs>
               {/* Glow filter for bright stars */}
               <filter id="starGlow" x="-300%" y="-300%" width="700%" height="700%">
@@ -365,7 +367,7 @@ export default function StateWatermark({ state }: { state?: string }) {
         <div
           className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden"
           style={{
-            opacity: 0.18,
+            opacity: 0.28,
             maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 45%, transparent 92%), linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 45%, transparent 92%), linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
             maskComposite: 'intersect',
@@ -376,7 +378,7 @@ export default function StateWatermark({ state }: { state?: string }) {
           <img
             src="/denali-watermark.jpg"
             alt=""
-            className="w-full h-full object-cover object-[center_40%] grayscale brightness-[1.2] contrast-[1.1]"
+            className="w-full h-full object-cover object-[center_40%] grayscale brightness-[0.8] contrast-[1.1]"
             aria-hidden="true"
           />
         </div>
