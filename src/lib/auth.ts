@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { MembershipRole, ADMIN_ROLES } from '@/types'
 import { getPool } from '@/lib/db'
+import { createCache } from '@/lib/cache'
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET
@@ -186,6 +187,14 @@ function touchLastActive(pool: ReturnType<typeof getPool>, userId: string) {
   pool.query('UPDATE users SET last_active_at = NOW() WHERE id = $1', [userId]).catch(() => {})
 }
 
+// Cache auth context for 60s to avoid 2-3 DB queries on every authenticated API call
+const authContextCache = createCache<RequestContext>(60_000)
+
+/** Clear cached auth context. Called when roles/products change (platform admin actions). */
+export function invalidateAuthCache(): void {
+  authContextCache.invalidate()
+}
+
 export async function getRequestContext(): Promise<RequestContext> {
   const session = getSessionFromRequest()
   if (!session) throw new AuthError('Not authenticated', 401)
@@ -193,6 +202,14 @@ export async function getRequestContext(): Promise<RequestContext> {
   // Get active campaign from cookie
   const campaignId = getActiveCampaignId()
   if (!campaignId) throw new AuthError('No campaign selected', 400)
+
+  // Lightweight activity heartbeat — must run even on cache hit (already debounced + fire-and-forget)
+  touchLastActive(getPool(), session.userId)
+
+  // Return cached context if available (saves 2-3 DB queries per request)
+  const cacheKey = `${session.userId}:${campaignId}`
+  const cached = authContextCache.get(cacheKey)
+  if (cached) return cached
 
   const pool = getPool()
 
@@ -203,9 +220,6 @@ export async function getRequestContext(): Promise<RequestContext> {
   )
   if (userRows.length === 0) throw new AuthError('User not found', 401)
   const isPlatformAdmin = !!userRows[0].is_platform_admin
-
-  // Lightweight activity heartbeat (debounced, non-blocking)
-  touchLastActive(pool, session.userId)
 
   // Verify relational product access (the security boundary)
   if (!isPlatformAdmin) {
@@ -233,13 +247,16 @@ export async function getRequestContext(): Promise<RequestContext> {
     ? memberRows[0].role as MembershipRole
     : 'platform_admin' // platform admin accessing campaign without explicit membership
 
-  return {
+  const result: RequestContext = {
     userId: session.userId,
     email: session.email,
     campaignId,
     role: isPlatformAdmin ? 'platform_admin' : role,
     isPlatformAdmin,
   }
+
+  authContextCache.set(cacheKey, result)
+  return result
 }
 
 

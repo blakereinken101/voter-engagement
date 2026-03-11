@@ -7,13 +7,20 @@ const useSSL = dbUrl.includes('.railway.internal') ? false
   : process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true }
   : false
 
+const poolMax = parseInt(process.env.DATABASE_POOL_MAX || '100', 10)
+
 const pool = new Pool({
   connectionString: dbUrl || undefined,
   ssl: useSSL,
-  max: 100,
+  max: poolMax,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000, // fail fast if pool is exhausted
 })
+
+// Log pool config at startup (skip during build)
+if (process.env.NEXT_PHASE !== 'phase-production-build') {
+  console.log(`[db] Pool initialized: max=${poolMax}, idle=30000ms, timeout=10000ms`)
+}
 
 export function getPool(): Pool {
   return pool

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { requirePlatformAdmin, handleAuthError } from '@/lib/platform-guard'
+import { invalidateAuthCache } from '@/lib/auth'
+import { invalidateMeCache } from '@/app/api/auth/me/route'
+
+/** Flush all user caches after a role/product/membership change */
+function invalidateUserCaches() {
+  invalidateAuthCache()
+  invalidateMeCache()
+}
 
 export async function GET(
   _request: NextRequest,
@@ -93,6 +101,7 @@ export async function PATCH(
         return NextResponse.json({ error: 'User not found' }, { status: 404 })
       }
 
+      invalidateUserCaches()
       return NextResponse.json({ user: rows[0] })
     }
 
@@ -126,6 +135,7 @@ export async function PATCH(
         )
       }
 
+      invalidateUserCaches()
       return NextResponse.json({ success: true })
     }
 
@@ -136,6 +146,7 @@ export async function PATCH(
         'UPDATE user_products SET is_active = false WHERE user_id = $1 AND product = $2',
         [userId, product]
       )
+      invalidateUserCaches()
       return NextResponse.json({ success: true })
     }
 
@@ -184,6 +195,7 @@ export async function PATCH(
         }
       }
 
+      invalidateUserCaches()
       return NextResponse.json({ success: true })
     }
 
@@ -194,6 +206,7 @@ export async function PATCH(
         'UPDATE memberships SET is_active = false WHERE user_id = $1 AND campaign_id = $2',
         [userId, campaignId]
       )
+      invalidateUserCaches()
       return NextResponse.json({ success: true })
     }
 

@@ -1,10 +1,19 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
+import { createCache } from '@/lib/cache'
+
+// Cache leaderboard for 60s per campaign — this is the heaviest aggregation query in the app
+const leaderboardCache = createCache<any[]>(60_000)
 
 export async function GET() {
   try {
     const ctx = await getRequestContext()
+
+    const cached = leaderboardCache.get(ctx.campaignId)
+    if (cached) {
+      return NextResponse.json({ leaderboard: cached, currentUserId: ctx.userId })
+    }
 
     const db = await getDb()
 
@@ -30,6 +39,8 @@ export async function GET() {
       ORDER BY supporters DESC, contacted DESC
       LIMIT 50
     `, [ctx.campaignId])
+
+    leaderboardCache.set(ctx.campaignId, leaderboard)
 
     return NextResponse.json({ leaderboard, currentUserId: ctx.userId })
   } catch (error) {
