@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { ConversationRow, ConversationFilters, ColumnConfig } from '@/types'
+import { useAuth } from '@/context/AuthContext'
 import ConversationsToolbar from './ConversationsToolbar'
 import ConversationsTable from './ConversationsTable'
 import ConversationsPager from './ConversationsPager'
@@ -49,6 +50,7 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 ]
 
 export default function PtgDashboard() {
+  const { activeMembership } = useAuth()
   const [rows, setRows] = useState<ConversationRow[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -196,8 +198,8 @@ export default function PtgDashboard() {
   if (initialLoad) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-white/40 gap-3">
-        <div className="w-12 h-12 rounded-full bg-vc-purple/10 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-vc-purple-light" />
+        <div className="w-12 h-12 rounded-full bg-vc-blue/10 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-vc-blue-light" />
         </div>
         <span className="text-sm">Loading conversations...</span>
       </div>
@@ -209,16 +211,21 @@ export default function PtgDashboard() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <div className="relative">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-vc-purple via-vc-purple to-vc-teal flex items-center justify-center shadow-lg shadow-vc-purple/20">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-vc-blue via-vc-blue to-vc-teal flex items-center justify-center shadow-lg shadow-vc-blue/20">
             <MessageSquare className="w-5 h-5 text-white" />
           </div>
-          <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-vc-purple to-vc-teal opacity-20 blur-md -z-10" />
+          <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-vc-blue to-vc-teal opacity-20 blur-md -z-10" />
         </div>
         <div>
-          <h2 className="text-xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+          {activeMembership?.orgName && (
+            <p className="text-xs text-vc-blue-light font-semibold tracking-wide uppercase">
+              {activeMembership.orgName}
+            </p>
+          )}
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
             Conversations
           </h2>
-          <div className="text-[10px] text-white/30 font-medium tracking-widest uppercase">
+          <div className="text-xs text-white/50 font-medium tracking-widest uppercase">
             Relational Contact Sheet
           </div>
         </div>
@@ -231,10 +238,10 @@ export default function PtgDashboard() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={clsx(
-              'flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-colors border-b-2 -mb-px',
+              'flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-colors border-b-2 -mb-px',
               activeTab === tab.id
-                ? 'text-white border-vc-purple-light'
-                : 'text-white/30 border-transparent hover:text-white/50',
+                ? 'text-white border-vc-blue-light'
+                : 'text-white/50 border-transparent hover:text-white/70',
             )}
           >
             {tab.icon}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Trophy, Loader2, MessageSquare, BookOpen, UserPlus, ThumbsUp, User, Users, MapPin } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import MetricTooltip from './MetricTooltip'
 import clsx from 'clsx'
 
 type Metric = 'conversations' | 'contactsRolodexed' | 'supporters' | 'volInterest'
@@ -41,6 +42,7 @@ interface MetricDef {
   id: Metric
   label: string
   short: string
+  tooltip: string
   icon: LucideIcon
   color: string
   bg: string
@@ -48,10 +50,10 @@ interface MetricDef {
 }
 
 const METRICS: MetricDef[] = [
-  { id: 'conversations', label: 'Conversations', short: 'Convos', icon: MessageSquare, color: 'text-vc-purple-light', bg: 'bg-vc-purple-light/10', border: 'border-vc-purple-light/30' },
-  { id: 'contactsRolodexed', label: 'Rolodexed', short: 'Rolodex', icon: BookOpen, color: 'text-vc-teal', bg: 'bg-vc-teal/10', border: 'border-vc-teal/30' },
-  { id: 'supporters', label: 'Supporters', short: 'Support', icon: ThumbsUp, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
-  { id: 'volInterest', label: 'Volunteers', short: 'Vol Int', icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' },
+  { id: 'conversations', label: 'Conversations', short: 'Convos', tooltip: 'Number of voter conversations logged this period.', icon: MessageSquare, color: 'text-vc-blue-light', bg: 'bg-vc-blue-light/10', border: 'border-vc-blue-light/30' },
+  { id: 'contactsRolodexed', label: 'Rolodexed', short: 'Rolodex', tooltip: 'Contacts added to the volunteer\'s personal rolodex.', icon: BookOpen, color: 'text-vc-teal', bg: 'bg-vc-teal/10', border: 'border-vc-teal/30' },
+  { id: 'supporters', label: 'Supporters', short: 'Support', tooltip: 'Contacts marked as supporters during outreach.', icon: ThumbsUp, color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/30' },
+  { id: 'volInterest', label: 'Volunteers', short: 'Vol Int', tooltip: 'Contacts who expressed interest in volunteering.', icon: UserPlus, color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/30' },
 ]
 
 const ENTITIES: { id: Entity; label: string; icon: LucideIcon }[] = [
@@ -149,7 +151,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
           <div>
             <h3 className="text-lg font-bold text-white tracking-tight">Leaderboard</h3>
             {data && (
-              <p className="text-xs text-white/40 font-medium">
+              <p className="text-xs text-white/60 font-medium">
                 {data.periodLabel} &middot; {data.timezone.replace('America/', '').replace('_', ' ')}
               </p>
             )}
@@ -163,7 +165,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                 onClick={() => setPeriod('weekly')}
                 className={clsx(
                   'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
-                  period === 'weekly' ? 'bg-white/15 text-white shadow-sm' : 'text-white/40 hover:text-white/70'
+                  period === 'weekly' ? 'bg-white/15 text-white shadow-sm' : 'text-white/50 hover:text-white/70'
                 )}
               >
                 Weekly
@@ -172,7 +174,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                 onClick={() => setPeriod('daily')}
                 className={clsx(
                   'px-3 py-1.5 text-xs font-bold rounded-md transition-all',
-                  period === 'daily' ? 'bg-white/15 text-white shadow-sm' : 'text-white/40 hover:text-white/70'
+                  period === 'daily' ? 'bg-white/15 text-white shadow-sm' : 'text-white/50 hover:text-white/70'
                 )}
               >
                 Daily
@@ -196,7 +198,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                    "flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all whitespace-nowrap",
                    entity === e.id
                      ? "bg-white/10 text-white shadow-sm"
-                     : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                     : "text-white/50 hover:text-white/70 hover:bg-white/5"
                  )}
                >
                  <Icon className="w-4 h-4" />
@@ -218,7 +220,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                    "flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all border",
                    metric === m.id
                      ? `${m.bg} ${m.border} ${m.color} shadow-sm`
-                     : "bg-transparent border-transparent text-white/30 hover:text-white/60 hover:bg-white/5"
+                     : "bg-transparent border-transparent text-white/50 hover:text-white/70 hover:bg-white/5"
                  )}
                >
                  <Icon className="w-3.5 h-3.5" />
@@ -234,19 +236,19 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <Loader2 className="w-6 h-6 text-amber-400/50 animate-spin" />
-            <span className="text-sm text-white/30 font-medium">Calculating rankings...</span>
+            <span className="text-sm text-white/50 font-medium">Calculating rankings...</span>
           </div>
         ) : !data || aggregatedData.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <Trophy className="w-12 h-12 text-white/5 mb-3" />
-            <p className="text-white/40 font-medium">No activity recorded for this {period === 'weekly' ? 'week' : 'day'} yet.</p>
-            <p className="text-white/20 text-xs mt-1">Start texting and making calls to appear on the leaderboard!</p>
+            <p className="text-white/50 font-medium">No activity recorded for this {period === 'weekly' ? 'week' : 'day'} yet.</p>
+            <p className="text-white/40 text-xs mt-1">As volunteers log conversations this period, they will appear here ranked by their activity.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-[540px]">
               {/* Table Header */}
-              <div className="grid grid-cols-[50px_1fr_80px_80px_80px_80px] gap-2 px-4 py-3 text-[10px] font-bold text-white/30 uppercase tracking-widest border-b border-white/[0.05] bg-black/20">
+              <div className="grid grid-cols-[50px_1fr_80px_80px_80px_80px] gap-2 px-4 py-3 text-[11px] font-bold text-white/50 uppercase tracking-widest border-b border-white/[0.05] bg-black/20">
                 <div className="text-center">Rank</div>
                 <div>{ENTITIES.find(e => e.id === entity)?.label.slice(0, -1)}</div>
                 {METRICS.map(m => {
@@ -256,7 +258,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                       key={m.id}
                       onClick={() => setMetric(m.id)}
                       className={clsx(
-                        "text-right flex items-center justify-end gap-1.5 transition-colors group outline-none",
+                        "text-right flex items-center justify-end gap-1 transition-colors group outline-none",
                         metric === m.id ? m.color : "hover:text-white/70"
                       )}
                     >
@@ -264,6 +266,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                       <span className={clsx(metric === m.id && "underline underline-offset-4 decoration-2 decoration-current/30")}>
                         {m.short}
                       </span>
+                      <MetricTooltip text={m.tooltip} />
                     </button>
                   )
                 })}
@@ -295,7 +298,7 @@ export default function PtgLeaderboard({ refreshKey }: { refreshKey: number }) {
                       )}>
                         {entry.name}
                       </p>
-                      <p className="text-[10px] text-white/40 truncate mt-0.5 font-medium">
+                      <p className="text-xs text-white/50 truncate mt-0.5 font-medium">
                         {entry.subtitle}
                       </p>
                     </div>

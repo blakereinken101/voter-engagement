@@ -115,8 +115,8 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
     if (!sortKey) return null
     if (filters.sortBy === sortKey) {
       return filters.sortDir === 'asc'
-        ? <ArrowUp className="w-3 h-3 text-vc-purple-light" />
-        : <ArrowDown className="w-3 h-3 text-vc-purple-light" />
+        ? <ArrowUp className="w-3 h-3 text-vc-blue-light" />
+        : <ArrowDown className="w-3 h-3 text-vc-blue-light" />
     }
     return <ArrowUpDown className="w-3 h-3 text-white/15 group-hover:text-white/30" />
   }
@@ -127,24 +127,26 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
         <table className="w-full text-sm border-collapse">
           <thead>
             <tr className="bg-white/[0.04]">
-              {/* Checkbox column */}
-              <th className="px-2 py-2.5 border-b border-white/[0.08] w-8">
-                <button onClick={toggleSelectAll} className="text-white/30 hover:text-white/60">
-                  {allSelected ? <CheckSquare className="w-4 h-4 text-vc-purple-light" /> : <Square className="w-4 h-4" />}
-                </button>
-              </th>
               {visibleCols.map(col => (
                 <th
                   key={col.id}
                   onClick={() => toggleSort(col.id)}
                   className={clsx(
                     'px-3 py-2.5 text-left text-[11px] font-bold text-white/50 uppercase tracking-wider border-b border-white/[0.08] whitespace-nowrap',
-                    col.id === 'name' && 'sticky left-8 z-10 bg-[#0d081a]/95 backdrop-blur min-w-[160px]',
+                    col.id === 'name' && 'sticky left-0 z-10 bg-[#0d081a]/95 backdrop-blur min-w-[160px]',
                     SORTABLE[col.id] && 'cursor-pointer group hover:text-white/70 select-none',
                   )}
                   style={col.width ? { minWidth: col.width } : undefined}
                 >
                   <div className="flex items-center gap-1.5">
+                    {col.id === 'name' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleSelectAll() }}
+                        className="text-white/30 hover:text-white/60 shrink-0"
+                      >
+                        {allSelected ? <CheckSquare className="w-4 h-4 text-vc-blue-light" /> : <Square className="w-4 h-4" />}
+                      </button>
+                    )}
                     {col.label}
                     <SortIcon colId={col.id} />
                   </div>
@@ -155,7 +157,7 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={visibleCols.length + 1} className="px-4 py-16 text-center text-white/30">
+                <td colSpan={visibleCols.length} className="px-4 py-16 text-center text-white/30">
                   No conversations found matching your filters.
                 </td>
               </tr>
@@ -166,27 +168,33 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
                   className={clsx(
                     'border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors',
                     i % 2 === 1 && 'bg-white/[0.01]',
-                    selectedIds.has(row.contactId) && 'bg-vc-purple/5',
+                    selectedIds.has(row.contactId) && 'bg-vc-blue/5',
                   )}
                 >
-                  {/* Checkbox */}
-                  <td className="px-2 py-1.5">
-                    <button onClick={() => toggleSelect(row.contactId)} className="text-white/30 hover:text-white/60">
-                      {selectedIds.has(row.contactId)
-                        ? <CheckSquare className="w-4 h-4 text-vc-purple-light" />
-                        : <Square className="w-4 h-4" />
-                      }
-                    </button>
-                  </td>
                   {visibleCols.map(col => (
                     <td
                       key={col.id}
                       className={clsx(
                         'px-3 py-1.5',
-                        col.id === 'name' && 'sticky left-8 z-10 bg-[#0d081a]/95 backdrop-blur'
+                        col.id === 'name' && 'sticky left-0 z-10 bg-[#0d081a]/95 backdrop-blur'
                       )}
                     >
-                      <CellContent row={row} col={col} onSave={onSave} onResolveMatch={onResolveMatch} organizers={organizers} />
+                      {col.id === 'name' ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => toggleSelect(row.contactId)}
+                            className="text-white/30 hover:text-white/60 shrink-0"
+                          >
+                            {selectedIds.has(row.contactId)
+                              ? <CheckSquare className="w-4 h-4 text-vc-blue-light" />
+                              : <Square className="w-4 h-4" />
+                            }
+                          </button>
+                          <CellContent row={row} col={col} onSave={onSave} onResolveMatch={onResolveMatch} organizers={organizers} />
+                        </div>
+                      ) : (
+                        <CellContent row={row} col={col} onSave={onSave} onResolveMatch={onResolveMatch} organizers={organizers} />
+                      )}
                     </td>
                   ))}
                 </tr>
@@ -198,7 +206,7 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
 
       {/* Floating bulk action bar */}
       {someSelected && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1a1025]/95 backdrop-blur-xl border border-vc-purple/30 shadow-xl shadow-black/30">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1a1025]/95 backdrop-blur-xl border border-vc-blue/30 shadow-xl shadow-black/30">
           <span className="text-sm text-white/70 font-medium">
             {selectedIds.size} contact{selectedIds.size !== 1 ? 's' : ''} selected
             <span className="text-white/40 ml-1">({selectedVolunteerIds.size} volunteer{selectedVolunteerIds.size !== 1 ? 's' : ''})</span>
@@ -219,7 +227,7 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
             <button
               onClick={handleBulkReassign}
               disabled={!bulkOrgId}
-              className="px-3 py-1 rounded-lg bg-vc-purple text-white text-xs font-bold disabled:opacity-30 hover:bg-vc-purple/80 transition-colors"
+              className="px-3 py-1 rounded-lg bg-vc-blue text-white text-xs font-bold disabled:opacity-30 hover:bg-vc-blue/80 transition-colors"
             >
               Reassign
             </button>

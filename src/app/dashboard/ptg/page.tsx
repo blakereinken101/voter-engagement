@@ -2,11 +2,12 @@
 
 import { useAuth } from '@/context/AuthContext'
 import PtgDashboard from '@/components/ptg/PtgDashboard'
+import StateWatermark from '@/components/ptg/StateWatermark'
 import Link from 'next/link'
 import { ArrowLeft, LogOut } from 'lucide-react'
 
 export default function PtgPage() {
-  const { user, signOut, isAdmin, isLoading } = useAuth()
+  const { user, signOut, isAdmin, isLoading, campaignConfig } = useAuth()
 
   if (isLoading) {
     return (
@@ -22,7 +23,7 @@ export default function PtgPage() {
         <div className="glass-card p-8 text-center max-w-md">
           <h2 className="text-xl font-bold text-white mb-2">Admin Access Required</h2>
           <p className="text-white/50 mb-4">The conversations sheet is only available to campaign administrators and organizers.</p>
-          <Link href="/dashboard" className="text-vc-purple-light hover:underline text-sm">
+          <Link href="/dashboard" className="text-vc-blue-light hover:underline text-sm">
             Back to Dashboard
           </Link>
         </div>
@@ -52,7 +53,8 @@ export default function PtgPage() {
       </div>
 
       {/* Main content — wider for spreadsheet */}
-      <div className="max-w-[1600px] mx-auto px-4 py-6">
+      <div className="relative max-w-[1600px] mx-auto px-4 py-6">
+        <StateWatermark state={campaignConfig?.state} />
         <PtgDashboard />
       </div>
 
