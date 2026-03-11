@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
+import { getRequestContext, requireRole, handleAuthError } from '@/lib/auth'
 import { getDb, logActivity } from '@/lib/db'
+import { ADMIN_ROLES } from '@/types'
 
 /**
  * GET /api/admin/ptg/assignments
  * Returns organizers with their assigned volunteers.
+ * Accessible by admins (full view) and organizers (scoped to own volunteers).
  */
 export async function GET() {
   try {
-    const ctx = await requireAdmin()
+    const ctx = await getRequestContext()
+    requireRole(ctx, ...ADMIN_ROLES, 'organizer')
     const db = await getDb()
+    const isAdmin = ADMIN_ROLES.includes(ctx.role) || ctx.isPlatformAdmin
 
-    // Get all organizers (anyone with organizer/admin/owner role, or who has invited someone)
+    // Get all organizers
     const { rows: organizers } = await db.query(`
       SELECT DISTINCT u.id, u.name, m.role, m.region
       FROM users u
@@ -21,23 +25,27 @@ export async function GET() {
       ORDER BY u.name
     `, [ctx.campaignId])
 
-    // Get all volunteers with their assigned organizer
-    const { rows: volunteers } = await db.query(`
+    // Get volunteers — scoped for organizer role
+    let volQuery = `
       SELECT
-        u.id,
-        u.name,
-        u.email,
-        m.role,
-        m.region,
-        m.organizer_id,
+        u.id, u.name, u.email, m.role, m.region, m.organizer_id,
         org_u.name as organizer_name,
         (SELECT COUNT(*) FROM contacts c WHERE c.user_id = u.id AND c.campaign_id = $1) as contact_count
       FROM users u
       JOIN memberships m ON m.user_id = u.id AND m.campaign_id = $1
       LEFT JOIN users org_u ON org_u.id = m.organizer_id
       WHERE m.role IN ('volunteer', 'organizer')
-      ORDER BY u.name
-    `, [ctx.campaignId])
+    `
+    const volParams: unknown[] = [ctx.campaignId]
+
+    if (!isAdmin) {
+      // Organizers see only their own volunteers + unassigned
+      volQuery += ` AND (m.organizer_id = $2 OR m.organizer_id IS NULL)`
+      volParams.push(ctx.userId)
+    }
+
+    volQuery += ` ORDER BY u.name`
+    const { rows: volunteers } = await db.query(volQuery, volParams)
 
     // Group volunteers by organizer
     const orgMap = new Map<string | null, typeof volunteers>()
@@ -80,12 +88,14 @@ export async function GET() {
 /**
  * PATCH /api/admin/ptg/assignments
  * Reassign a volunteer to a different organizer.
- * Body: { volunteerId, organizerId (or null to unassign) }
+ * Admins can reassign anyone. Organizers can only reassign their own volunteers or unassigned ones.
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const ctx = await requireAdmin()
+    const ctx = await getRequestContext()
+    requireRole(ctx, ...ADMIN_ROLES, 'organizer')
     const db = await getDb()
+    const isAdmin = ADMIN_ROLES.includes(ctx.role) || ctx.isPlatformAdmin
 
     const body = await request.json()
     const { volunteerId, organizerId } = body as { volunteerId: string; organizerId: string | null }
@@ -103,7 +113,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Volunteer not found in this campaign' }, { status: 404 })
     }
 
-    // Verify organizer exists in this campaign (if not unassigning)
+    // Organizer scope check
+    if (!isAdmin) {
+      const currentOrganizer = volCheck[0].organizer_id
+      if (currentOrganizer && currentOrganizer !== ctx.userId) {
+        return NextResponse.json({ error: 'Cannot reassign volunteers from other organizers' }, { status: 403 })
+      }
+    }
+
+    // Verify target organizer exists (if not unassigning)
     if (organizerId) {
       const { rows: orgCheck } = await db.query(
         'SELECT id FROM memberships WHERE user_id = $1 AND campaign_id = $2',

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
+import { dispatchWebhook } from '@/lib/webhook-dispatch'
 
 export async function PUT(request: NextRequest, { params }: { params: { contactId: string } }) {
   try {
@@ -36,6 +37,8 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
       ])
 
       await logActivity(ctx.userId, 'confirm_match', { contactId }, ctx.campaignId)
+
+      dispatchWebhook(ctx.campaignId, 'match.confirmed', { contactId, voterRecord })
     } else if (action === 'reject') {
       await db.query(`
         UPDATE match_results SET
@@ -49,6 +52,8 @@ export async function PUT(request: NextRequest, { params }: { params: { contactI
       `, [contactId])
 
       await logActivity(ctx.userId, 'reject_match', { contactId }, ctx.campaignId)
+
+      dispatchWebhook(ctx.campaignId, 'match.rejected', { contactId })
     } else if (action === 'set_results') {
       // Bulk set match results from the matching API
       await db.query(`

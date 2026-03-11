@@ -1,9 +1,12 @@
 'use client'
 
+import { useState, useMemo } from 'react'
 import type { ConversationRow, ColumnConfig, ConversationFilters } from '@/types'
 import EditableCell from './EditableCell'
+import MatchStatusBadge from './MatchStatusBadge'
+import OrganizerSelect from './OrganizerSelect'
 import clsx from 'clsx'
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, CheckSquare, Square, Users } from 'lucide-react'
 
 interface Props {
   rows: ConversationRow[]
@@ -11,6 +14,8 @@ interface Props {
   filters: ConversationFilters
   onFiltersChange: (f: ConversationFilters) => void
   onSave: (contactId: string, field: string, value: string) => Promise<void>
+  onResolveMatch?: (contactId: string) => void
+  organizers?: { id: string; name: string }[]
 }
 
 /** Map column IDs to the sortBy key used by the API */
@@ -21,6 +26,7 @@ const SORTABLE: Record<string, string> = {
   organizerName: 'organizer',
   region: 'region',
   entryMethod: 'entryMethod',
+  matchStatus: 'matchStatus',
   timestamp: 'timestamp',
 }
 
@@ -49,8 +55,53 @@ function tzAbbrev(tz: string): string {
   }
 }
 
-export default function ConversationsTable({ rows, columns, filters, onFiltersChange, onSave }: Props) {
+export default function ConversationsTable({ rows, columns, filters, onFiltersChange, onSave, onResolveMatch, organizers }: Props) {
   const visibleCols = columns.filter(c => c.visible)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkOrgId, setBulkOrgId] = useState('')
+
+  const allSelected = rows.length > 0 && selectedIds.size === rows.length
+  const someSelected = selectedIds.size > 0
+
+  // Deduplicate selected volunteer IDs for bulk reassign
+  const selectedVolunteerIds = useMemo(() => {
+    const volIds = new Set<string>()
+    for (const row of rows) {
+      if (selectedIds.has(row.contactId) && row.volunteerId) {
+        volIds.add(row.volunteerId)
+      }
+    }
+    return volIds
+  }, [rows, selectedIds])
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(rows.map(r => r.contactId)))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleBulkReassign = async () => {
+    if (!bulkOrgId && bulkOrgId !== '') return
+    // Reassign each unique volunteer
+    for (const volRow of rows) {
+      if (selectedIds.has(volRow.contactId) && volRow.volunteerId) {
+        await onSave(volRow.contactId, 'reassign_organizer', bulkOrgId)
+      }
+    }
+    setSelectedIds(new Set())
+    setBulkOrgId('')
+  }
 
   const toggleSort = (colId: string) => {
     const sortKey = SORTABLE[colId]
@@ -71,66 +122,127 @@ export default function ConversationsTable({ rows, columns, filters, onFiltersCh
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.015] backdrop-blur-sm">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="bg-white/[0.04]">
-            {visibleCols.map(col => (
-              <th
-                key={col.id}
-                onClick={() => toggleSort(col.id)}
-                className={clsx(
-                  'px-3 py-2.5 text-left text-[11px] font-bold text-white/50 uppercase tracking-wider border-b border-white/[0.08] whitespace-nowrap',
-                  col.id === 'name' && 'sticky left-0 z-10 bg-[#0d081a]/95 backdrop-blur min-w-[160px]',
-                  SORTABLE[col.id] && 'cursor-pointer group hover:text-white/70 select-none',
-                )}
-                style={col.width ? { minWidth: col.width } : undefined}
-              >
-                <div className="flex items-center gap-1.5">
-                  {col.label}
-                  <SortIcon colId={col.id} />
-                </div>
+    <div className="relative">
+      <div className="overflow-x-auto rounded-xl border border-white/[0.08] bg-white/[0.015] backdrop-blur-sm">
+        <table className="w-full text-sm border-collapse">
+          <thead>
+            <tr className="bg-white/[0.04]">
+              {/* Checkbox column */}
+              <th className="px-2 py-2.5 border-b border-white/[0.08] w-8">
+                <button onClick={toggleSelectAll} className="text-white/30 hover:text-white/60">
+                  {allSelected ? <CheckSquare className="w-4 h-4 text-vc-purple-light" /> : <Square className="w-4 h-4" />}
+                </button>
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={visibleCols.length} className="px-4 py-16 text-center text-white/30">
-                No conversations found matching your filters.
-              </td>
+              {visibleCols.map(col => (
+                <th
+                  key={col.id}
+                  onClick={() => toggleSort(col.id)}
+                  className={clsx(
+                    'px-3 py-2.5 text-left text-[11px] font-bold text-white/50 uppercase tracking-wider border-b border-white/[0.08] whitespace-nowrap',
+                    col.id === 'name' && 'sticky left-8 z-10 bg-[#0d081a]/95 backdrop-blur min-w-[160px]',
+                    SORTABLE[col.id] && 'cursor-pointer group hover:text-white/70 select-none',
+                  )}
+                  style={col.width ? { minWidth: col.width } : undefined}
+                >
+                  <div className="flex items-center gap-1.5">
+                    {col.label}
+                    <SortIcon colId={col.id} />
+                  </div>
+                </th>
+              ))}
             </tr>
-          ) : (
-            rows.map((row, i) => (
-              <tr
-                key={row.contactId}
-                className={clsx(
-                  'border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors',
-                  i % 2 === 1 && 'bg-white/[0.01]'
-                )}
-              >
-                {visibleCols.map(col => (
-                  <td
-                    key={col.id}
-                    className={clsx(
-                      'px-3 py-1.5',
-                      col.id === 'name' && 'sticky left-0 z-10 bg-[#0d081a]/95 backdrop-blur'
-                    )}
-                  >
-                    <CellContent row={row} col={col} onSave={onSave} />
-                  </td>
-                ))}
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={visibleCols.length + 1} className="px-4 py-16 text-center text-white/30">
+                  No conversations found matching your filters.
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              rows.map((row, i) => (
+                <tr
+                  key={row.contactId}
+                  className={clsx(
+                    'border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors',
+                    i % 2 === 1 && 'bg-white/[0.01]',
+                    selectedIds.has(row.contactId) && 'bg-vc-purple/5',
+                  )}
+                >
+                  {/* Checkbox */}
+                  <td className="px-2 py-1.5">
+                    <button onClick={() => toggleSelect(row.contactId)} className="text-white/30 hover:text-white/60">
+                      {selectedIds.has(row.contactId)
+                        ? <CheckSquare className="w-4 h-4 text-vc-purple-light" />
+                        : <Square className="w-4 h-4" />
+                      }
+                    </button>
+                  </td>
+                  {visibleCols.map(col => (
+                    <td
+                      key={col.id}
+                      className={clsx(
+                        'px-3 py-1.5',
+                        col.id === 'name' && 'sticky left-8 z-10 bg-[#0d081a]/95 backdrop-blur'
+                      )}
+                    >
+                      <CellContent row={row} col={col} onSave={onSave} onResolveMatch={onResolveMatch} organizers={organizers} />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Floating bulk action bar */}
+      {someSelected && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-[#1a1025]/95 backdrop-blur-xl border border-vc-purple/30 shadow-xl shadow-black/30">
+          <span className="text-sm text-white/70 font-medium">
+            {selectedIds.size} contact{selectedIds.size !== 1 ? 's' : ''} selected
+            <span className="text-white/40 ml-1">({selectedVolunteerIds.size} volunteer{selectedVolunteerIds.size !== 1 ? 's' : ''})</span>
+          </span>
+          <div className="h-4 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <Users className="w-3.5 h-3.5 text-white/40" />
+            <select
+              value={bulkOrgId}
+              onChange={e => setBulkOrgId(e.target.value)}
+              className="bg-white/[0.06] border border-white/[0.1] rounded-lg px-2 py-1 text-xs text-white/70 outline-none"
+            >
+              <option value="" className="bg-[#1a1025]">Reassign to...</option>
+              {organizers?.map(o => (
+                <option key={o.id} value={o.id} className="bg-[#1a1025]">{o.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleBulkReassign}
+              disabled={!bulkOrgId}
+              className="px-3 py-1 rounded-lg bg-vc-purple text-white text-xs font-bold disabled:opacity-30 hover:bg-vc-purple/80 transition-colors"
+            >
+              Reassign
+            </button>
+          </div>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs text-white/30 hover:text-white/60 ml-1"
+          >
+            Clear
+          </button>
+        </div>
+      )}
     </div>
   )
 }
 
-function CellContent({ row, col, onSave }: { row: ConversationRow; col: ColumnConfig; onSave: Props['onSave'] }) {
+function CellContent({ row, col, onSave, onResolveMatch, organizers }: {
+  row: ConversationRow
+  col: ColumnConfig
+  onSave: Props['onSave']
+  onResolveMatch?: (contactId: string) => void
+  organizers?: { id: string; name: string }[]
+}) {
   switch (col.id) {
     case 'name':
       return (
@@ -154,11 +266,27 @@ function CellContent({ row, col, onSave }: { row: ConversationRow; col: ColumnCo
     case 'volunteerName':
       return <span className="text-white/50 text-sm truncate">{row.volunteerName || '—'}</span>
     case 'organizerName':
-      return <span className="text-white/50 text-sm truncate">{row.organizerName || '—'}</span>
+      return (
+        <OrganizerSelect
+          currentOrganizerId={row.organizerId}
+          currentOrganizerName={row.organizerName}
+          volunteerName={row.volunteerName}
+          organizers={organizers || []}
+          onReassign={(newOrgId) => onSave(row.contactId, 'reassign_organizer', newOrgId)}
+        />
+      )
     case 'turfName':
       return <span className="text-white/50 text-sm truncate">{row.turfName || '—'}</span>
     case 'region':
       return <span className="text-white/50 text-sm">{row.region || '—'}</span>
+    case 'matchStatus':
+      return (
+        <MatchStatusBadge
+          status={row.matchStatus}
+          confidence={row.matchConfidence}
+          onResolve={onResolveMatch ? () => onResolveMatch(row.contactId) : undefined}
+        />
+      )
     case 'timestamp':
       return (
         <span className="text-white/50 text-xs tabular-nums whitespace-nowrap">

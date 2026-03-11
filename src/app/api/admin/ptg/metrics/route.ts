@@ -3,34 +3,33 @@ import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
 import { getDb } from '@/lib/db'
 
 const DEFAULT_VOLUNTEER_THRESHOLD = 5
+const DEFAULT_ACTIVE_WINDOW_DAYS = 7
 
 /**
  * GET /api/admin/ptg/metrics
  *
  * KPIs:
- *  - Relational Volunteers: users (volunteer/organizer role) with >= threshold
- *    documented conversations or contacts. Weekly / Daily / Total.
- *  - Active Relational Volunteers: same criteria but only counting THIS WEEK
- *    (Monday–Sunday). Weekly only.
+ *  - Total Volunteers: all members with volunteer/organizer role
+ *  - Relational Volunteers: users with >= threshold contacts. Weekly / Daily / Total.
+ *  - Active Relational Volunteers: same criteria within configurable window.
  *  - Relational Conversations: conversations logged by volunteer-tier users.
- *    Weekly / Daily / Total.
  *  - Contacts Roladexed: contacts created by volunteer-tier users.
- *    Weekly / Daily / Total.
  *
- * All broken down by region and organizer.
+ * All broken down by region, organizer, and volunteer.
  */
 export async function GET() {
   try {
     const ctx = await requireAdmin()
     const db = await getDb()
 
-    // Load configurable threshold from campaign settings
+    // Load configurable settings from campaign
     const { rows: campRows } = await db.query(
       'SELECT settings FROM campaigns WHERE id = $1',
       [ctx.campaignId],
     )
     const settings = (campRows[0]?.settings || {}) as Record<string, unknown>
     const threshold = Number(settings.relationalVolunteerThreshold) || DEFAULT_VOLUNTEER_THRESHOLD
+    const activeWindowDays = Number(settings.activeVolunteerWindowDays) || DEFAULT_ACTIVE_WINDOW_DAYS
 
     // Week start = most recent Monday at 00:00
     const now = new Date()
@@ -40,8 +39,19 @@ export async function GET() {
     const weekStartISO = weekStart.toISOString()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
 
+    // Configurable active window
+    const activeWindowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - activeWindowDays)
+    const activeWindowISO = activeWindowStart.toISOString()
+
     // Volunteer-tier roles (not platform_admin)
     const volRoles = ['volunteer', 'organizer']
+
+    // ── Total Volunteers ──
+    const { rows: totalVolRows } = await db.query(
+      'SELECT COUNT(*) as count FROM memberships WHERE campaign_id = $1 AND role = ANY($2)',
+      [ctx.campaignId, volRoles],
+    )
+    const totalVolunteers = Number(totalVolRows[0]?.count) || 0
 
     // ── Relational Volunteers ──
     // Users with >= threshold total contacts in this campaign
@@ -65,8 +75,23 @@ export async function GET() {
 
     // Relational volunteer = total_contacts >= threshold
     const relationalVols = relVolRows.filter((r: Record<string, unknown>) => Number(r.total_contacts) >= threshold)
-    // Active = weekly_contacts >= threshold
+    // Active = weekly_contacts >= threshold (uses configurable window)
     const activeVols = relVolRows.filter((r: Record<string, unknown>) => Number(r.weekly_contacts) >= threshold)
+
+    // ── By Volunteer breakdown ──
+    const byVolunteer = relVolRows
+      .map((r: Record<string, unknown>) => ({
+        id: r.id as string,
+        name: (r.name as string) || 'Unknown',
+        region: (r.region as string) || 'Unassigned',
+        organizerName: (r.organizer_name as string) || 'Unassigned',
+        totalContacts: Number(r.total_contacts) || 0,
+        weeklyContacts: Number(r.weekly_contacts) || 0,
+        dailyContacts: Number(r.daily_contacts) || 0,
+        isRelational: Number(r.total_contacts) >= threshold,
+        isActive: Number(r.weekly_contacts) >= threshold,
+      }))
+      .sort((a, b) => b.totalContacts - a.totalContacts)
 
     // ── Relational Conversations ──
     // Conversations (action_items with an outcome) from volunteer-tier users
@@ -162,7 +187,9 @@ export async function GET() {
 
     return NextResponse.json({
       threshold,
+      activeWindowDays,
       summary: {
+        totalVolunteers,
         relationalVolunteers: { weekly: relationalVols.length, daily: relationalVols.length, total: relationalVols.length },
         activeRelationalVolunteers: { weekly: activeVols.length },
         relationalConversations: {
@@ -190,6 +217,7 @@ export async function GET() {
         conversations: { daily: 0, weekly: 0, overall: 0, ...groupByOrganizer(convoRows).find(c => c.name === r.name) },
         contacts: { daily: r.daily, weekly: r.weekly, overall: r.overall },
       })),
+      byVolunteer,
     })
   } catch (error: unknown) {
     const { error: msg, status } = handleAuthError(error)

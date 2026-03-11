@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb, logActivity } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { syncContact } from '@/lib/crm-sync'
+import { dispatchWebhook } from '@/lib/webhook-dispatch'
 
 export async function GET() {
   try {
@@ -180,6 +181,13 @@ export async function POST(request: NextRequest) {
     await logActivity(ctx.userId, 'add_contact', { contactId, name: `${firstName} ${lastName}` }, ctx.campaignId)
 
     syncContact(ctx.campaignId, contactId as string)
+
+    dispatchWebhook(ctx.campaignId, 'contact.created', {
+      contactId,
+      firstName,
+      lastName,
+      userId: ctx.userId,
+    })
 
     return NextResponse.json({ id: contactId, success: true })
   } catch (error) {

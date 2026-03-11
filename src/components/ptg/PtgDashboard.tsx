@@ -6,7 +6,10 @@ import ConversationsToolbar from './ConversationsToolbar'
 import ConversationsTable from './ConversationsTable'
 import ConversationsPager from './ConversationsPager'
 import PtgMetrics from './PtgMetrics'
-import { Loader2, MessageSquare } from 'lucide-react'
+import PtgLeaderboard from './PtgLeaderboard'
+import ResolveMatchModal from './ResolveMatchModal'
+import { Loader2, MessageSquare, BarChart3, Trophy } from 'lucide-react'
+import clsx from 'clsx'
 
 const REFRESH_INTERVAL_MS = 60_000 // auto-refresh every 60 seconds
 
@@ -20,6 +23,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { id: 'organizerName', label: 'Organizer', visible: true, width: 120 },
   { id: 'region', label: 'Region', visible: true, width: 100 },
   { id: 'timestamp', label: 'Date/Time', visible: true, width: 130 },
+  { id: 'matchStatus', label: 'Match', visible: true, width: 90 },
   { id: 'entryMethod', label: 'Entry', visible: true, width: 70 },
   { id: 'surveyResponses', label: 'Survey', visible: false, width: 180 },
   { id: 'enteredBy', label: 'Entered By', visible: false, width: 110 },
@@ -37,6 +41,13 @@ interface FilterOptions {
   outcomes: string[]
 }
 
+type TabId = 'metrics' | 'leaderboard'
+
+const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: 'metrics', label: 'Metrics', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+  { id: 'leaderboard', label: 'Leaderboard', icon: <Trophy className="w-3.5 h-3.5" /> },
+]
+
 export default function PtgDashboard() {
   const [rows, setRows] = useState<ConversationRow[]>([])
   const [total, setTotal] = useState(0)
@@ -48,6 +59,8 @@ export default function PtgDashboard() {
   const [loading, setLoading] = useState(true)
   const [initialLoad, setInitialLoad] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [resolveContactId, setResolveContactId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<TabId>('metrics')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const filtersRef = useRef(filters)
   const pageRef = useRef(page)
@@ -68,7 +81,6 @@ export default function PtgDashboard() {
       .then(r => r.json())
       .then(d => {
         if (d.columns && Array.isArray(d.columns)) {
-          // Merge saved config with defaults (handles new columns added later)
           const saved = new Map(d.columns.map((c: ColumnConfig) => [c.id, c]))
           const merged = DEFAULT_COLUMNS.map(dc => {
             const s = saved.get(dc.id)
@@ -93,6 +105,7 @@ export default function PtgDashboard() {
       if (f.volunteerId) params.set('volunteerId', f.volunteerId)
       if (f.outcome) params.set('outcome', f.outcome)
       if (f.entryMethod) params.set('entryMethod', f.entryMethod)
+      if (f.matchStatus) params.set('matchStatus', f.matchStatus)
       if (f.dateFrom) params.set('dateFrom', f.dateFrom)
       if (f.dateTo) params.set('dateTo', f.dateTo)
       if (f.sortBy) params.set('sortBy', f.sortBy)
@@ -174,7 +187,6 @@ export default function PtgDashboard() {
     })
 
     if (!res.ok) {
-      // Revert on error — refetch
       fetchData(page, filters)
     }
   }
@@ -210,7 +222,28 @@ export default function PtgDashboard() {
         </div>
       </div>
 
-      <PtgMetrics refreshKey={refreshKey} />
+      {/* Metrics / Leaderboard Tabs */}
+      <div className="flex items-center gap-1 border-b border-white/[0.06] -mb-1">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-colors border-b-2 -mb-px',
+              activeTab === tab.id
+                ? 'text-white border-vc-purple-light'
+                : 'text-white/30 border-transparent hover:text-white/50',
+            )}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'metrics' && <PtgMetrics refreshKey={refreshKey} />}
+      {activeTab === 'leaderboard' && <PtgLeaderboard refreshKey={refreshKey} />}
 
       <ConversationsToolbar
         filters={filters}
@@ -228,6 +261,8 @@ export default function PtgDashboard() {
           filters={filters}
           onFiltersChange={handleFiltersChange}
           onSave={handleSave}
+          onResolveMatch={setResolveContactId}
+          organizers={filterOptions.organizers}
         />
       </div>
 
@@ -237,6 +272,17 @@ export default function PtgDashboard() {
         total={total}
         onPageChange={setPage}
       />
+
+      {resolveContactId && (
+        <ResolveMatchModal
+          contactId={resolveContactId}
+          onClose={() => setResolveContactId(null)}
+          onResolved={() => {
+            setResolveContactId(null)
+            fetchData(page, filters)
+          }}
+        />
+      )}
     </div>
   )
 }

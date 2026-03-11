@@ -435,6 +435,11 @@ export interface ConversationRow {
   enteredBySelf: boolean
   timestamp: string
   timezone: string
+
+  matchStatus: MatchStatus | null
+  matchConfidence: ConfidenceLevel | null
+  voteScore: number | null
+  segment: string | null
 }
 
 export interface ConversationsResponse {
@@ -451,6 +456,7 @@ export interface ConversationFilters {
   volunteerId?: string
   outcome?: string
   entryMethod?: string
+  matchStatus?: string
   dateFrom?: string
   dateTo?: string
   sortBy?: string

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin, handleAuthError } from '@/lib/admin-guard'
-import { getDb } from '@/lib/db'
+import { getDb, logActivity } from '@/lib/db'
+import { dispatchWebhook } from '@/lib/webhook-dispatch'
 
 /**
  * GET /api/admin/ptg/conversations
@@ -20,6 +21,7 @@ export async function GET(request: NextRequest) {
     const volunteerId = searchParams.get('volunteerId') || ''
     const outcome = searchParams.get('outcome') || ''
     const entryMethod = searchParams.get('entryMethod') || ''
+    const matchStatus = searchParams.get('matchStatus') || ''
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo = searchParams.get('dateTo') || ''
     const sortBy = searchParams.get('sortBy') || 'timestamp'
@@ -66,6 +68,12 @@ export async function GET(request: NextRequest) {
       idx++
     }
 
+    if (matchStatus) {
+      conditions.push(`COALESCE(mr.status, 'pending') = $${idx}`)
+      params.push(matchStatus)
+      idx++
+    }
+
     if (dateFrom) {
       conditions.push(`COALESCE(ai.contacted_date, c.created_at::text) >= $${idx}`)
       params.push(dateFrom)
@@ -89,6 +97,7 @@ export async function GET(request: NextRequest) {
       organizer: 'org_u.name',
       region: 'COALESCE(t.region, org_m.region)',
       entryMethod: 'c.entry_method',
+      matchStatus: 'mr.status',
     }
     const orderCol = sortColumns[sortBy] || sortColumns.timestamp
 
@@ -102,6 +111,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN users org_u ON org_u.id = vol_m.organizer_id
       LEFT JOIN memberships org_m ON org_m.user_id = vol_m.organizer_id AND org_m.campaign_id = c.campaign_id
       LEFT JOIN turfs t ON t.id = c.turf_id
+      LEFT JOIN match_results mr ON mr.contact_id = c.id
       WHERE ${where}
     `
     const { rows: countRows } = await db.query(countQuery, params)
@@ -136,7 +146,11 @@ export async function GET(request: NextRequest) {
         c.entered_by as entered_by_id,
         c.user_id as owner_id,
         COALESCE(ai.updated_at, c.created_at) as timestamp,
-        camp.timezone
+        camp.timezone,
+        mr.status as match_status,
+        mr.confidence as match_confidence,
+        mr.vote_score,
+        mr.segment
       FROM contacts c
       LEFT JOIN action_items ai ON ai.contact_id = c.id
       LEFT JOIN users vol ON vol.id = c.user_id
@@ -146,6 +160,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN turfs t ON t.id = c.turf_id
       LEFT JOIN users entered_u ON entered_u.id = c.entered_by
       LEFT JOIN campaigns camp ON camp.id = c.campaign_id
+      LEFT JOIN match_results mr ON mr.contact_id = c.id
       WHERE ${where}
       ORDER BY ${orderCol} ${sortDir}
       LIMIT $${idx} OFFSET $${idx + 1}
@@ -190,6 +205,10 @@ export async function GET(request: NextRequest) {
         enteredBySelf: r.entered_by_id === r.owner_id || !r.entered_by_id,
         timestamp: r.timestamp ? new Date(r.timestamp as string).toISOString() : null,
         timezone: r.timezone || 'America/New_York',
+        matchStatus: r.match_status || null,
+        matchConfidence: r.match_confidence || null,
+        voteScore: r.vote_score != null ? Number(r.vote_score) : null,
+        segment: r.segment || null,
       }
     })
 
@@ -223,11 +242,26 @@ export async function PATCH(request: NextRequest) {
 
     // Verify contact belongs to this campaign
     const { rows: check } = await db.query(
-      'SELECT id FROM contacts WHERE id = $1 AND campaign_id = $2',
+      'SELECT id, user_id FROM contacts WHERE id = $1 AND campaign_id = $2',
       [contactId, ctx.campaignId]
     )
     if (check.length === 0) {
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 })
+    }
+
+    // Reassign organizer: changes the volunteer's organizer assignment
+    if (field === 'reassign_organizer') {
+      const volunteerId = check[0].user_id
+      await db.query(
+        'UPDATE memberships SET organizer_id = $1 WHERE user_id = $2 AND campaign_id = $3',
+        [value || null, volunteerId, ctx.campaignId],
+      )
+      await logActivity(ctx.userId, 'volunteer_reassigned_inline', {
+        contactId,
+        volunteerId,
+        newOrganizerId: value || null,
+      }, ctx.campaignId)
+      return NextResponse.json({ ok: true })
     }
 
     // Map field to table + column
@@ -269,6 +303,8 @@ export async function PATCH(request: NextRequest) {
     } else {
       return NextResponse.json({ error: `Unknown field: ${field}` }, { status: 400 })
     }
+
+    dispatchWebhook(ctx.campaignId, 'contact.updated', { contactId, field, value })
 
     return NextResponse.json({ ok: true })
   } catch (error: unknown) {
