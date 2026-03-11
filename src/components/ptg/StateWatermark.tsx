@@ -255,33 +255,10 @@ export default function StateWatermark({ state }: { state?: string }) {
     const brightStars = generateBrightStars()
 
     return (
-      <>
-        {/* Deep space tint — subtle darkening so stars contrast better */}
-        <div
-          className="absolute top-0 left-0 right-0 h-[440px] pointer-events-none -z-10"
-          aria-hidden="true"
-          style={{
-            background: 'linear-gradient(to bottom, rgba(3,4,12,0.45) 0%, rgba(6,8,20,0.35) 30%, rgba(8,10,22,0.2) 55%, transparent 75%)',
-          }}
-        />
-
-        {/* Nebula glow layers — very subtle color washes */}
-        <div
-          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none -z-10"
-          aria-hidden="true"
-          style={{
-            background: `
-              radial-gradient(ellipse 800px 200px at 25% 30%, rgba(88,60,180,0.06) 0%, transparent 70%),
-              radial-gradient(ellipse 600px 150px at 70% 20%, rgba(20,140,140,0.04) 0%, transparent 70%),
-              radial-gradient(ellipse 400px 120px at 50% 45%, rgba(100,60,200,0.03) 0%, transparent 70%)
-            `,
-          }}
-        />
-
+      <div className="absolute top-0 left-0 right-0 h-[440px] pointer-events-none -z-10 overflow-hidden" aria-hidden="true">
         {/* Constellation star field */}
         <div
-          className="absolute top-0 left-0 right-0 h-[420px] pointer-events-none overflow-hidden -z-10"
-          aria-hidden="true"
+          className="absolute top-0 left-0 right-0 h-[420px] pointer-events-none overflow-hidden"
           style={{
             maskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 95%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 95%)',
@@ -311,16 +288,6 @@ export default function StateWatermark({ state }: { state?: string }) {
               <radialGradient id="milkyway">
                 <stop offset="0%" stopColor="white" stopOpacity="1" />
                 <stop offset="100%" stopColor="white" stopOpacity="0" />
-              </radialGradient>
-              {/* Warm star color */}
-              <radialGradient id="warmStar" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#fffaf0" />
-                <stop offset="100%" stopColor="#fffaf0" stopOpacity="0" />
-              </radialGradient>
-              {/* Cool star color */}
-              <radialGradient id="coolStar" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#e0e8ff" />
-                <stop offset="100%" stopColor="#e0e8ff" stopOpacity="0" />
               </radialGradient>
             </defs>
 
@@ -394,9 +361,9 @@ export default function StateWatermark({ state }: { state?: string }) {
           </svg>
         </div>
 
-        {/* Denali photo — full width with smooth edge fade, slightly more visible */}
+        {/* Denali photo — full width with smooth edge fade */}
         <div
-          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden -z-10"
+          className="absolute top-0 left-0 right-0 h-[400px] pointer-events-none overflow-hidden"
           style={{
             opacity: 0.18,
             maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 45%, transparent 92%), linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)',
@@ -413,7 +380,7 @@ export default function StateWatermark({ state }: { state?: string }) {
             aria-hidden="true"
           />
         </div>
-      </>
+      </div>
     )
   }
 

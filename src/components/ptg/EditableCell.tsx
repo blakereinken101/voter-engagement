@@ -93,7 +93,9 @@ export default function EditableCell({ value, field, contactId, onSave, type = '
       <div
         onClick={() => { setDraft(value || ''); setEditing(true) }}
         className={clsx(
-          'cursor-pointer px-1.5 py-0.5 rounded text-sm text-white/70 hover:bg-white/5 transition-colors min-h-[24px] truncate',
+          'cursor-pointer py-0.5 rounded text-sm text-white/70 hover:bg-white/5 transition-colors min-h-[24px] truncate',
+          // Only apply default horizontal padding if none is provided via props
+          (className && /\bpx?-/.test(className)) ? '' : 'px-1.5',
           !value && 'text-white/15 italic',
           className,
         )}
