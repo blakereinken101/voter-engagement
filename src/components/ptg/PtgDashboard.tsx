@@ -202,9 +202,7 @@ export default function PtgDashboard() {
   if (initialLoad) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-white/40 gap-3">
-        <div className="w-12 h-12 rounded-full bg-vc-blue/10 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-vc-blue-light" />
-        </div>
+        <Loader2 className="w-6 h-6 animate-spin text-vc-blue-light" />
         <span className="text-sm">Loading conversations...</span>
       </div>
     )
@@ -213,23 +211,18 @@ export default function PtgDashboard() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-vc-blue via-vc-blue to-vc-teal flex items-center justify-center shadow-lg shadow-vc-blue/20">
-            <MessageSquare className="w-5 h-5 text-white" />
-          </div>
-          <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-vc-blue to-vc-teal opacity-20 blur-md -z-10" />
-        </div>
+      <div className="flex items-center gap-3">
+        <MessageSquare className="w-5 h-5 text-vc-blue-light" />
         <div>
           {activeMembership?.orgName && (
             <p className="text-xs text-vc-blue-light font-semibold tracking-wide uppercase">
               {activeMembership.orgName}
             </p>
           )}
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold text-white">
             Conversations
           </h2>
-          <div className="text-xs text-white/60 font-medium">
+          <div className="text-xs text-white/50">
             Voter Contact Tracker
           </div>
         </div>
