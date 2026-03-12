@@ -184,7 +184,7 @@ export async function recalcPetitionerStats(
       total_signatures = sub.sig_count,
       matched_count = sub.match_count,
       validity_rate = CASE WHEN sub.sig_count > 0
-        THEN ROUND(sub.weighted_validity_sum / sub.sig_count, 1)
+        THEN ROUND((sub.weighted_validity_sum / sub.sig_count)::numeric, 1)
         ELSE 0
       END
     FROM (
