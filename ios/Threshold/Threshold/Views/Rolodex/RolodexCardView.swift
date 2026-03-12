@@ -63,6 +63,17 @@ struct RolodexCardView: View {
                                 .cornerRadius(4)
                         }
                     }
+
+                    // Target universe indicator
+                    if let voter,
+                       let targetConfig = auth.campaignConfig?.aiContext?.targetUniverse,
+                       targetConfig.hasAnyCriteria {
+                        TargetStarView(
+                            isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
+                            showLabel: true,
+                            size: 16
+                        )
+                    }
                 }
 
                 // Step toggle

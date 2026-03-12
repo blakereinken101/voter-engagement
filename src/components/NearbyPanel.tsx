@@ -1,9 +1,10 @@
 'use client'
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
+import { Star } from 'lucide-react'
 import { useAppContext } from '@/context/AppContext'
 import { SafeVoterRecord } from '@/types'
-import { calculateVoteScore, determineSegment } from '@/lib/voter-segments'
+import { calculateVoteScore, determineSegment, isInTargetUniverse } from '@/lib/voter-segments'
 import defaultCampaignConfig from '@/lib/campaign-config'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
@@ -217,6 +218,9 @@ export default function NearbyPanel() {
                       const added = isAlreadyAdded(voter)
                       const segmentColor = segment === 'super-voter' ? 'text-vc-teal' :
                         segment === 'sometimes-voter' ? 'text-vc-gold' : 'text-vc-coral'
+                      const targetUniverseCfg = campaignConfig.aiContext?.targetUniverse
+                      const hasTargetConfig = targetUniverseCfg && Object.values(targetUniverseCfg).some(v => v)
+                      const inTarget = hasTargetConfig ? isInTargetUniverse(voter, targetUniverseCfg) : undefined
 
                       return (
                         <tr
@@ -230,6 +234,13 @@ export default function NearbyPanel() {
                             <span className="font-bold text-vc-purple-light">
                               {voter.first_name} {voter.last_name}
                             </span>
+                            {inTarget !== undefined && (
+                              inTarget ? (
+                                <Star className="w-3.5 h-3.5 text-vc-gold fill-vc-gold inline ml-1.5 -mt-0.5" />
+                              ) : (
+                                <Star className="w-3.5 h-3.5 text-white/15 inline ml-1.5 -mt-0.5" />
+                              )
+                            )}
                             {voter.birth_year && (
                               <span className="text-white/40 text-xs ml-2">
                                 ({new Date().getFullYear() - parseInt(voter.birth_year)})
@@ -283,6 +294,7 @@ export default function NearbyPanel() {
               isAlreadyAdded={isAlreadyAdded}
               centerLat={mapCenter.lat}
               centerLng={mapCenter.lng}
+              targetUniverse={campaignConfig.aiContext?.targetUniverse}
             />
           )}
         </div>

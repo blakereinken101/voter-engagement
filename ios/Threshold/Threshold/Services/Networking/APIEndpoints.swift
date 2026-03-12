@@ -88,17 +88,18 @@ enum MatchEndpoints {
         APIEndpoint(path: "/api/match", method: .post, body: body)
     }
 
-    static func nearby(address: String? = nil, zip: String? = nil, state: String, limit: Int = 50) -> APIEndpoint {
+    static func nearby(address: String? = nil, zip: String? = nil, state: String, limit: Int = 50, offset: Int = 0) -> APIEndpoint {
         struct Body: Encodable {
             let address: String?
             let zip: String?
             let state: String
             let limit: Int
+            let offset: Int
         }
         return APIEndpoint(
             path: "/api/nearby",
             method: .post,
-            body: Body(address: address, zip: zip, state: state, limit: limit)
+            body: Body(address: address, zip: zip, state: state, limit: limit, offset: offset)
         )
     }
 }

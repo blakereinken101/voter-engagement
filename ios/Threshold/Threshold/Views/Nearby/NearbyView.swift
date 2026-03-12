@@ -11,8 +11,30 @@ struct NearbyView: View {
     @State private var userLocation: CLLocationCoordinate2D?
     @State private var error: String?
     @State private var locationManager = LocationManager()
+    @State private var viewMode: ViewMode = .map
+    @State private var selectedVoter: SafeVoterRecord?
+    @State private var total: Int = 0
+    @State private var hasMore: Bool = false
+    @State private var offset: Int = 0
+    @State private var searchInfo: String = ""
+    @State private var lastSearchAddress: String?
+    @State private var lastSearchZip: String?
 
     private let nearbyRepo = NearbyRepository()
+
+    enum ViewMode: String, CaseIterable {
+        case map = "Map"
+        case list = "List"
+    }
+
+    // Names of already-added contacts for duplicate detection
+    private var addedNames: Set<String> {
+        Set(contacts.personEntries.map { "\($0.firstName.lowercased())-\($0.lastName.lowercased())" })
+    }
+
+    private func isAlreadyAdded(_ voter: SafeVoterRecord) -> Bool {
+        addedNames.contains("\(voter.firstName.lowercased())-\(voter.lastName.lowercased())")
+    }
 
     var body: some View {
         ZStack {
@@ -74,25 +96,103 @@ struct NearbyView: View {
                         .foregroundStyle(Color.vcTeal)
                     }
                     Spacer()
-                } else {
-                    // Map
-                    NearbyMapView(
-                        voters: voters,
-                        centerCoordinate: centerCoordinate,
-                        userLocation: userLocation
-                    )
-                    .frame(height: 250)
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+                } else if !voters.isEmpty {
+                    // Results header with count + view toggle
+                    HStack {
+                        Text("Showing \(voters.count) of \(total)")
+                            .font(.caption)
+                            .foregroundStyle(Color.vcSlate)
+                        if !searchInfo.isEmpty {
+                            Text("| \(searchInfo)")
+                                .font(.caption)
+                                .foregroundStyle(Color.vcSlate)
+                                .lineLimit(1)
+                        }
 
-                    // Voter list
-                    List(voters.indices, id: \.self) { index in
-                        let voter = voters[index]
-                        NearbyVoterRow(voter: voter)
-                            .listRowBackground(Color.vcBg)
-                            .listRowSeparatorTint(Color.vcGray.opacity(0.3))
+                        Spacer()
+
+                        // View toggle
+                        Picker("View", selection: $viewMode) {
+                            ForEach(ViewMode.allCases, id: \.self) { mode in
+                                Text(mode.rawValue).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 140)
                     }
-                    .listStyle(.plain)
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
+
+                    switch viewMode {
+                    case .map:
+                        // Map view
+                        NearbyMapView(
+                            voters: voters,
+                            centerCoordinate: centerCoordinate,
+                            userLocation: userLocation,
+                            selectedVoter: $selectedVoter,
+                            isAlreadyAdded: isAlreadyAdded
+                        )
+                        .frame(maxHeight: .infinity)
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+
+                        // Selected voter popup card (slides up from bottom)
+                        if let voter = selectedVoter {
+                            NearbyVoterPopup(
+                                voter: voter,
+                                isAdded: isAlreadyAdded(voter),
+                                targetConfig: auth.campaignConfig?.aiContext?.targetUniverse,
+                                onAdd: { addVoter(voter) },
+                                onDismiss: { selectedVoter = nil }
+                            )
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.horizontal)
+                            .padding(.bottom, 4)
+                        }
+
+                        // Party legend
+                        partyLegend
+                            .padding(.horizontal)
+                            .padding(.vertical, 4)
+
+                    case .list:
+                        // List view
+                        List {
+                            ForEach(voters.indices, id: \.self) { index in
+                                let voter = voters[index]
+                                NearbyVoterRow(
+                                    voter: voter,
+                                    isAdded: isAlreadyAdded(voter),
+                                    targetConfig: auth.campaignConfig?.aiContext?.targetUniverse,
+                                    onAdd: { addVoter(voter) }
+                                )
+                                .listRowBackground(Color.vcBg)
+                                .listRowSeparatorTint(Color.vcGray.opacity(0.3))
+                            }
+
+                            // Load More button
+                            if hasMore {
+                                Button {
+                                    Task { await loadMore() }
+                                } label: {
+                                    HStack {
+                                        if isLoading {
+                                            ProgressView().tint(Color.vcPurple)
+                                        }
+                                        Text(isLoading ? "Loading..." : "Load Next 50")
+                                            .font(.subheadline.bold())
+                                            .foregroundStyle(Color.vcPurpleLight)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(12)
+                                }
+                                .listRowBackground(Color.vcBg)
+                                .disabled(isLoading)
+                            }
+                        }
+                        .listStyle(.plain)
+                    }
                 }
 
                 if let error {
@@ -103,6 +203,46 @@ struct NearbyView: View {
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: selectedVoter?.fullName)
+    }
+
+    // MARK: - Party Legend
+
+    private var partyLegend: some View {
+        let parties = Set(voters.map(\.partyAffiliation)).sorted()
+        return HStack(spacing: 12) {
+            ForEach(parties, id: \.self) { party in
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.partyColor(for: party))
+                        .frame(width: 8, height: 8)
+                    Text(party)
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Color.vcSlate)
+                }
+            }
+        }
+    }
+
+    // MARK: - Add Voter
+
+    private func addVoter(_ voter: SafeVoterRecord) {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        let age = voter.birthYear.flatMap { Int($0) }.map { currentYear - $0 }
+
+        Task {
+            await contacts.addContact(
+                firstName: voter.firstName,
+                lastName: voter.lastName,
+                address: voter.residentialAddress,
+                city: voter.city,
+                zip: voter.zip,
+                age: age,
+                gender: voter.gender.isEmpty || voter.gender == "U" ? nil : voter.gender,
+                category: .neighbors
+            )
+            HapticManager.shared.notification(type: .success)
+        }
     }
 
     // MARK: - Use Current Location
@@ -111,7 +251,6 @@ struct NearbyView: View {
         error = nil
         let (address, zip) = await locationManager.fetchCurrentAddress()
 
-        // Store user's location for the map marker
         if let loc = locationManager.lastLocation {
             userLocation = loc.coordinate
         }
@@ -121,7 +260,6 @@ struct NearbyView: View {
             return
         }
 
-        // Use the reverse-geocoded result to search
         if let zip, !zip.isEmpty {
             searchText = zip
         } else if let address, !address.isEmpty {
@@ -141,34 +279,72 @@ struct NearbyView: View {
         guard !query.isEmpty else { return }
         isLoading = true
         error = nil
+        voters = []
+        offset = 0
+        total = 0
+        hasMore = false
+        selectedVoter = nil
 
         let campaignState = auth.campaignConfig?.state ?? "PA"
-
-        // Determine if input is a zip code or an address
         let isZip = query.range(of: #"^\d{5}$"#, options: .regularExpression) != nil
 
         do {
             let response: NearbyResponse
             if isZip {
+                lastSearchAddress = nil
+                lastSearchZip = query
                 response = try await nearbyRepo.fetchNearby(zip: query, state: campaignState)
             } else {
+                lastSearchAddress = query
+                lastSearchZip = nil
                 response = try await nearbyRepo.fetchNearby(address: query, state: campaignState)
             }
 
             voters = response.voters
+            total = response.total ?? response.voters.count
+            hasMore = response.hasMore ?? false
 
-            // Use center coordinates from backend response for the map
             if let lat = response.centerLat, let lng = response.centerLng {
                 centerCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
-            } else if let firstVoter = response.voters.first(where: { $0.lat != nil && $0.lng != nil }),
-                      let lat = firstVoter.lat, let lng = firstVoter.lng {
-                // Fallback: center on first voter with coordinates
+            } else if let first = response.voters.first(where: { $0.lat != nil && $0.lng != nil }),
+                      let lat = first.lat, let lng = first.lng {
                 centerCoordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
             }
+
+            searchInfo = response.address.map { "Near \"\($0)\"" } ?? response.zip.map { "Near zip \($0)" } ?? ""
 
             if voters.isEmpty {
                 self.error = "No voters found near that location"
             }
+        } catch {
+            self.error = error.localizedDescription
+        }
+
+        isLoading = false
+    }
+
+    // MARK: - Load More
+
+    private func loadMore() async {
+        let nextOffset = offset + 50
+        isLoading = true
+
+        let campaignState = auth.campaignConfig?.state ?? "PA"
+
+        do {
+            let response: NearbyResponse
+            if let address = lastSearchAddress {
+                response = try await nearbyRepo.fetchNearby(address: address, state: campaignState, offset: nextOffset)
+            } else if let zip = lastSearchZip {
+                response = try await nearbyRepo.fetchNearby(zip: zip, state: campaignState, offset: nextOffset)
+            } else {
+                isLoading = false
+                return
+            }
+
+            voters.append(contentsOf: response.voters)
+            offset = nextOffset
+            hasMore = response.hasMore ?? false
         } catch {
             self.error = error.localizedDescription
         }
@@ -183,6 +359,8 @@ struct NearbyMapView: View {
     let voters: [SafeVoterRecord]
     let centerCoordinate: CLLocationCoordinate2D?
     let userLocation: CLLocationCoordinate2D?
+    @Binding var selectedVoter: SafeVoterRecord?
+    let isAlreadyAdded: (SafeVoterRecord) -> Bool
 
     var body: some View {
         Map(initialPosition: mapPosition) {
@@ -208,23 +386,31 @@ struct NearbyMapView: View {
             ForEach(voters.indices, id: \.self) { index in
                 let voter = voters[index]
                 if let lat = voter.lat, let lng = voter.lng {
+                    let added = isAlreadyAdded(voter)
                     Annotation(voter.fullName, coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)) {
-                        Circle()
-                            .fill(Color.partyColor(for: voter.partyAffiliation))
-                            .frame(width: 12, height: 12)
-                            .overlay(
-                                Circle()
-                                    .stroke(.white.opacity(0.3), lineWidth: 1)
-                            )
+                        Button {
+                            withAnimation(.spring(response: 0.3)) {
+                                selectedVoter = voter
+                            }
+                        } label: {
+                            Circle()
+                                .fill(Color.partyColor(for: voter.partyAffiliation))
+                                .opacity(added ? 0.25 : 0.8)
+                                .frame(width: 14, height: 14)
+                                .overlay(
+                                    Circle()
+                                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                                )
+                        }
                     }
                 }
             }
         }
-        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+        .colorScheme(.dark)
     }
 
     private var mapPosition: MapCameraPosition {
-        // Prefer user location if available, otherwise use search center
         if let userLoc = userLocation {
             return .region(MKCoordinateRegion(
                 center: userLoc,
@@ -241,29 +427,188 @@ struct NearbyMapView: View {
     }
 }
 
-// MARK: - Voter Row
+// MARK: - Voter Popup Card (shown when tapping a map marker)
+
+struct NearbyVoterPopup: View {
+    let voter: SafeVoterRecord
+    let isAdded: Bool
+    let targetConfig: TargetUniverseConfig?
+    let onAdd: () -> Void
+    let onDismiss: () -> Void
+
+    private var voteScore: Double {
+        VoterSegmentCalculator.calculateVoteScore(voter: voter)
+    }
+
+    private var segment: VoterSegment {
+        VoterSegmentCalculator.determineSegment(voteScore: voteScore)
+    }
+
+    private var age: Int? {
+        guard let year = voter.birthYear, let birthYear = Int(year) else { return nil }
+        return Calendar.current.component(.year, from: Date()) - birthYear
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            // Header with dismiss
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(voter.fullName)
+                            .font(.subheadline.bold())
+                            .foregroundStyle(.white)
+                        if let age {
+                            Text("(\(age))")
+                                .font(.caption)
+                                .foregroundStyle(Color.vcSlate)
+                        }
+                    }
+                    Text("\(voter.residentialAddress), \(voter.city)")
+                        .font(.caption)
+                        .foregroundStyle(Color.vcSlate)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Button { onDismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color.vcSlate)
+                }
+            }
+
+            // Stats row
+            HStack(spacing: 12) {
+                // Party badge
+                Text(voter.partyAffiliation)
+                    .font(.caption2.bold())
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.partyColor(for: voter.partyAffiliation).opacity(0.2))
+                    .foregroundStyle(Color.partyColor(for: voter.partyAffiliation))
+                    .cornerRadius(4)
+
+                // Vote score
+                Text("\(Int(voteScore))% vote score")
+                    .font(.caption.bold().monospacedDigit())
+                    .foregroundStyle(segmentColor)
+
+                // Segment badge
+                SegmentBadge(segment: segment)
+
+                Spacer()
+
+                // Target star
+                if let targetConfig, targetConfig.hasAnyCriteria {
+                    TargetStarView(
+                        isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
+                        size: 14
+                    )
+                }
+            }
+
+            // Action button
+            if isAdded {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption)
+                    Text("Already Added")
+                        .font(.caption.bold())
+                }
+                .foregroundStyle(Color.vcTeal)
+                .frame(maxWidth: .infinity)
+                .padding(8)
+                .background(Color.vcTeal.opacity(0.1))
+                .cornerRadius(8)
+            } else {
+                Button(action: onAdd) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.caption)
+                        Text("Add to Contacts")
+                            .font(.caption.bold())
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(10)
+                    .background(Color.vcPurple)
+                    .cornerRadius(8)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.vcBgCard)
+        .cornerRadius(12)
+        .shadow(color: .black.opacity(0.3), radius: 8, y: -2)
+    }
+
+    private var segmentColor: Color {
+        switch segment {
+        case .superVoter: return .vcTeal
+        case .sometimesVoter: return .vcGold
+        case .rarelyVoter: return .vcCoral
+        }
+    }
+}
+
+// MARK: - Voter Row (List View)
 
 struct NearbyVoterRow: View {
     let voter: SafeVoterRecord
+    let isAdded: Bool
+    let targetConfig: TargetUniverseConfig?
+    let onAdd: () -> Void
+
+    private var voteScore: Double {
+        VoterSegmentCalculator.calculateVoteScore(voter: voter)
+    }
+
+    private var segment: VoterSegment {
+        VoterSegmentCalculator.determineSegment(voteScore: voteScore)
+    }
 
     var body: some View {
         HStack(spacing: 12) {
+            // Party color dot
             Circle()
                 .fill(Color.partyColor(for: voter.partyAffiliation))
                 .frame(width: 8, height: 8)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(voter.fullName)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(.white)
+                HStack(spacing: 6) {
+                    Text(voter.fullName)
+                        .font(.subheadline.bold())
+                        .foregroundStyle(isAdded ? .white.opacity(0.4) : .white)
+
+                    if let year = voter.birthYear, let birthYear = Int(year) {
+                        let age = Calendar.current.component(.year, from: Date()) - birthYear
+                        Text("(\(age))")
+                            .font(.caption)
+                            .foregroundStyle(Color.vcSlate)
+                    }
+
+                    // Target star
+                    if let targetConfig, targetConfig.hasAnyCriteria {
+                        TargetStarView(
+                            isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
+                            size: 10
+                        )
+                    }
+                }
 
                 Text(voter.residentialAddress)
                     .font(.caption)
                     .foregroundStyle(Color.vcSlate)
+                    .lineLimit(1)
             }
 
             Spacer()
 
+            // Vote score
+            Text("\(Int(voteScore))%")
+                .font(.caption.bold().monospacedDigit())
+                .foregroundStyle(segmentColor)
+
+            // Party badge
             Text(voter.partyAffiliation)
                 .font(.caption2.bold())
                 .padding(.horizontal, 6)
@@ -271,7 +616,34 @@ struct NearbyVoterRow: View {
                 .background(Color.partyColor(for: voter.partyAffiliation).opacity(0.2))
                 .foregroundStyle(Color.partyColor(for: voter.partyAffiliation))
                 .cornerRadius(4)
+
+            // Add button or status
+            if isAdded {
+                Text("Added")
+                    .font(.caption2.bold())
+                    .foregroundStyle(Color.vcTeal)
+            } else {
+                Button(action: onAdd) {
+                    Text("+ Add")
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.vcPurple)
+                        .foregroundStyle(.white)
+                        .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.vertical, 4)
+        .opacity(isAdded ? 0.5 : 1.0)
+    }
+
+    private var segmentColor: Color {
+        switch segment {
+        case .superVoter: return .vcTeal
+        case .sometimesVoter: return .vcGold
+        case .rarelyVoter: return .vcCoral
+        }
     }
 }

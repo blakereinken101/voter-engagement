@@ -71,15 +71,18 @@ struct SafeVoterRecord: Codable {
 
     var fullName: String { "\(firstName) \(lastName)" }
 
+    /// Vote codes that count as "voted" — In Person (Y), Absentee (A), Early (E)
+    private static let votedCodes: Set<String> = ["Y", "A", "E"]
+
     /// Vote history entries as an array for display
     var voteHistory: [(election: String, voted: Bool)] {
         [
-            ("2024 General", vh2024G == "Y"),
-            ("2024 Primary", vh2024P == "Y"),
-            ("2022 General", vh2022G == "Y"),
-            ("2022 Primary", vh2022P == "Y"),
-            ("2020 General", vh2020G == "Y"),
-            ("2020 Primary", vh2020P == "Y"),
+            ("2024 General", Self.votedCodes.contains(vh2024G)),
+            ("2024 Primary", Self.votedCodes.contains(vh2024P)),
+            ("2022 General", Self.votedCodes.contains(vh2022G)),
+            ("2022 Primary", Self.votedCodes.contains(vh2022P)),
+            ("2020 General", Self.votedCodes.contains(vh2020G)),
+            ("2020 Primary", Self.votedCodes.contains(vh2020P)),
         ]
     }
 

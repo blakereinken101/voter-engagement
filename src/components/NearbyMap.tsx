@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { SafeVoterRecord } from '@/types'
-import { calculateVoteScore, determineSegment } from '@/lib/voter-segments'
+import { SafeVoterRecord, TargetUniverseConfig } from '@/types'
+import { calculateVoteScore, determineSegment, isInTargetUniverse } from '@/lib/voter-segments'
 import clsx from 'clsx'
 
 // NOTE: Leaflet CSS must be imported in globals.css:
@@ -14,6 +14,7 @@ interface Props {
   isAlreadyAdded: (voter: SafeVoterRecord) => boolean
   centerLat?: number
   centerLng?: number
+  targetUniverse?: TargetUniverseConfig
 }
 
 const PARTY_COLORS: Record<string, string> = {
@@ -64,7 +65,7 @@ export default function NearbyMap(props: Props) {
   return <MapInner {...props} />
 }
 
-function MapInner({ voters, onAddVoter, isAlreadyAdded, centerLat, centerLng }: Props) {
+function MapInner({ voters, onAddVoter, isAlreadyAdded, centerLat, centerLng, targetUniverse }: Props) {
   // Dynamic require since we know we're client-side (avoids SSR issues with Leaflet)
   const { MapContainer, TileLayer, CircleMarker, Popup } = require('react-leaflet')
 
@@ -101,6 +102,8 @@ function MapInner({ voters, onAddVoter, isAlreadyAdded, centerLat, centerLng }: 
           const added = isAlreadyAdded(voter)
           const currentYear = new Date().getFullYear()
           const age = voter.birth_year ? currentYear - parseInt(voter.birth_year) : null
+          const hasTargetConfig = targetUniverse && Object.values(targetUniverse).some(v => v)
+          const inTarget = hasTargetConfig ? isInTargetUniverse(voter, targetUniverse) : undefined
 
           return (
             <CircleMarker
@@ -119,6 +122,11 @@ function MapInner({ voters, onAddVoter, isAlreadyAdded, centerLat, centerLng }: 
                   <p className="font-bold text-vc-purple text-base">
                     {voter.first_name} {voter.last_name}
                     {age && <span className="text-gray-400 text-xs ml-1">({age})</span>}
+                    {inTarget !== undefined && (
+                      <span className="ml-1.5" title={inTarget ? 'Target Voter' : 'Not in target universe'}>
+                        {inTarget ? '⭐' : '☆'}
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {voter.residential_address}, {voter.city}

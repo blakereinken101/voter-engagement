@@ -110,10 +110,12 @@ struct ContactListView: View {
 struct ContactRow: View {
     let person: PersonEntry
     @Environment(ContactsViewModel.self) private var contacts
+    @Environment(AuthViewModel.self) private var auth
 
     var body: some View {
         let match = contacts.matchResult(for: person.id)
         let action = contacts.actionItem(for: person.id)
+        let targetConfig = auth.campaignConfig?.aiContext?.targetUniverse
 
         HStack(spacing: 12) {
             // Initials circle
@@ -144,6 +146,14 @@ struct ContactRow: View {
             }
 
             Spacer()
+
+            // Target universe star
+            if let voter = match?.bestMatch, targetConfig?.hasAnyCriteria == true {
+                TargetStarView(
+                    isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
+                    size: 14
+                )
+            }
 
             // Status indicator
             if let outcome = action?.contactOutcome {

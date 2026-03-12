@@ -68,6 +68,18 @@ struct ContactDetailView: View {
                                     SegmentBadge(segment: segment)
                                 }
                             }
+
+                            // Target universe indicator
+                            if let voter = match?.bestMatch,
+                               let targetConfig = auth.campaignConfig?.aiContext?.targetUniverse,
+                               targetConfig.hasAnyCriteria {
+                                TargetStarView(
+                                    isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
+                                    showLabel: true,
+                                    size: 18
+                                )
+                                .padding(.top, 4)
+                            }
                         }
 
                         // Match review prompt for ambiguous matches
