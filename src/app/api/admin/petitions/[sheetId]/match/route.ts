@@ -21,12 +21,12 @@ const PETITION_MATCH_OPTIONS = {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { sheetId: string } },
+  { params }: { params: Promise<{ sheetId: string }> },
 ) {
   try {
     const ctx = await requireAdmin()
     const db = await getDb()
-    const { sheetId } = params
+    const { sheetId } = await params
 
     // Verify sheet belongs to this campaign
     const { rows: sheetRows } = await db.query(

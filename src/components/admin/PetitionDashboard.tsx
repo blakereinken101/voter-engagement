@@ -203,9 +203,14 @@ export default function PetitionDashboard() {
         // Reload sheet list to update validity rates
         fetchSheets()
         setPickerSigId(null)
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[petitions] Match override failed:', res.status, errData)
+        alert(`Match override failed: ${errData.error || res.statusText}`)
       }
     } catch (err) {
       console.error('[petitions] Error overriding match:', err)
+      alert('Match override failed: network error')
     } finally {
       setSavingOverride(false)
     }
@@ -226,9 +231,14 @@ export default function PetitionDashboard() {
           setSheetSignatures(prev => ({ ...prev, [sheetId]: data.signatures || [] }))
         }
         fetchSheets()
+      } else {
+        const errData = await res.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('[petitions] Rematch failed:', res.status, errData)
+        alert(`Rematch failed: ${errData.error || res.statusText}`)
       }
     } catch (err) {
       console.error('[petitions] Error rematching signature:', err)
+      alert('Rematch failed: network error')
     } finally {
       setSavingOverride(false)
     }

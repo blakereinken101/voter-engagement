@@ -159,12 +159,12 @@ export async function POST(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { sheetId: string; sigId: string } },
+  { params }: { params: Promise<{ sheetId: string; sigId: string }> },
 ) {
   try {
     const ctx = await requireAdmin()
     const db = await getDb()
-    const { sheetId, sigId } = params
+    const { sheetId, sigId } = await params
 
     let body: { candidateIndex?: number; matchStatus?: 'matched' | 'unmatched' }
     try {
