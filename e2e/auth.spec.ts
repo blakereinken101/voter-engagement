@@ -43,8 +43,11 @@ test.describe('Auth flow', () => {
 
       const submitButton = page.locator('button[type="submit"]')
       if (await submitButton.isVisible()) {
-        await submitButton.click()
-        // Should show validation error or stay on page
+        const isDisabled = await submitButton.isDisabled()
+        if (!isDisabled) {
+          await submitButton.click()
+        }
+        // Button disabled OR staying on page are both valid validation behaviors
         expect(page.url()).toContain('sign-up')
       }
     }
