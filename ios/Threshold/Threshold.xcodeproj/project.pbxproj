@@ -63,6 +63,7 @@
 		AA9999999999999999999999 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB9999999999999999999999 /* FlowLayout.swift */; };
 		AAAAAAAAAAAAAAAAAAAAAAAA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BBAAAAAAAAAAAAAAAAAAAAAAA /* PrivacyInfo.xcprivacy */; };
 		CCBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift */; };
+		CCCCCCCCCCCCCCCCCCCCCCCC /* TargetStarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDCCCCCCCCCCCCCCCCCCCCCC /* TargetStarView.swift */; };
 		B1C2D3E4F5A6B7C8D9E0F1A2 /* Messaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* Messaging.swift */; };
 		B2C3D4E5F6A7B8C9D0E1F2A3 /* MessagingRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B3C4D5E6F7A8B9C0D1E2F3 /* MessagingRepository.swift */; };
 		B3C4D5E6F7A8B9C0D1E2F3A4 /* MessagingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3B4C5D6E7F8A9B0C1D2E3F4 /* MessagingViewModel.swift */; };
@@ -131,6 +132,7 @@
 		BB9999999999999999999999 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
 		BBAAAAAAAAAAAAAAAAAAAAAAA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		DDBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
+		DDCCCCCCCCCCCCCCCCCCCCCC /* TargetStarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TargetStarView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6A7B8C9D0E1F2 /* Messaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Messaging.swift; sourceTree = "<group>"; };
 		A2B3C4D5E6F7A8B9C0D1E2F3 /* MessagingRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingRepository.swift; sourceTree = "<group>"; };
 		A3B4C5D6E7F8A9B0C1D2E3F4 /* MessagingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagingViewModel.swift; sourceTree = "<group>"; };
@@ -151,6 +153,7 @@
 				DD6666666666666666666666 /* VoterRegistrationLinksView.swift */,
 				BB9999999999999999999999 /* FlowLayout.swift */,
 				DDBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift */,
+				DDCCCCCCCCCCCCCCCCCCCCCC /* TargetStarView.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -529,6 +532,7 @@
 				AA8888888888888888888888 /* ToolResultChipView.swift in Sources */,
 				AA9999999999999999999999 /* FlowLayout.swift in Sources */,
 				CCBBBBBBBBBBBBBBBBBBBBBB /* SafariView.swift in Sources */,
+				CCCCCCCCCCCCCCCCCCCCCCCC /* TargetStarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
