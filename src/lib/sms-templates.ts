@@ -41,7 +41,7 @@ export function fillTemplate(template: string, contactName: string, volunteerNam
 
 export function generateSmsLink(phone: string, message: string): string {
   const cleaned = phone.replace(/[^0-9+]/g, '')
-  return `sms:${cleaned}?&body=${encodeURIComponent(message)}`
+  return `sms:${cleaned}?body=${encodeURIComponent(message)}`
 }
 
 export function generateSmsLinkForContact(
