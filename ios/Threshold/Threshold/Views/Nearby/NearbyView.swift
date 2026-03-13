@@ -241,7 +241,7 @@ struct NearbyView: View {
                 gender: voter.gender.isEmpty || voter.gender == "U" ? nil : voter.gender,
                 category: .neighbors
             )
-            HapticManager.shared.notification(type: .success)
+            HapticManager.notification(.success)
         }
     }
 
