@@ -144,7 +144,7 @@ export default function LandingPage() {
           <span>Relational Organizing Tool</span>
         </div>
         <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 text-center tracking-tight">
-          The relational organizing tool is a pen and paper.
+          The best relational organizing tool is a pen and paper.
         </h2>
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-16">
           That&rsquo;s why Threshold utilizes cutting hand writing recognition and AI agent technology to create a seamless process that allows volunteers and organizers to take pictures of their own or campaign provided sheets with contacts and conversations and messy handwriting, matching the names and survey responses directly to the voter file. Messy real-world input goes in, clean structured data comes out. Threshold is easier to use than any relational organizing product on the market.
