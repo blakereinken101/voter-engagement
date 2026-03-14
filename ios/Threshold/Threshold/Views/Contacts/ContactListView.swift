@@ -87,9 +87,14 @@ struct ContactListView: View {
                         .padding(.top, 4)
                         .padding(.bottom, 8)
                     }
+                    .background(Color.vcBg)
+                    .zIndex(1)
 
                     List(filteredEntries) { person in
-                        ContactRow(person: person)
+                        ContactRow(
+                            person: person,
+                            onText: (person.phone != nil && !person.phone!.isEmpty) ? { sendText(to: person) } : nil
+                        )
                             .listRowBackground(Color.vcBg)
                             .listRowSeparatorTint(Color.vcGray.opacity(0.3))
                             .onTapGesture {
@@ -131,6 +136,7 @@ struct ContactListView: View {
                             }
                     }
                     .listStyle(.plain)
+                    .clipped()
                     .searchable(text: $searchText, prompt: "Search contacts")
                 }
             }
@@ -174,6 +180,7 @@ struct ContactListView: View {
 
 struct ContactRow: View {
     let person: PersonEntry
+    var onText: (() -> Void)? = nil
     @Environment(ContactsViewModel.self) private var contacts
     @Environment(AuthViewModel.self) private var auth
 
@@ -209,6 +216,7 @@ struct ContactRow: View {
                     }
                 }
             }
+            .layoutPriority(1)
 
             Spacer()
 
@@ -234,6 +242,22 @@ struct ContactRow: View {
                     .font(.caption)
                     .foregroundStyle(Color.vcTeal.opacity(0.5))
             }
+
+            // Message icon button
+            if let onText {
+                Button(action: onText) {
+                    Image(systemName: "message.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 28)
+                        .background(Color.vcTeal)
+                        .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Flashing swipe hint arrow
+            SwipeHintArrow()
         }
         .padding(.vertical, 4)
     }

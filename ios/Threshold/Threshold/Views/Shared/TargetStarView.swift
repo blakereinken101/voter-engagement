@@ -38,3 +38,34 @@ struct TargetStarView: View {
         }
     }
 }
+
+// MARK: - Swipe Hint Arrow
+
+/// Flashing orange arrow pointing left, shown on the far right of list rows
+/// to hint that the user can swipe left. Flashes a few times then disappears.
+/// Uses @AppStorage so it only ever shows once per install.
+struct SwipeHintArrow: View {
+    @AppStorage("hasSeenSwipeHint") private var hasSeenHint = false
+    @State private var opacity: Double = 1.0
+    @State private var dismissed = false
+
+    var body: some View {
+        if !hasSeenHint && !dismissed {
+            Image(systemName: "chevron.left")
+                .font(.caption2.bold())
+                .foregroundStyle(Color.orange)
+                .opacity(opacity)
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 0.5).repeatCount(6, autoreverses: true)) {
+                        opacity = 0.15
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            dismissed = true
+                        }
+                        hasSeenHint = true
+                    }
+                }
+        }
+    }
+}
