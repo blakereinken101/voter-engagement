@@ -97,13 +97,10 @@ struct NearbyView: View {
                     }
                     Spacer()
                 } else if !voters.isEmpty {
-                    // Results header with count + view toggle
+                    // Results header with view toggle
                     HStack {
-                        Text("Showing \(voters.count) of \(total)")
-                            .font(.caption)
-                            .foregroundStyle(Color.vcSlate)
                         if !searchInfo.isEmpty {
-                            Text("| \(searchInfo)")
+                            Text(searchInfo)
                                 .font(.caption)
                                 .foregroundStyle(Color.vcSlate)
                                 .lineLimit(1)
@@ -188,8 +185,7 @@ struct NearbyView: View {
                     case .list:
                         // List view
                         List {
-                            ForEach(voters.indices, id: \.self) { index in
-                                let voter = voters[index]
+                            ForEach(voters) { voter in
                                 NearbyVoterRow(
                                     voter: voter,
                                     isAdded: isAlreadyAdded(voter),
@@ -200,6 +196,18 @@ struct NearbyView: View {
                                 )
                                 .listRowBackground(Color.vcBg)
                                 .listRowSeparatorTint(Color.vcGray.opacity(0.3))
+                                // LEADING: Text action (swipe right)
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    if let phone = voter.phone, !phone.isEmpty {
+                                        Button {
+                                            sendTextToVoter(voter)
+                                        } label: {
+                                            Label("Text", systemImage: "message.fill")
+                                        }
+                                        .tint(Color.vcTeal)
+                                    }
+                                }
+                                // TRAILING: Outcome actions (swipe left)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button {
                                         markOutcome(voter, outcome: .opposed)
@@ -211,7 +219,7 @@ struct NearbyView: View {
                                     Button {
                                         markOutcome(voter, outcome: .undecided)
                                     } label: {
-                                        Label("Unsure", systemImage: "hand.raised.fill")
+                                        Label("Undecided", systemImage: "person.fill.questionmark")
                                     }
                                     .tint(Color.vcGold)
 
@@ -220,7 +228,7 @@ struct NearbyView: View {
                                     } label: {
                                         Label("Supporter", systemImage: "hand.thumbsup.fill")
                                     }
-                                    .tint(Color.vcTeal)
+                                    .tint(.green)
 
                                     if !isAlreadyAdded(voter) {
                                         Button {
@@ -353,7 +361,8 @@ struct NearbyView: View {
                 // Already added — just mark outreach
                 if let person = contacts.personEntries.first(where: {
                     $0.firstName.lowercased() == voter.firstName.lowercased() &&
-                    $0.lastName.lowercased() == voter.lastName.lowercased()
+                    $0.lastName.lowercased() == voter.lastName.lowercased() &&
+                    ($0.address ?? "").lowercased() == voter.residentialAddress.lowercased()
                 }) {
                     await contacts.updateAction(
                         contactId: person.id,
@@ -378,7 +387,8 @@ struct NearbyView: View {
             if isAlreadyAdded(voter) {
                 contactId = contacts.personEntries.first(where: {
                     $0.firstName.lowercased() == voter.firstName.lowercased() &&
-                    $0.lastName.lowercased() == voter.lastName.lowercased()
+                    $0.lastName.lowercased() == voter.lastName.lowercased() &&
+                    ($0.address ?? "").lowercased() == voter.residentialAddress.lowercased()
                 })?.id
             } else {
                 contactId = await contacts.addContact(
@@ -824,12 +834,17 @@ struct NearbyVoterRow: View {
             // Text button (when phone available)
             if let onText {
                 Button(action: onText) {
-                    Image(systemName: "message.fill")
-                        .font(.caption)
-                        .foregroundStyle(Color.vcTeal)
-                        .frame(width: 28, height: 28)
-                        .background(Color.vcTeal.opacity(0.15))
-                        .cornerRadius(6)
+                    HStack(spacing: 4) {
+                        Image(systemName: "message.fill")
+                            .font(.caption)
+                        Text("Text")
+                            .font(.caption.bold())
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.vcTeal)
+                    .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
             }

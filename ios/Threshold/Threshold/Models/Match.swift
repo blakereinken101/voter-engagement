@@ -48,7 +48,7 @@ enum ConfidenceLevel: String, Codable {
 
 // MARK: - Safe Voter Record (sanitized, no voter_id)
 
-struct SafeVoterRecord: Codable {
+struct SafeVoterRecord: Codable, Identifiable {
     let firstName: String
     let lastName: String
     let birthYear: String?
@@ -70,6 +70,7 @@ struct SafeVoterRecord: Codable {
     let lng: Double?
     let phone: String?
 
+    var id: String { "\(firstName)-\(lastName)-\(residentialAddress)-\(zip)" }
     var fullName: String { "\(firstName) \(lastName)" }
 
     /// Vote codes that count as "voted" — In Person (Y), Absentee (A), Early (E)

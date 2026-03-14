@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContactListView: View {
     @Environment(ContactsViewModel.self) private var contacts
+    @Environment(AuthViewModel.self) private var auth
     @State private var searchText = ""
     @State private var segmentFilter: SegmentFilterOption = .all
     @State private var selectedContact: PersonEntry?
@@ -83,7 +84,8 @@ struct ContactListView: View {
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.vertical, 8)
+                        .padding(.top, 4)
+                        .padding(.bottom, 8)
                     }
 
                     List(filteredEntries) { person in
@@ -93,6 +95,40 @@ struct ContactListView: View {
                             .onTapGesture {
                                 selectedContact = person
                             }
+                            // LEADING: Text action (swipe right)
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                if let phone = person.phone, !phone.isEmpty {
+                                    Button {
+                                        sendText(to: person)
+                                    } label: {
+                                        Label("Text", systemImage: "message.fill")
+                                    }
+                                    .tint(Color.vcTeal)
+                                }
+                            }
+                            // TRAILING: Outcome actions (swipe left)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button {
+                                    markOutcome(person, outcome: .opposed)
+                                } label: {
+                                    Label("Opposed", systemImage: "hand.thumbsdown.fill")
+                                }
+                                .tint(Color.vcCoral)
+
+                                Button {
+                                    markOutcome(person, outcome: .undecided)
+                                } label: {
+                                    Label("Undecided", systemImage: "person.fill.questionmark")
+                                }
+                                .tint(Color.vcGold)
+
+                                Button {
+                                    markOutcome(person, outcome: .supporter)
+                                } label: {
+                                    Label("Supporter", systemImage: "hand.thumbsup.fill")
+                                }
+                                .tint(.green)
+                            }
                     }
                     .listStyle(.plain)
                     .searchable(text: $searchText, prompt: "Search contacts")
@@ -101,6 +137,35 @@ struct ContactListView: View {
         }
         .sheet(item: $selectedContact) { person in
             ContactDetailView(person: person)
+        }
+    }
+
+    // MARK: - Send Text
+
+    private func sendText(to person: PersonEntry) {
+        guard let phone = person.phone, !phone.isEmpty else { return }
+        let segment = contacts.matchResult(for: person.id)?.segment
+        SMSTemplates.openSMS(
+            phone: phone,
+            contactFirstName: person.firstName,
+            volunteerName: auth.user?.name ?? "",
+            segment: segment,
+            electionDate: auth.campaignConfig?.electionDate
+        )
+    }
+
+    // MARK: - Mark Outcome
+
+    private func markOutcome(_ person: PersonEntry, outcome: ContactOutcome) {
+        Task {
+            let success = await contacts.updateAction(
+                contactId: person.id,
+                contacted: true,
+                contactOutcome: outcome
+            )
+            if success {
+                await MainActor.run { HapticManager.notification(.success) }
+            }
         }
     }
 }

@@ -71,7 +71,7 @@ struct PeopleView: View {
     enum PeopleViewMode: String, CaseIterable {
         case list = "List"
         case rolodex = "Rolodex"
-        case map = "Map"
+        case map = "Nearby"
     }
 
     var body: some View {
@@ -89,6 +89,7 @@ struct PeopleView: View {
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
                     .padding(.top, 8)
+                    .padding(.bottom, 4)
 
                     switch viewMode {
                     case .list:
