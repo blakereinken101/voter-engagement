@@ -1,7 +1,11 @@
 import UIKit
 
 enum SMSTemplates {
-    static func getTemplate(segment: VoterSegment?, electionDate: String?) -> String {
+    static func getTemplate(segment: VoterSegment?, electionDate: String?, customTemplate: String? = nil) -> String {
+        // If a custom template is set by the campaign admin, use it for all segments
+        if let custom = customTemplate, !custom.isEmpty {
+            return custom
+        }
         let dateStr = electionDate ?? "Election Day"
         switch segment {
         case .rarelyVoter:
@@ -32,9 +36,10 @@ enum SMSTemplates {
         contactFirstName: String,
         volunteerName: String,
         segment: VoterSegment?,
-        electionDate: String?
+        electionDate: String?,
+        customTemplate: String? = nil
     ) {
-        let template = getTemplate(segment: segment, electionDate: electionDate)
+        let template = getTemplate(segment: segment, electionDate: electionDate, customTemplate: customTemplate)
         let message = fillTemplate(template, contactName: contactFirstName, volunteerName: volunteerName)
         guard let url = generateSMSURL(phone: phone, message: message) else { return }
         UIApplication.shared.open(url)

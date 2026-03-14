@@ -302,9 +302,9 @@ export default function RolodexCard() {
             {/* Send Text button */}
             {(() => {
               const smsLink = personEntry.phone
-                ? generateSmsLinkForContact(personEntry.phone, personEntry.firstName, 'Volunteer', segment, campaignConfig.electionDate)
+                ? generateSmsLinkForContact(personEntry.phone, personEntry.firstName, 'Volunteer', segment, campaignConfig.electionDate, campaignConfig.customSmsTemplate)
                 : null
-              const smsPreview = fillTemplate(getSmsTemplate(segment, campaignConfig.electionDate), personEntry.firstName, 'Volunteer')
+              const smsPreview = fillTemplate(getSmsTemplate(segment, campaignConfig.electionDate, campaignConfig.customSmsTemplate), personEntry.firstName, 'Volunteer')
               return (
                 <div className="mb-4">
                   <button

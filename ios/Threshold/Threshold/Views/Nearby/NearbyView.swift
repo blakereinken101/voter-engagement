@@ -301,7 +301,8 @@ struct NearbyView: View {
             contactFirstName: voter.firstName,
             volunteerName: auth.user?.name ?? "",
             segment: segment,
-            electionDate: auth.campaignConfig?.electionDate
+            electionDate: auth.campaignConfig?.electionDate,
+            customTemplate: auth.campaignConfig?.customSmsTemplate
         )
 
         // Save contact in background (fire-and-forget)

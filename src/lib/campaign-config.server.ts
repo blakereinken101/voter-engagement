@@ -95,6 +95,7 @@ export async function getCampaignConfig(campaignId: string): Promise<CampaignCon
     organizationName: (row.org_name as string) || campaignConfig.organizationName,
     privacyText: (settings.privacyText as string) || campaignConfig.privacyText,
     voterFile: (settings.voterFile as string) || undefined,
+    customSmsTemplate: (settings.customSmsTemplate as string) || undefined,
     surveyQuestions: Array.isArray(settings.surveyQuestions) && (settings.surveyQuestions as SurveyQuestionConfig[]).length > 0
       ? (settings.surveyQuestions as SurveyQuestionConfig[])
       : campaignConfig.surveyQuestions,

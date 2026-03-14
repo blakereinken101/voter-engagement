@@ -37,6 +37,7 @@ const CAMPAIGN_SLUG = 'hughes-2026'
 
 // ── Campaign Settings ────────────────────────────────────────────────
 const SETTINGS = {
+  customSmsTemplate: `Hey {name}, I would be so grateful if you donated $5 so we can hit our donor requirement for public funds!! \n\nDonate here: https://secure.anedot.com/rep-anne-hughes-ct/donate\n\nI want to continue representing YOU in Hartford! Thanks and let me know if you have any questions!!!`,
   surveyQuestions: [
     {
       id: 'support_level',
