@@ -18,6 +18,8 @@ interface Props {
 export default function OutreachButtons({ person, matchResult, contacted, outreachMethod, onToggleContacted }: Props) {
   const { user, campaignConfig: authConfig } = useAuth()
   const campaignConfig = authConfig || defaultCampaignConfig
+  // Resolve phone: user-entered phone first, then matched voter record phone
+  const effectivePhone = person.phone || matchResult?.bestMatch?.phone || null
 
   // Already contacted — show method badge
   if (contacted && outreachMethod) {
@@ -47,11 +49,11 @@ export default function OutreachButtons({ person, matchResult, contacted, outrea
         ))}
       </div>
       <button
-        disabled={!person.phone}
+        disabled={!effectivePhone}
         onClick={() => {
-          if (person.phone) {
+          if (effectivePhone) {
             const smsUrl = generateSmsLinkForContact(
-              person.phone,
+              effectivePhone,
               person.firstName,
               user?.name ?? 'Friend',
               matchResult?.segment,
@@ -63,11 +65,11 @@ export default function OutreachButtons({ person, matchResult, contacted, outrea
         }}
         className={clsx(
           'w-full py-2 rounded-btn text-xs font-bold transition-all flex items-center justify-center gap-1.5',
-          person.phone
+          effectivePhone
             ? 'bg-vc-teal/15 text-vc-teal border border-vc-teal/30 hover:bg-vc-teal hover:text-white'
             : 'bg-white/5 text-white/20 border border-white/10 cursor-not-allowed'
         )}
-        title={person.phone ? 'Send SMS with template' : 'No phone number'}
+        title={effectivePhone ? 'Send SMS with template' : 'No phone number'}
       >
         <Smartphone className="w-3.5 h-3.5" />
         Send Text

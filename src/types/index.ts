@@ -28,6 +28,7 @@ export interface VoterRecord {
   congressional_district?: string | null
   state_senate_district?: string | null
   state_house_district?: string | null
+  phone?: string | null
 }
 
 // Sanitized version sent to client (no voter_id or full DOB)
@@ -54,6 +55,7 @@ export interface SafeVoterRecord {
   congressional_district?: string | null
   state_senate_district?: string | null
   state_house_district?: string | null
+  phone?: string | null
 }
 
 // =============================================

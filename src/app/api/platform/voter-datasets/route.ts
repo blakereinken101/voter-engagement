@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
           const lastNameMeta = lastNameNorm ? computeMetaphone(lastNameNorm) : ''
 
           placeholders.push(
-            `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`
+            `($${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++}, $${paramIdx++})`
           )
 
           values.push(
@@ -150,6 +150,7 @@ export async function POST(request: NextRequest) {
             r.congressional_district || null,
             r.state_senate_district || null,
             r.state_house_district || null,
+            r.preferred_phone || r.phone || null,
           )
 
           inserted++
@@ -160,7 +161,7 @@ export async function POST(request: NextRequest) {
             residential_address, city, state, zip, party_affiliation, registration_date, voter_status,
             vh2024g, vh2022g, vh2020g, vh2024p, vh2022p, vh2020p, lat, lng,
             last_name_normalized, last_name_metaphone,
-            congressional_district, state_senate_district, state_house_district)
+            congressional_district, state_senate_district, state_house_district, preferred_phone)
            VALUES ${placeholders.join(', ')}
            ON CONFLICT (dataset_id, voter_id) DO NOTHING`,
           values

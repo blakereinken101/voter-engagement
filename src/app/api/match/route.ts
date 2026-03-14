@@ -31,6 +31,7 @@ function sanitizePerson(p: Record<string, unknown>): PersonEntry | null {
     zip: p.zip ? sanitizeString(p.zip).replace(/[^0-9]/g, '').slice(0, 5) : undefined,
     age: typeof p.age === 'number' && p.age >= 18 && p.age <= 120 ? Math.floor(p.age) : undefined,
     ageRange: typeof p.ageRange === 'string' ? sanitizeString(p.ageRange) as PersonEntry['ageRange'] : undefined,
+    phone: p.phone ? sanitizeString(p.phone).replace(/[^0-9+\-() ]/g, '').slice(0, 20) : undefined,
     gender: (p.gender === 'M' || p.gender === 'F' || p.gender === '') ? p.gender : undefined,
     category: typeof p.category === 'string' ? sanitizeString(p.category) as PersonEntry['category'] : 'who-did-we-miss',
   }
