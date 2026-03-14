@@ -290,10 +290,23 @@ struct NearbyView: View {
     private func sendTextToVoter(_ voter: SafeVoterRecord) {
         guard let phone = voter.phone, !phone.isEmpty else { return }
 
-        // Add to contacts first and await completion before opening SMS
-        // (opening Messages backgrounds the app, which could interrupt the save)
-        Task {
-            if !isAlreadyAdded(voter) {
+        let alreadyAdded = isAlreadyAdded(voter)
+        let segment = VoterSegmentCalculator.determineSegment(
+            voteScore: VoterSegmentCalculator.calculateVoteScore(voter: voter)
+        )
+
+        // Open SMS immediately so UI feels responsive
+        SMSTemplates.openSMS(
+            phone: phone,
+            contactFirstName: voter.firstName,
+            volunteerName: auth.user?.name ?? "",
+            segment: segment,
+            electionDate: auth.campaignConfig?.electionDate
+        )
+
+        // Save contact in background (fire-and-forget)
+        if !alreadyAdded {
+            Task {
                 await contacts.addContact(
                     firstName: voter.firstName,
                     lastName: voter.lastName,
@@ -304,20 +317,6 @@ struct NearbyView: View {
                     age: voter.birthYear.flatMap { Int($0) }.map { Calendar.current.component(.year, from: Date()) - $0 },
                     gender: voter.gender.isEmpty || voter.gender == "U" ? nil : voter.gender,
                     category: .neighbors
-                )
-            }
-
-            let segment = VoterSegmentCalculator.determineSegment(
-                voteScore: VoterSegmentCalculator.calculateVoteScore(voter: voter)
-            )
-
-            await MainActor.run {
-                SMSTemplates.openSMS(
-                    phone: phone,
-                    contactFirstName: voter.firstName,
-                    volunteerName: auth.user?.name ?? "",
-                    segment: segment,
-                    electionDate: auth.campaignConfig?.electionDate
                 )
             }
         }
