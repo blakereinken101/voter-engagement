@@ -68,6 +68,7 @@ struct SafeVoterRecord: Codable {
     let vh2020P: VoteValue
     let lat: Double?
     let lng: Double?
+    let phone: String?
 
     var fullName: String { "\(firstName) \(lastName)" }
 
@@ -116,6 +117,7 @@ struct SafeVoterRecord: Codable {
         voterStatus = try c.decodeIfPresent(String.self, forKey: DynamicKey(stringValue: "voterStatus")!) ?? ""
         lat = try c.decodeIfPresent(Double.self, forKey: DynamicKey(stringValue: "lat")!)
         lng = try c.decodeIfPresent(Double.self, forKey: DynamicKey(stringValue: "lng")!)
+        phone = try c.decodeIfPresent(String.self, forKey: DynamicKey(stringValue: "phone")!)
 
         // VH keys stay uppercase (no underscores to convert)
         vh2024G = (try? c.decode(String.self, forKey: DynamicKey(stringValue: "VH2024G")!)) ?? ""
@@ -142,6 +144,7 @@ struct SafeVoterRecord: Codable {
         try c.encode(voterStatus, forKey: DynamicKey(stringValue: "voterStatus")!)
         try c.encodeIfPresent(lat, forKey: DynamicKey(stringValue: "lat")!)
         try c.encodeIfPresent(lng, forKey: DynamicKey(stringValue: "lng")!)
+        try c.encodeIfPresent(phone, forKey: DynamicKey(stringValue: "phone")!)
         try c.encode(vh2024G, forKey: DynamicKey(stringValue: "VH2024G")!)
         try c.encode(vh2022G, forKey: DynamicKey(stringValue: "VH2022G")!)
         try c.encode(vh2020G, forKey: DynamicKey(stringValue: "VH2020G")!)

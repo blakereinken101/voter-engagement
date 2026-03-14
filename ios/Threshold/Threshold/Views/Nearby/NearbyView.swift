@@ -125,16 +125,43 @@ struct NearbyView: View {
 
                     switch viewMode {
                     case .map:
-                        // Map view
-                        NearbyMapView(
-                            voters: voters,
-                            centerCoordinate: centerCoordinate,
-                            userLocation: userLocation,
-                            selectedVoter: $selectedVoter,
-                            isAlreadyAdded: isAlreadyAdded
-                        )
-                        .frame(maxHeight: .infinity)
-                        .cornerRadius(12)
+                        // Map view with floating load more
+                        ZStack(alignment: .bottom) {
+                            NearbyMapView(
+                                voters: voters,
+                                centerCoordinate: centerCoordinate,
+                                userLocation: userLocation,
+                                selectedVoter: $selectedVoter,
+                                isAlreadyAdded: isAlreadyAdded
+                            )
+                            .frame(maxHeight: .infinity)
+                            .cornerRadius(12)
+
+                            // Floating Load More button on map
+                            if hasMore {
+                                Button {
+                                    Task { await loadMore() }
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        if isLoading {
+                                            ProgressView()
+                                                .tint(.white)
+                                                .scaleEffect(0.8)
+                                        }
+                                        Text(isLoading ? "Loading..." : "Load Next 50")
+                                            .font(.caption.bold())
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.vcPurple)
+                                    .foregroundStyle(.white)
+                                    .cornerRadius(20)
+                                    .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
+                                }
+                                .disabled(isLoading)
+                                .padding(.bottom, 8)
+                            }
+                        }
                         .padding(.horizontal)
 
                         // Selected voter popup card (slides up from bottom)
@@ -144,7 +171,9 @@ struct NearbyView: View {
                                 isAdded: isAlreadyAdded(voter),
                                 targetConfig: auth.campaignConfig?.aiContext?.targetUniverse,
                                 onAdd: { addVoter(voter) },
-                                onDismiss: { selectedVoter = nil }
+                                onDismiss: { selectedVoter = nil },
+                                onText: voter.phone != nil ? { sendTextToVoter(voter) } : nil,
+                                onStarTap: !isAlreadyAdded(voter) ? { addVoter(voter) } : nil
                             )
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                             .padding(.horizontal)
@@ -165,10 +194,20 @@ struct NearbyView: View {
                                     voter: voter,
                                     isAdded: isAlreadyAdded(voter),
                                     targetConfig: auth.campaignConfig?.aiContext?.targetUniverse,
-                                    onAdd: { addVoter(voter) }
+                                    onAdd: { addVoter(voter) },
+                                    onText: voter.phone != nil ? { sendTextToVoter(voter) } : nil,
+                                    onStarTap: !isAlreadyAdded(voter) ? { addVoter(voter) } : nil
                                 )
                                 .listRowBackground(Color.vcBg)
                                 .listRowSeparatorTint(Color.vcGray.opacity(0.3))
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        markAsSupporter(voter)
+                                    } label: {
+                                        Label("Supporter", systemImage: "hand.thumbsup.fill")
+                                    }
+                                    .tint(.green)
+                                }
                             }
 
                             // Load More button
@@ -234,6 +273,7 @@ struct NearbyView: View {
             await contacts.addContact(
                 firstName: voter.firstName,
                 lastName: voter.lastName,
+                phone: voter.phone,
                 address: voter.residentialAddress,
                 city: voter.city,
                 zip: voter.zip,
@@ -242,6 +282,83 @@ struct NearbyView: View {
                 category: .neighbors
             )
             HapticManager.notification(.success)
+        }
+    }
+
+    // MARK: - Send Text to Voter
+
+    private func sendTextToVoter(_ voter: SafeVoterRecord) {
+        guard let phone = voter.phone, !phone.isEmpty else { return }
+
+        // Add to contacts first and await completion before opening SMS
+        // (opening Messages backgrounds the app, which could interrupt the save)
+        Task {
+            if !isAlreadyAdded(voter) {
+                await contacts.addContact(
+                    firstName: voter.firstName,
+                    lastName: voter.lastName,
+                    phone: voter.phone,
+                    address: voter.residentialAddress,
+                    city: voter.city,
+                    zip: voter.zip,
+                    age: voter.birthYear.flatMap { Int($0) }.map { Calendar.current.component(.year, from: Date()) - $0 },
+                    gender: voter.gender.isEmpty || voter.gender == "U" ? nil : voter.gender,
+                    category: .neighbors
+                )
+            }
+
+            let segment = VoterSegmentCalculator.determineSegment(
+                voteScore: VoterSegmentCalculator.calculateVoteScore(voter: voter)
+            )
+
+            await MainActor.run {
+                SMSTemplates.openSMS(
+                    phone: phone,
+                    contactFirstName: voter.firstName,
+                    volunteerName: auth.user?.name ?? "",
+                    segment: segment,
+                    electionDate: auth.campaignConfig?.electionDate
+                )
+            }
+        }
+    }
+
+    // MARK: - Mark as Supporter
+
+    private func markAsSupporter(_ voter: SafeVoterRecord) {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        let age = voter.birthYear.flatMap { Int($0) }.map { currentYear - $0 }
+
+        Task {
+            var success = false
+            if isAlreadyAdded(voter) {
+                // Find existing contact and mark as supporter
+                if let person = contacts.personEntries.first(where: {
+                    $0.firstName.lowercased() == voter.firstName.lowercased() &&
+                    $0.lastName.lowercased() == voter.lastName.lowercased()
+                }) {
+                    success = await contacts.updateAction(
+                        contactId: person.id,
+                        contacted: true,
+                        contactOutcome: .supporter
+                    )
+                }
+            } else {
+                success = await contacts.addContactAndMarkSupporter(
+                    firstName: voter.firstName,
+                    lastName: voter.lastName,
+                    phone: voter.phone,
+                    address: voter.residentialAddress,
+                    city: voter.city,
+                    zip: voter.zip,
+                    age: age,
+                    gender: voter.gender.isEmpty || voter.gender == "U" ? nil : voter.gender,
+                    category: .neighbors
+                )
+            }
+            if success {
+                await MainActor.run { HapticManager.notification(.success) }
+            }
         }
     }
 
@@ -435,6 +552,8 @@ struct NearbyVoterPopup: View {
     let targetConfig: TargetUniverseConfig?
     let onAdd: () -> Void
     let onDismiss: () -> Void
+    var onText: (() -> Void)? = nil
+    var onStarTap: (() -> Void)? = nil
 
     private var voteScore: Double {
         VoterSegmentCalculator.calculateVoteScore(voter: voter)
@@ -497,41 +616,78 @@ struct NearbyVoterPopup: View {
 
                 Spacer()
 
-                // Target star
+                // Target star (tappable to add)
                 if let targetConfig, targetConfig.hasAnyCriteria {
                     TargetStarView(
                         isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
-                        size: 14
+                        size: 14,
+                        onTap: onStarTap
                     )
                 }
             }
 
-            // Action button
+            // Action buttons
             if isAdded {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.caption)
-                    Text("Already Added")
-                        .font(.caption.bold())
-                }
-                .foregroundStyle(Color.vcTeal)
-                .frame(maxWidth: .infinity)
-                .padding(8)
-                .background(Color.vcTeal.opacity(0.1))
-                .cornerRadius(8)
-            } else {
-                Button(action: onAdd) {
+                HStack(spacing: 8) {
                     HStack(spacing: 4) {
-                        Image(systemName: "plus.circle.fill")
+                        Image(systemName: "checkmark.circle.fill")
                             .font(.caption)
-                        Text("Add to Contacts")
+                        Text("Already Added")
                             .font(.caption.bold())
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.vcTeal)
                     .frame(maxWidth: .infinity)
-                    .padding(10)
-                    .background(Color.vcPurple)
+                    .padding(8)
+                    .background(Color.vcTeal.opacity(0.1))
                     .cornerRadius(8)
+
+                    if let onText {
+                        Button(action: onText) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "message.fill")
+                                    .font(.caption)
+                                Text("Text")
+                                    .font(.caption.bold())
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Color.vcTeal)
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Button(action: onAdd) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.caption)
+                            Text("Add to Contacts")
+                                .font(.caption.bold())
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background(Color.vcPurple)
+                        .cornerRadius(8)
+                    }
+
+                    if let onText {
+                        Button(action: onText) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "message.fill")
+                                    .font(.caption)
+                                Text("Text")
+                                    .font(.caption.bold())
+                            }
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(Color.vcTeal)
+                            .cornerRadius(8)
+                        }
+                    }
                 }
             }
         }
@@ -557,6 +713,8 @@ struct NearbyVoterRow: View {
     let isAdded: Bool
     let targetConfig: TargetUniverseConfig?
     let onAdd: () -> Void
+    var onText: (() -> Void)? = nil
+    var onStarTap: (() -> Void)? = nil
 
     private var voteScore: Double {
         VoterSegmentCalculator.calculateVoteScore(voter: voter)
@@ -586,11 +744,12 @@ struct NearbyVoterRow: View {
                             .foregroundStyle(Color.vcSlate)
                     }
 
-                    // Target star
+                    // Target star (tappable to add)
                     if let targetConfig, targetConfig.hasAnyCriteria {
                         TargetStarView(
                             isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
-                            size: 10
+                            size: 10,
+                            onTap: onStarTap
                         )
                     }
                 }
@@ -616,6 +775,19 @@ struct NearbyVoterRow: View {
                 .background(Color.partyColor(for: voter.partyAffiliation).opacity(0.2))
                 .foregroundStyle(Color.partyColor(for: voter.partyAffiliation))
                 .cornerRadius(4)
+
+            // Text button (when phone available)
+            if let onText {
+                Button(action: onText) {
+                    Image(systemName: "message.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color.vcTeal)
+                        .frame(width: 28, height: 28)
+                        .background(Color.vcTeal.opacity(0.15))
+                        .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+            }
 
             // Add button or status
             if isAdded {

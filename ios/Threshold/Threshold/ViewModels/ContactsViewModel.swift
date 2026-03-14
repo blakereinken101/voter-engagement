@@ -102,6 +102,39 @@ final class ContactsViewModel {
         }
     }
 
+    // MARK: - Add Contact & Mark Supporter
+
+    @discardableResult
+    func addContactAndMarkSupporter(
+        firstName: String,
+        lastName: String,
+        phone: String? = nil,
+        address: String? = nil,
+        city: String? = nil,
+        zip: String? = nil,
+        age: Int? = nil,
+        gender: String? = nil,
+        category: RelationshipCategory
+    ) async -> Bool {
+        guard let contactId = await addContact(
+            firstName: firstName,
+            lastName: lastName,
+            phone: phone,
+            address: address,
+            city: city,
+            zip: zip,
+            age: age,
+            gender: gender,
+            category: category
+        ) else { return false }
+
+        return await updateAction(
+            contactId: contactId,
+            contacted: true,
+            contactOutcome: .supporter
+        )
+    }
+
     // MARK: - Update Action
 
     @discardableResult
