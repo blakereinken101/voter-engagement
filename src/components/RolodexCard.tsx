@@ -191,7 +191,7 @@ export default function RolodexCard() {
                 </>
               ) : (
                 <span className="text-xs text-white/30 flex items-center gap-1.5">
-                  <Star className="w-4 h-4 text-white/15" />
+                  <Star className="w-4 h-4 text-white/30 fill-white/10" />
                   Not in target universe
                 </span>
               )}

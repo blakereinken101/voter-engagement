@@ -77,7 +77,7 @@ export default function ContactItemHeader({
           inTarget ? (
             <Star className="w-5 h-5 text-vc-gold fill-vc-gold" />
           ) : (
-            <Star className="w-5 h-5 text-white/15" />
+            <Star className="w-5 h-5 text-white/30 fill-white/10" />
           )
         )}
         <ChevronDown className={clsx(

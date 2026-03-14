@@ -238,7 +238,7 @@ export default function NearbyPanel() {
                               inTarget ? (
                                 <Star className="w-3.5 h-3.5 text-vc-gold fill-vc-gold inline ml-1.5 -mt-0.5" />
                               ) : (
-                                <Star className="w-3.5 h-3.5 text-white/15 inline ml-1.5 -mt-0.5" />
+                                <Star className="w-3.5 h-3.5 text-white/30 fill-white/10 inline ml-1.5 -mt-0.5" />
                               )
                             )}
                             {voter.birth_year && (
