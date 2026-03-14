@@ -57,7 +57,8 @@ export default function OutreachButtons({ person, matchResult, contacted, outrea
               person.firstName,
               user?.name ?? 'Friend',
               matchResult?.segment,
-              campaignConfig.electionDate
+              campaignConfig.electionDate,
+              campaignConfig.customSmsTemplate,
             )
             window.open(smsUrl, '_blank')
             onToggleContacted(person.id, 'text')

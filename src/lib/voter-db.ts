@@ -308,6 +308,58 @@ export async function queryVotersByZipPrefix(
 }
 
 /**
+ * Nearby: Get active voters within a geographic bounding box (lat/lng range).
+ * Used when no zip code is available but geocoding succeeded.
+ */
+export async function queryVotersByGeo(
+  datasetId: string,
+  lat: number,
+  lng: number,
+  radiusDegrees: number = 0.02,
+  activeOnly = true,
+  filters?: GeoFilters,
+  limit = 5000,
+): Promise<VoterRecord[]> {
+  const pool = getPool()
+  const statusFilter = activeOnly ? `AND voter_status = 'Active'` : ''
+  const geo = buildGeoWhere(filters, 6)
+  const { rows } = await pool.query(
+    `SELECT ${VOTER_SELECT} FROM voters
+     WHERE dataset_id = $1
+       AND lat IS NOT NULL AND lng IS NOT NULL
+       AND lat BETWEEN $2 AND $3
+       AND lng BETWEEN $4 AND $5
+       ${statusFilter}
+       ${geo.clause}
+     LIMIT ${limit}`,
+    [datasetId, lat - radiusDegrees, lat + radiusDegrees, lng - radiusDegrees, lng + radiusDegrees, ...geo.params]
+  )
+  return rows.map(rowToVoterRecord)
+}
+
+/**
+ * Nearby: Get active voters in a city (case-insensitive).
+ */
+export async function queryVotersByCity(
+  datasetId: string,
+  city: string,
+  activeOnly = true,
+  filters?: GeoFilters,
+  limit = 5000,
+): Promise<VoterRecord[]> {
+  const pool = getPool()
+  const statusFilter = activeOnly ? `AND voter_status = 'Active'` : ''
+  const geo = buildGeoWhere(filters, 3)
+  const { rows } = await pool.query(
+    `SELECT ${VOTER_SELECT} FROM voters
+     WHERE dataset_id = $1 AND LOWER(city) = LOWER($2) ${statusFilter} ${geo.clause}
+     LIMIT ${limit}`,
+    [datasetId, city.trim(), ...geo.params]
+  )
+  return rows.map(rowToVoterRecord)
+}
+
+/**
  * Dataset stats: record count + unique city list.
  */
 export async function getDatasetStats(

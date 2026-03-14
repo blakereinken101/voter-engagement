@@ -18,6 +18,8 @@ export interface CampaignConfig {
   voterFile?: string
   surveyQuestions: SurveyQuestionConfig[]
   aiContext?: AICampaignContext
+  /** Custom SMS template for the "Send Text" button. Supports {name} and {volunteer} placeholders. */
+  customSmsTemplate?: string
 }
 
 /**

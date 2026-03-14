@@ -142,7 +142,8 @@ struct RolodexCardView: View {
                             contactFirstName: person.firstName,
                             volunteerName: auth.user?.name ?? "",
                             segment: item.matchResult.segment,
-                            electionDate: auth.campaignConfig?.electionDate
+                            electionDate: auth.campaignConfig?.electionDate,
+                            customTemplate: auth.campaignConfig?.customSmsTemplate
                         )
                         selectedMethod = .text
                         step = .log

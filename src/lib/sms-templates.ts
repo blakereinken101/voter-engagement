@@ -27,7 +27,9 @@ function getTemplates(electionDate?: string): SmsTemplate[] {
   ]
 }
 
-export function getSmsTemplate(segment: VoterSegment | 'unmatched' | undefined, electionDate?: string): string {
+export function getSmsTemplate(segment: VoterSegment | 'unmatched' | undefined, electionDate?: string, customTemplate?: string): string {
+  // If a custom template is set by the campaign admin, use it for all segments
+  if (customTemplate) return customTemplate
   const templates = getTemplates(electionDate)
   const template = templates.find(t => t.segment === (segment || 'unmatched'))
   return template?.message || templates[templates.length - 1].message
@@ -49,9 +51,10 @@ export function generateSmsLinkForContact(
   contactFirstName: string,
   volunteerName: string,
   segment?: VoterSegment,
-  electionDate?: string
+  electionDate?: string,
+  customTemplate?: string,
 ): string {
-  const template = getSmsTemplate(segment, electionDate)
+  const template = getSmsTemplate(segment, electionDate, customTemplate)
   const message = fillTemplate(template, contactFirstName, volunteerName)
   return generateSmsLink(phone, message)
 }

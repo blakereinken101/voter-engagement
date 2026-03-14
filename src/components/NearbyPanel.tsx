@@ -1,10 +1,11 @@
 'use client'
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Star } from 'lucide-react'
+import { Star, Smartphone } from 'lucide-react'
 import { useAppContext } from '@/context/AppContext'
 import { SafeVoterRecord } from '@/types'
 import { calculateVoteScore, determineSegment, isInTargetUniverse } from '@/lib/voter-segments'
+import { generateSmsLinkForContact } from '@/lib/sms-templates'
 import defaultCampaignConfig from '@/lib/campaign-config'
 import { useAuth } from '@/context/AuthContext'
 import clsx from 'clsx'
@@ -16,8 +17,8 @@ function sanitizeInput(input: string): string {
 }
 
 export default function NearbyPanel() {
-  const { state, addPerson } = useAppContext()
-  const { campaignConfig: authConfig } = useAuth()
+  const { state, addPerson, toggleContacted } = useAppContext()
+  const { user, campaignConfig: authConfig } = useAuth()
   const campaignConfig = authConfig || defaultCampaignConfig
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SafeVoterRecord[]>([])
@@ -120,10 +121,43 @@ export default function NearbyPanel() {
       address: voter.residential_address,
       city: voter.city,
       zip: voter.zip,
+      phone: voter.phone ?? undefined,
       age,
       gender: voter.gender === 'U' ? '' : voter.gender,
       category: 'neighbors',
     }, voter)  // Pass voter record to auto-confirm match
+  }
+
+  function handleTextVoter(voter: SafeVoterRecord) {
+    if (!voter.phone) return
+
+    const segment = determineSegment(calculateVoteScore(voter))
+    const smsUrl = generateSmsLinkForContact(
+      voter.phone,
+      voter.first_name,
+      user?.name ?? 'Friend',
+      segment,
+      campaignConfig.electionDate,
+      campaignConfig.customSmsTemplate,
+    )
+    window.open(smsUrl, '_blank')
+
+    // Auto-add contact if not already added
+    if (!isAlreadyAdded(voter)) {
+      handleAddVoter(voter)
+    }
+
+    // Mark outreach as 'text' for the contact
+    // Find the person entry (may have just been added above)
+    setTimeout(() => {
+      const key = `${voter.first_name.toLowerCase()}-${voter.last_name.toLowerCase()}`
+      const person = state.personEntries.find(
+        p => `${p.firstName.toLowerCase()}-${p.lastName.toLowerCase()}` === key
+      )
+      if (person) {
+        toggleContacted(person.id, 'text')
+      }
+    }, 100)
   }
 
   function isAlreadyAdded(voter: SafeVoterRecord): boolean {
@@ -260,16 +294,27 @@ export default function NearbyPanel() {
                             </span>
                           </td>
                           <td className="py-2 px-2">
-                            {added ? (
-                              <span className="text-[10px] text-vc-teal font-bold">Added</span>
-                            ) : (
-                              <button
-                                onClick={() => handleAddVoter(voter)}
-                                className="text-xs bg-vc-purple text-white px-3 py-1.5 rounded-btn font-bold hover:bg-vc-purple-light transition-colors"
-                              >
-                                + Add
-                              </button>
-                            )}
+                            <div className="flex items-center gap-1.5">
+                              {added ? (
+                                <span className="text-[10px] text-vc-teal font-bold">Added</span>
+                              ) : (
+                                <button
+                                  onClick={() => handleAddVoter(voter)}
+                                  className="text-xs bg-vc-purple text-white px-3 py-1.5 rounded-btn font-bold hover:bg-vc-purple-light transition-colors"
+                                >
+                                  + Add
+                                </button>
+                              )}
+                              {voter.phone && (
+                                <button
+                                  onClick={() => handleTextVoter(voter)}
+                                  className="text-xs text-vc-teal hover:bg-vc-teal/20 p-1.5 rounded-btn transition-colors"
+                                  title="Send Text"
+                                >
+                                  <Smartphone className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       )
@@ -291,6 +336,7 @@ export default function NearbyPanel() {
             <NearbyMap
               voters={results}
               onAddVoter={handleAddVoter}
+              onTextVoter={handleTextVoter}
               isAlreadyAdded={isAlreadyAdded}
               centerLat={mapCenter.lat}
               centerLng={mapCenter.lng}

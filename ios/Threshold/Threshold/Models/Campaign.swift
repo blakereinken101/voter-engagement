@@ -12,6 +12,8 @@ struct CampaignConfig: Codable {
     let privacyText: String?
     let surveyQuestions: [SurveyQuestionConfig]?
     let aiContext: AICampaignContext?
+    /// Custom SMS template for the "Send Text" button. Supports {name} and {volunteer} placeholders.
+    let customSmsTemplate: String?
 }
 
 // MARK: - AI Campaign Context

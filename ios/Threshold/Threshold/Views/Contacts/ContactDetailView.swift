@@ -246,7 +246,8 @@ struct ContactDetailView: View {
                             contactFirstName: person.firstName,
                             volunteerName: auth.user?.name ?? "",
                             segment: match?.segment,
-                            electionDate: auth.campaignConfig?.electionDate
+                            electionDate: auth.campaignConfig?.electionDate,
+                            customTemplate: auth.campaignConfig?.customSmsTemplate
                         )
                         selectedMethod = .text
                     } label: {

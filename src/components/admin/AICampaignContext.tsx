@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Save, CheckCircle, AlertCircle, Sparkles, Plus, Trash2, Shield, ChevronDown, ChevronRight } from 'lucide-react'
+import { Save, CheckCircle, AlertCircle, Sparkles, Plus, Trash2, Shield, ChevronDown, ChevronRight, Smartphone } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import type {
   AICampaignContext as AICampaignContextType,
@@ -51,6 +51,7 @@ export default function AICampaignContext() {
   const [fundraisingConfig, setFundraisingConfig] = useState<FundraisingConfig>({})
   const [targetUniverse, setTargetUniverse] = useState<TargetUniverseConfig>({})
   const [promptOverrides, setPromptOverrides] = useState<Record<string, string> | undefined>()
+  const [customSmsTemplate, setCustomSmsTemplate] = useState('')
 
   // Platform overrides (platform admin only)
   const [platformOverrides, setPlatformOverrides] = useState<Partial<AICampaignContextType>>({})
@@ -64,9 +65,11 @@ export default function AICampaignContext() {
 
   // Load existing context
   useEffect(() => {
-    fetch('/api/campaign/ai-context')
-      .then(res => res.json())
-      .then(data => {
+    Promise.all([
+      fetch('/api/campaign/ai-context').then(res => res.json()),
+      fetch('/api/campaign/sms-template').then(res => res.json()),
+    ])
+      .then(([data, smsData]) => {
         const ctx = data.aiContext as AICampaignContextType | undefined
         if (ctx) {
           setGoals(ctx.goals || '')
@@ -86,6 +89,7 @@ export default function AICampaignContext() {
         if (data.platformOverrides) {
           setPlatformOverrides(data.platformOverrides)
         }
+        setCustomSmsTemplate(smsData.customSmsTemplate || '')
       })
       .catch(() => setError('Failed to load AI context'))
       .finally(() => setLoading(false))
@@ -223,15 +227,26 @@ export default function AICampaignContext() {
         payload.platformOverrides = platformOverrides
       }
 
-      const res = await fetch('/api/campaign/ai-context', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+      const [res, smsRes] = await Promise.all([
+        fetch('/api/campaign/ai-context', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }),
+        fetch('/api/campaign/sms-template', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customSmsTemplate: customSmsTemplate.trim() }),
+        }),
+      ])
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Failed to save')
+      }
+      if (!smsRes.ok) {
+        const data = await smsRes.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to save SMS template')
       }
 
       setSaved(true)
@@ -839,6 +854,34 @@ export default function AICampaignContext() {
             Add question
           </button>
         </div>
+      </div>
+
+      {/* Custom SMS Template */}
+      <div className="glass-card p-5 space-y-3 border border-vc-teal/20">
+        <div className="flex items-center gap-2">
+          <Smartphone className="w-4 h-4 text-vc-teal" />
+          <label className={labelClass + ' !mb-0'}>
+            Send Text Template <span className={sublabelClass}>(customize the &quot;Send Text&quot; message)</span>
+          </label>
+        </div>
+        <p className="text-xs text-white/40">
+          Set a custom text message template for the &quot;Send Text&quot; button. Use <code className="text-vc-teal/70">{'{name}'}</code> for the contact&apos;s first name and <code className="text-vc-teal/70">{'{volunteer}'}</code> for the volunteer&apos;s name. Leave blank to use the default segment-based templates.
+        </p>
+        <textarea
+          value={customSmsTemplate}
+          onChange={e => setCustomSmsTemplate(e.target.value)}
+          placeholder="Hey {name}, it's {volunteer}! Just reaching out about..."
+          rows={4}
+          className={`${inputClass} resize-none`}
+        />
+        {customSmsTemplate.trim() && (
+          <div className="glass rounded-lg p-3">
+            <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider mb-1">Preview</p>
+            <p className="text-xs text-white/70 leading-relaxed whitespace-pre-wrap">
+              {customSmsTemplate.replace(/\{name\}/g, 'Jane').replace(/\{volunteer\}/g, 'Alex')}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Save */}

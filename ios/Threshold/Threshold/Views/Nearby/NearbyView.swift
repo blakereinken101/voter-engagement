@@ -200,13 +200,36 @@ struct NearbyView: View {
                                 )
                                 .listRowBackground(Color.vcBg)
                                 .listRowSeparatorTint(Color.vcGray.opacity(0.3))
-                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button {
-                                        markAsSupporter(voter)
+                                        markOutcome(voter, outcome: .opposed)
+                                    } label: {
+                                        Label("Opposed", systemImage: "hand.thumbsdown.fill")
+                                    }
+                                    .tint(Color.vcCoral)
+
+                                    Button {
+                                        markOutcome(voter, outcome: .undecided)
+                                    } label: {
+                                        Label("Unsure", systemImage: "hand.raised.fill")
+                                    }
+                                    .tint(Color.vcGold)
+
+                                    Button {
+                                        markOutcome(voter, outcome: .supporter)
                                     } label: {
                                         Label("Supporter", systemImage: "hand.thumbsup.fill")
                                     }
-                                    .tint(.green)
+                                    .tint(Color.vcTeal)
+
+                                    if !isAlreadyAdded(voter) {
+                                        Button {
+                                            addVoter(voter)
+                                        } label: {
+                                            Label("Add", systemImage: "plus.circle.fill")
+                                        }
+                                        .tint(Color.vcPurple)
+                                    }
                                 }
                             }
 
@@ -301,13 +324,14 @@ struct NearbyView: View {
             contactFirstName: voter.firstName,
             volunteerName: auth.user?.name ?? "",
             segment: segment,
-            electionDate: auth.campaignConfig?.electionDate
+            electionDate: auth.campaignConfig?.electionDate,
+            customTemplate: auth.campaignConfig?.customSmsTemplate
         )
 
-        // Save contact in background (fire-and-forget)
-        if !alreadyAdded {
-            Task {
-                await contacts.addContact(
+        Task {
+            // Auto-add contact if not already added
+            if !alreadyAdded {
+                if let contactId = await contacts.addContact(
                     firstName: voter.firstName,
                     lastName: voter.lastName,
                     phone: voter.phone,
@@ -317,33 +341,47 @@ struct NearbyView: View {
                     age: voter.birthYear.flatMap { Int($0) }.map { Calendar.current.component(.year, from: Date()) - $0 },
                     gender: voter.gender.isEmpty || voter.gender == "U" ? nil : voter.gender,
                     category: .neighbors
-                )
-            }
-        }
-    }
-
-    // MARK: - Mark as Supporter
-
-    private func markAsSupporter(_ voter: SafeVoterRecord) {
-        let currentYear = Calendar.current.component(.year, from: Date())
-        let age = voter.birthYear.flatMap { Int($0) }.map { currentYear - $0 }
-
-        Task {
-            var success = false
-            if isAlreadyAdded(voter) {
-                // Find existing contact and mark as supporter
+                ) {
+                    // Mark outreach as text
+                    await contacts.updateAction(
+                        contactId: contactId,
+                        contacted: true,
+                        outreachMethod: .text
+                    )
+                }
+            } else {
+                // Already added — just mark outreach
                 if let person = contacts.personEntries.first(where: {
                     $0.firstName.lowercased() == voter.firstName.lowercased() &&
                     $0.lastName.lowercased() == voter.lastName.lowercased()
                 }) {
-                    success = await contacts.updateAction(
+                    await contacts.updateAction(
                         contactId: person.id,
                         contacted: true,
-                        contactOutcome: .supporter
+                        outreachMethod: .text
                     )
                 }
+            }
+            await MainActor.run { HapticManager.notification(.success) }
+        }
+    }
+
+    // MARK: - Mark Outcome
+
+    private func markOutcome(_ voter: SafeVoterRecord, outcome: ContactOutcome) {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        let age = voter.birthYear.flatMap { Int($0) }.map { currentYear - $0 }
+
+        Task {
+            var contactId: String?
+
+            if isAlreadyAdded(voter) {
+                contactId = contacts.personEntries.first(where: {
+                    $0.firstName.lowercased() == voter.firstName.lowercased() &&
+                    $0.lastName.lowercased() == voter.lastName.lowercased()
+                })?.id
             } else {
-                success = await contacts.addContactAndMarkSupporter(
+                contactId = await contacts.addContact(
                     firstName: voter.firstName,
                     lastName: voter.lastName,
                     phone: voter.phone,
@@ -355,8 +393,16 @@ struct NearbyView: View {
                     category: .neighbors
                 )
             }
-            if success {
-                await MainActor.run { HapticManager.notification(.success) }
+
+            if let contactId {
+                let success = await contacts.updateAction(
+                    contactId: contactId,
+                    contacted: true,
+                    contactOutcome: outcome
+                )
+                if success {
+                    await MainActor.run { HapticManager.notification(.success) }
+                }
             }
         }
     }
