@@ -11,6 +11,7 @@ import clsx from 'clsx'
 interface Props {
   voters: SafeVoterRecord[]
   onAddVoter: (voter: SafeVoterRecord) => void
+  onTextVoter?: (voter: SafeVoterRecord) => void
   isAlreadyAdded: (voter: SafeVoterRecord) => boolean
   centerLat?: number
   centerLng?: number
@@ -65,7 +66,7 @@ export default function NearbyMap(props: Props) {
   return <MapInner {...props} />
 }
 
-function MapInner({ voters, onAddVoter, isAlreadyAdded, centerLat, centerLng, targetUniverse }: Props) {
+function MapInner({ voters, onAddVoter, onTextVoter, isAlreadyAdded, centerLat, centerLng, targetUniverse }: Props) {
   // Dynamic require since we know we're client-side (avoids SSR issues with Leaflet)
   const { MapContainer, TileLayer, CircleMarker, Popup } = require('react-leaflet')
 
@@ -152,17 +153,26 @@ function MapInner({ voters, onAddVoter, isAlreadyAdded, centerLat, centerLng, ta
                       {Math.round(voteScore * 100)}% vote score
                     </span>
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-2 flex gap-1.5">
                     {added ? (
-                      <span className="text-[10px] text-green-600 font-bold">
+                      <span className="text-[10px] text-green-600 font-bold flex-1 text-center py-1">
                         Already Added
                       </span>
                     ) : (
                       <button
                         onClick={() => onAddVoter(voter)}
-                        className="text-xs bg-vc-purple text-white px-3 py-1 rounded font-bold hover:bg-vc-purple-light transition-colors w-full"
+                        className="text-xs bg-vc-purple text-white px-3 py-1 rounded font-bold hover:bg-vc-purple-light transition-colors flex-1"
                       >
-                        + Add to Contacts
+                        + Add
+                      </button>
+                    )}
+                    {voter.phone && onTextVoter && (
+                      <button
+                        onClick={() => onTextVoter(voter)}
+                        className="text-xs bg-teal-600 text-white px-3 py-1 rounded font-bold hover:bg-teal-500 transition-colors"
+                        title="Send Text"
+                      >
+                        Text
                       </button>
                     )}
                   </div>

@@ -305,10 +305,10 @@ struct NearbyView: View {
             customTemplate: auth.campaignConfig?.customSmsTemplate
         )
 
-        // Save contact in background (fire-and-forget)
-        if !alreadyAdded {
-            Task {
-                await contacts.addContact(
+        Task {
+            // Auto-add contact if not already added
+            if !alreadyAdded {
+                if let contactId = await contacts.addContact(
                     firstName: voter.firstName,
                     lastName: voter.lastName,
                     phone: voter.phone,
@@ -318,8 +318,28 @@ struct NearbyView: View {
                     age: voter.birthYear.flatMap { Int($0) }.map { Calendar.current.component(.year, from: Date()) - $0 },
                     gender: voter.gender.isEmpty || voter.gender == "U" ? nil : voter.gender,
                     category: .neighbors
-                )
+                ) {
+                    // Mark outreach as text
+                    await contacts.updateAction(
+                        contactId: contactId,
+                        contacted: true,
+                        outreachMethod: .text
+                    )
+                }
+            } else {
+                // Already added — just mark outreach
+                if let person = contacts.personEntries.first(where: {
+                    $0.firstName.lowercased() == voter.firstName.lowercased() &&
+                    $0.lastName.lowercased() == voter.lastName.lowercased()
+                }) {
+                    await contacts.updateAction(
+                        contactId: person.id,
+                        contacted: true,
+                        outreachMethod: .text
+                    )
+                }
             }
+            await MainActor.run { HapticManager.notification(.success) }
         }
     }
 

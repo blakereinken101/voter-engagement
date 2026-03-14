@@ -4,7 +4,7 @@ import { SafeVoterRecord, VoterRecord } from '@/types'
 import { geocodeAddress, geocodeZip } from '@/lib/geocode'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { getCampaignConfig } from '@/lib/campaign-config.server'
-import { getDatasetForCampaign, queryVotersByZip, queryVotersByZipPrefix } from '@/lib/voter-db'
+import { getDatasetForCampaign, queryVotersByZip, queryVotersByZipPrefix, queryVotersByGeo, queryVotersByCity } from '@/lib/voter-db'
 
 function sanitizeVoterRecord(record: VoterRecord): SafeVoterRecord {
   const { voter_id, date_of_birth, ...rest } = record
@@ -17,11 +17,25 @@ function sanitizeVoterRecord(record: VoterRecord): SafeVoterRecord {
 /**
  * Parse a street address into components.
  */
-function parseAddress(input: string): { number: string; streetName: string; zip: string | null } {
+function parseAddress(input: string): { number: string; streetName: string; zip: string | null; city: string | null } {
   const cleaned = input.trim()
 
   const zipMatch = cleaned.match(/\b(\d{5})\b/)
   const zip = zipMatch ? zipMatch[1] : null
+
+  // Try to extract city from comma-separated parts (e.g., "123 Main St, Springfield")
+  const commaParts = cleaned.split(',').map(s => s.trim())
+  let city: string | null = null
+  if (commaParts.length >= 2) {
+    // City is typically the part after the first comma, before state/zip
+    const cityCandidate = commaParts[1]
+      .replace(/\b[A-Z]{2}\b/, '')  // remove state abbreviation
+      .replace(/\d{5}/, '')          // remove zip
+      .trim()
+    if (cityCandidate.length >= 2) {
+      city = cityCandidate
+    }
+  }
 
   const streetMatch = cleaned.match(/^(\d+)\s+(.+?)(?:,|\s+(?:apt|unit|#|suite|ste)|\s+\d{5}|$)/i)
   if (streetMatch) {
@@ -30,10 +44,12 @@ function parseAddress(input: string): { number: string; streetName: string; zip:
       .replace(/,.*$/, '')
       .replace(/\b(st|street|ave|avenue|blvd|boulevard|dr|drive|ln|lane|ct|court|way|rd|road|pl|place|cir|circle|ter|terrace|trl|trail|pkwy|parkway|hwy|highway|loop)\b\.?\s*$/i, '')
       .trim()
-    return { number, streetName: streetName.toLowerCase(), zip }
+    return { number, streetName: streetName.toLowerCase(), zip, city }
   }
 
-  return { number: '', streetName: cleaned.replace(/\d{5}/, '').replace(/,.*$/, '').toLowerCase().trim(), zip }
+  // No street number — might be just a city or street name
+  const remaining = cleaned.replace(/\d{5}/, '').replace(/,.*$/, '').trim()
+  return { number: '', streetName: remaining.toLowerCase(), zip, city: city || remaining }
 }
 
 /**
@@ -46,6 +62,35 @@ function extractStreetName(address: string): string {
     .replace(/\b(st|street|ave|avenue|blvd|boulevard|dr|drive|ln|lane|ct|court|way|rd|road|pl|place|cir|circle|ter|terrace|trl|trail|pkwy|parkway|hwy|highway|loop)\b\.?\s*$/i, '')
     .toLowerCase()
     .trim()
+}
+
+/**
+ * Simple fuzzy street name match using Levenshtein-like comparison.
+ * Returns true if the edit distance is small relative to the string length.
+ */
+function fuzzyStreetMatch(a: string, b: string): boolean {
+  if (!a || !b) return false
+  if (a === b) return true
+  const maxLen = Math.max(a.length, b.length)
+  if (maxLen === 0) return true
+  if (Math.abs(a.length - b.length) > 3) return false
+
+  // Simple edit distance (optimized for short strings)
+  const la = a.length, lb = b.length
+  const dp: number[][] = Array.from({ length: la + 1 }, (_, i) =>
+    Array.from({ length: lb + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  )
+  for (let i = 1; i <= la; i++) {
+    for (let j = 1; j <= lb; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+    }
+  }
+  const dist = dp[la][lb]
+  // Allow up to 2 edits for short names, scale for longer ones
+  const threshold = maxLen <= 5 ? 1 : maxLen <= 10 ? 2 : 3
+  return dist <= threshold
 }
 
 /**
@@ -134,16 +179,20 @@ export async function POST(request: NextRequest) {
     const parsed = parseAddress(address.trim().slice(0, 200))
     const searchZip = parsed.zip || (zip ? zip.replace(/[^0-9]/g, '').slice(0, 5) : null)
 
-    if (!searchZip && !parsed.streetName) {
-      return NextResponse.json({ error: 'Could not parse address. Try including a zip code.' }, { status: 400 })
+    if (!searchZip && !parsed.streetName && !parsed.city) {
+      return NextResponse.json({ error: 'Could not parse address. Try including a city name or zip code.' }, { status: 400 })
     }
 
     // Geocode the search address (single Nominatim call)
-    const searchGeo = await geocodeAddress(address.trim().slice(0, 200))
+    // Append state for better geocoding results (e.g. "123 Main St, Easton" → "123 Main St, Easton, CT")
+    const geoQuery = address.trim().slice(0, 200) + (cleanState ? `, ${cleanState}` : '')
+    const searchGeo = await geocodeAddress(geoQuery)
 
-    // Get active voters in same zip + neighboring zips
+    // Get active voters — strategy depends on what info we have
     let candidates: VoterRecord[] = []
+
     if (searchZip) {
+      // Zip code available: use zip-based queries
       if (assignment) {
         const [sameZip, neighborZip] = await Promise.all([
           queryVotersByZip(assignment.datasetId, searchZip, true, assignment.filters),
@@ -160,6 +209,41 @@ export async function POST(request: NextRequest) {
           v.voter_status === 'Active'
         )
         candidates = [...sameZip, ...neighborZip]
+      }
+    } else if (searchGeo && assignment) {
+      // No zip but geocoding succeeded: use geographic bounding box query
+      candidates = await queryVotersByGeo(
+        assignment.datasetId, searchGeo.lat, searchGeo.lng, 0.02, true, assignment.filters
+      )
+      // If too few results, widen the search radius
+      if (candidates.length < 10) {
+        candidates = await queryVotersByGeo(
+          assignment.datasetId, searchGeo.lat, searchGeo.lng, 0.05, true, assignment.filters
+        )
+      }
+    } else if (parsed.city && assignment) {
+      // No zip, no geocode: try city-based search
+      candidates = await queryVotersByCity(
+        assignment.datasetId, parsed.city, true, assignment.filters
+      )
+    } else if (!assignment && voterFile) {
+      // File-based fallback: filter by city name (fuzzy)
+      const searchCity = (parsed.city || '').toLowerCase()
+      const searchStreet = parsed.streetName.toLowerCase()
+      if (searchGeo) {
+        // Use geo sort on file-based voters with coordinates
+        candidates = voterFile.filter(v =>
+          v.voter_status === 'Active' && v.lat != null && v.lng != null
+        )
+      } else if (searchCity) {
+        candidates = voterFile.filter(v =>
+          v.voter_status === 'Active' && v.city.toLowerCase().includes(searchCity)
+        )
+      } else if (searchStreet) {
+        candidates = voterFile.filter(v =>
+          v.voter_status === 'Active' &&
+          extractStreetName(v.residential_address).includes(searchStreet)
+        )
       }
     }
 
@@ -179,25 +263,33 @@ export async function POST(request: NextRequest) {
     if (searchGeo) {
       sorted = sortByDistance(candidates, searchGeo.lat, searchGeo.lng)
     } else {
-      // Fallback: no geocode for search address — use street-name matching
+      // Fallback: no geocode for search address — use fuzzy street-name matching
       sorted = candidates.map(v => {
         const voterStreet = extractStreetName(v.residential_address)
         let proximity = 0
 
-        if (parsed.streetName && voterStreet === parsed.streetName) {
-          proximity = 10000
+        if (parsed.streetName) {
+          if (voterStreet === parsed.streetName) {
+            proximity = 10000
+          } else if (voterStreet.includes(parsed.streetName) || parsed.streetName.includes(voterStreet)) {
+            // Partial match (handles misspellings where one is a substring of the other)
+            proximity = 5000
+          } else if (fuzzyStreetMatch(parsed.streetName, voterStreet)) {
+            // Fuzzy match for misspellings
+            proximity = 3000
+          } else {
+            proximity = 1
+          }
+
+          // Boost by house number proximity
           const searchNum = parsed.number ? parseInt(parsed.number) : NaN
           const voterNum = parseInt(v.residential_address)
-          if (!isNaN(searchNum) && !isNaN(voterNum)) {
+          if (!isNaN(searchNum) && !isNaN(voterNum) && proximity >= 3000) {
             proximity += Math.max(0, 5000 - Math.abs(voterNum - searchNum) * 10)
           }
-        } else if (parsed.streetName && (voterStreet.includes(parsed.streetName) || parsed.streetName.includes(voterStreet))) {
-          proximity = 5000
-        } else {
-          proximity = 1
         }
 
-        return { voter: v, distance: -proximity } // Negative so higher proximity = lower distance
+        return { voter: v, distance: -proximity }
       }).sort((a, b) => a.distance - b.distance)
     }
 
