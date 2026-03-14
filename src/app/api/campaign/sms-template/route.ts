@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { getRequestContext, AuthError, handleAuthError } from '@/lib/auth'
 import { invalidateConfigCache } from '@/lib/campaign-config.server'
+import { invalidateMeCache } from '@/app/api/auth/me/route'
 
 export async function GET() {
   try {
@@ -62,6 +63,7 @@ export async function PUT(request: NextRequest) {
     )
 
     invalidateConfigCache(ctx.campaignId)
+    invalidateMeCache()
 
     return NextResponse.json({ success: true })
   } catch (error) {
