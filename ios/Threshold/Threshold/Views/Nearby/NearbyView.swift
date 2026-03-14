@@ -262,6 +262,7 @@ struct NearbyView: View {
                             }
                         }
                         .listStyle(.plain)
+                        .clipped()
                     }
                 }
 
@@ -661,11 +662,6 @@ struct NearbyVoterPopup: View {
                     .foregroundStyle(Color.partyColor(for: voter.partyAffiliation))
                     .cornerRadius(4)
 
-                // Vote score
-                Text("\(Int(voteScore))% vote score")
-                    .font(.caption.bold().monospacedDigit())
-                    .foregroundStyle(segmentColor)
-
                 // Segment badge
                 SegmentBadge(segment: segment)
 
@@ -698,17 +694,12 @@ struct NearbyVoterPopup: View {
 
                     if let onText {
                         Button(action: onText) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "message.fill")
-                                    .font(.caption)
-                                Text("Text")
-                                    .font(.caption.bold())
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Color.vcTeal)
-                            .cornerRadius(8)
+                            Image(systemName: "message.fill")
+                                .font(.caption)
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 32)
+                                .background(Color.vcTeal)
+                                .cornerRadius(8)
                         }
                     }
                 }
@@ -730,17 +721,12 @@ struct NearbyVoterPopup: View {
 
                     if let onText {
                         Button(action: onText) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "message.fill")
-                                    .font(.caption)
-                                Text("Text")
-                                    .font(.caption.bold())
-                            }
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color.vcTeal)
-                            .cornerRadius(8)
+                            Image(systemName: "message.fill")
+                                .font(.caption)
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .background(Color.vcTeal)
+                                .cornerRadius(8)
                         }
                     }
                 }
@@ -798,15 +784,6 @@ struct NearbyVoterRow: View {
                             .font(.caption)
                             .foregroundStyle(Color.vcSlate)
                     }
-
-                    // Target star (tappable to add)
-                    if let targetConfig, targetConfig.hasAnyCriteria {
-                        TargetStarView(
-                            isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
-                            size: 10,
-                            onTap: onStarTap
-                        )
-                    }
                 }
 
                 Text(voter.residentialAddress)
@@ -814,13 +791,18 @@ struct NearbyVoterRow: View {
                     .foregroundStyle(Color.vcSlate)
                     .lineLimit(1)
             }
+            .layoutPriority(1)
 
             Spacer()
 
-            // Vote score
-            Text("\(Int(voteScore))%")
-                .font(.caption.bold().monospacedDigit())
-                .foregroundStyle(segmentColor)
+            // Target star
+            if let targetConfig, targetConfig.hasAnyCriteria {
+                TargetStarView(
+                    isTarget: VoterSegmentCalculator.isInTargetUniverse(voter: voter, config: targetConfig),
+                    size: 14,
+                    onTap: onStarTap
+                )
+            }
 
             // Party badge
             Text(voter.partyAffiliation)
@@ -831,23 +813,21 @@ struct NearbyVoterRow: View {
                 .foregroundStyle(Color.partyColor(for: voter.partyAffiliation))
                 .cornerRadius(4)
 
-            // Text button (when phone available)
+            // Message icon button (when phone available)
             if let onText {
                 Button(action: onText) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "message.fill")
-                            .font(.caption)
-                        Text("Text")
-                            .font(.caption.bold())
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.vcTeal)
-                    .cornerRadius(6)
+                    Image(systemName: "message.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .frame(width: 32, height: 28)
+                        .background(Color.vcTeal)
+                        .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
             }
+
+            // Flashing swipe hint arrow
+            SwipeHintArrow()
 
             // Add button or status
             if isAdded {
