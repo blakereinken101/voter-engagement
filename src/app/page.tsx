@@ -117,10 +117,10 @@ export default function LandingPage() {
             <span className="text-gradient">actually run.</span>
           </h1>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-6 leading-relaxed">
-            An artificial intelligence organizing platform that reimagines how volunteers interact with campaign tools. Rather than forcing volunteers into rigid workflows, Threshold meets them where they are &mdash; through conversational AI that handles the busywork of data entry and provides personalized coaching based on your campaign&rsquo;s strategy.
+            Threshold is an artificial intelligence organizing platform that makes it easier than ever for volunteers and organizers to talk with their networks and record responses.
           </p>
           <p className="text-lg md:text-xl text-white/60 max-w-2xl mb-10 leading-relaxed">
-            Our <span className="text-gradient font-semibold">relational organizing tool</span> is an AI coach customized to your campaign that helps volunteers work through their networks, match contacts to the voter file, and know who to call, what to say, and when to follow up.
+            Our <span className="text-gradient font-semibold">relational organizing tool</span> features an AI coach customized to your campaign and trained on best organizing practices that helps volunteers work through their networks, then matches contacts and conversations to the voter file.
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
@@ -144,23 +144,23 @@ export default function LandingPage() {
           <span>Relational Organizing Tool</span>
         </div>
         <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white mb-4 text-center tracking-tight">
-          The AI campaign coach that actually knows your race
+          The relational organizing tool is a pen and paper.
         </h2>
         <p className="text-white/50 text-center max-w-2xl mx-auto mb-16">
-          Threshold isn&rsquo;t generic campaign software &mdash; it&rsquo;s an AI assistant trained on your specific race, your issues, and your strategy. Messy real-world input goes in, clean structured data comes out. If your volunteers can text, they can use Threshold.
+          That&rsquo;s why Threshold utilizes cutting hand writing recognition and AI agent technology to create a seamless process that allows volunteers and organizers to take pictures of their own or campaign provided sheets with contacts and conversations and messy handwriting, matching the names and survey responses directly to the voter file. Messy real-world input goes in, clean structured data comes out. Threshold is easier to use than any relational organizing product on the market.
         </p>
         <div className="grid md:grid-cols-3 gap-7 text-left">
           {[
             {
               icon: Settings,
               title: 'Adapts to Your Exact Strategy',
-              desc: 'Your AI coach is securely trained on your campaign\u2019s specific priorities and organizing best practices. Whether your current goal is persuasion, GOTV, volunteer recruitment, fundraising, or rapid list-building, the AI seamlessly tailors its coaching and talking points to match your immediate objective. Built by scrappy organizers, Threshold can be custom-tailored and coded for your unique campaign.',
+              desc: 'Every AI coach is customizable and changeable throughout the phases of your campaign. Whether your current goal is persuasion, GOTV, volunteer recruitment, fundraising, or rapid list-building, the AI seamlessly tailors its coaching and talking points to match that objective.',
               color: 'bg-vc-gold/10 text-vc-gold',
             },
             {
               icon: BookUser,
               title: 'AI-Powered Rolodexing',
-              desc: 'Most volunteers know dozens of potential voters but freeze up when asked to list them. Through natural conversation, the AI acts as a thought partner \u2014 jogging their memory about their neighborhood, workplace, church, and social circles \u2014 rapidly building a high-impact relational outreach list faster than they ever could alone, then handling the data entry for them. Plus it\u2019s only one click for volunteers to send prewritten texts and links to their friends and neighbors.',
+              desc: 'Most volunteers know dozens of potential voters but freeze up when asked to list them. Through natural conversation, the AI acts as a thought partner, by jogging their memory about their neighborhood, workplace, church, and social circles, rapidly building a high-impact relational outreach list faster than they ever could alone, then handling the data entry for them. Plus it\u2019s only one click for volunteers to send prewritten texts and links to their friends and neighbors.',
               color: 'bg-vc-purple/10 text-vc-purple-light',
             },
             {
@@ -172,7 +172,7 @@ export default function LandingPage() {
             {
               icon: Sparkles,
               title: 'Zero-Friction for the Whole Team',
-              desc: 'Organizing doesn\u2019t always go by the book. Sometimes a volunteer texts their organizer a messy recap, or the campaign needs to enter data on someone\u2019s behalf. Threshold\u2019s AI and OCR tools work across accounts \u2014 organizers and campaign staff can process conversations, scan sign-in sheets, and update contact records for any volunteer. Messy real-world input goes in, clean structured data comes out.',
+              desc: 'Organizing doesn\u2019t always go by the book. Sometimes a volunteer texts their organizer a messy recap, or the campaign needs to enter data on someone\u2019s behalf. Threshold\u2019s AI and OCR tools work across accounts. Organizers and campaign staff can process conversations, scan sign-in sheets, and update contact records for any volunteer, similar to how Votebuilder and SalesForce work. Messy real-world input goes in, clean structured data comes out.',
               color: 'bg-vc-purple/10 text-vc-purple',
             },
             {
